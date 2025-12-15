@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { HiPlus, HiUsers, HiLocationMarker, HiClipboardCopy, HiCheck, HiSearch, HiX } from "react-icons/hi";
 import Modal from "../components/Modal";
@@ -63,6 +64,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export default function Groups() {
+  const navigate = useNavigate();
   const groups = useQuery(api.groups.getGroupsAsLeader);
   const createGroup = useMutation(api.groups.createGroup);
   
@@ -294,7 +296,8 @@ export default function Groups() {
           {groups.map((group) => (
             <div
               key={group._id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+              onClick={() => navigate(`/groups/${group._id}`)}
+              className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -336,7 +339,10 @@ export default function Groups() {
                     </p>
                   </div>
                   <button
-                    onClick={() => copyInvitationCode(group.invitationCode)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyInvitationCode(group.invitationCode);
+                    }}
                     className="p-2 rounded-full hover:bg-white/50 transition-colors"
                     title="Copiar código"
                   >

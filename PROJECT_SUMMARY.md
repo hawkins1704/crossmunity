@@ -52,6 +52,22 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - `createdAt`: Timestamp
 - `updatedAt`: Timestamp
 
+#### 5. **Activities (Actividades)**
+- `groupId`: ID del grupo al que pertenece
+- `name`: Nombre de la actividad
+- `address`: Dirección de la actividad
+- `dateTime`: Fecha y hora (timestamp)
+- `description`: Descripción con rich text (HTML)
+- `createdBy`: ID del líder que creó la actividad
+- `createdAt`: Timestamp
+- `updatedAt`: Timestamp
+
+#### 6. **ActivityResponses (Respuestas a Actividades)**
+- `activityId`: ID de la actividad
+- `userId`: ID del usuario que responde
+- `status`: "confirmed" | "pending" | "denied"
+- `respondedAt`: Timestamp de cuando respondió
+
 ## 📐 Reglas de Negocio
 
 ### Grupos
@@ -83,6 +99,16 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 2. Un usuario puede estar inscrito en múltiples cursos
 3. Solo los pastores pueden crear cursos
 
+### Actividades
+1. **Creación**: Solo los líderes pueden crear actividades para sus grupos
+2. **Respuestas**: Todos los miembros del grupo (líderes y discípulos) pueden confirmar o negar asistencia
+3. **Estados de respuesta**:
+   - `confirmed`: El usuario confirmó que asistirá
+   - `pending`: El usuario aún no ha respondido (se muestra automáticamente para miembros sin respuesta)
+   - `denied`: El usuario negó que asistirá
+4. **Visualización**: Todos los miembros pueden ver las listas de confirmados, pendientes y denegados
+5. **Descripción**: Soporta rich text (HTML) con formato: negritas, cursivas, listas con viñetas, listas numeradas
+
 ## ✅ Lo que ya está implementado
 
 ### Backend (Convex)
@@ -92,6 +118,8 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ Tabla `groups` con validaciones
 - ✅ Tabla `grids` para redes
 - ✅ Tabla `courses` para cursos globales
+- ✅ Tabla `activities` para actividades de grupos
+- ✅ Tabla `activityResponses` para respuestas de usuarios a actividades
 - ✅ Índices optimizados para consultas
 
 #### Queries y Mutations
@@ -100,6 +128,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ `getGroupsAsLeader` - Obtiene grupos donde el usuario es líder
 - ✅ `getGroupAsDisciple` - Obtiene el grupo donde el usuario es discípulo
 - ✅ `getGroupByInvitationCode` - Busca grupo por código
+- ✅ `getGroupById` - Obtiene grupo por ID con información completa de discípulos y cursos
 - ✅ `createGroup` - Crea grupo con validaciones (máx 2 líderes, géneros diferentes)
   - Campos: name, address, district, minAge, maxAge, day, time, coLeaderId
   - Validaciones: rango de edad, géneros diferentes, máximo 2 líderes
@@ -134,6 +163,17 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ `getDashboard` - Dashboard completo (grupos, cursos, red)
 - ✅ `updateMyProfile` - Actualiza perfil
 - ✅ `completeProfile` - Completa perfil inicial
+
+**Activities (`convex/activities.ts`)**
+- ✅ `getActivitiesByGroup` - Obtiene todas las actividades de un grupo
+- ✅ `getActivityWithResponses` - Obtiene actividad con respuestas organizadas (confirmados, pendientes, denegados)
+- ✅ `getMyActivityResponse` - Obtiene la respuesta del usuario actual a una actividad
+- ✅ `createActivity` - Crea nueva actividad (solo líderes)
+  - Campos: name, address, dateTime, description (rich text)
+  - Validaciones: nombre mínimo 2 caracteres, dirección válida, fecha futura, descripción mínimo 10 caracteres
+- ✅ `respondToActivity` - Responde a una actividad (confirmar, negar o pendiente)
+- ✅ `updateActivity` - Actualiza una actividad (solo el creador)
+- ✅ `deleteActivity` - Elimina una actividad y sus respuestas (solo el creador)
 
 **Auth (`convex/auth.ts` y `convex/customProfile.ts`)**
 - ✅ Configuración de Convex Auth con Password provider
@@ -183,6 +223,12 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ Estilos globales con gradiente celeste/azul
 - ✅ Scrollbar personalizado
 - ✅ Animaciones
+- ✅ Estilos para Tiptap Editor (ProseMirror)
+- ✅ Estilos para contenido HTML renderizado (prose):
+  - Párrafos con espaciado adecuado
+  - Listas con viñetas y numeradas
+  - Negritas y cursivas
+  - Títulos, enlaces, código, citas
 
 ## 🚧 Lo que falta por implementar
 
@@ -199,7 +245,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 #### 2. **Mi Grupo (`src/pages/MyGroup.tsx`)**
 - [x] Mostrar información del grupo donde el usuario es discípulo
 - [x] Mostrar líderes del grupo con información completa
-- [x] Mostrar otros discípulos del grupo
+- [x] Mostrar otros discípulos del grupo con sus cursos
 - [x] Mostrar información completa del grupo (nombre, dirección, distrito, edad, día, hora)
 - [x] Opción para unirse a un grupo (si no tiene grupo)
 - [x] Formulario para unirse con código de invitación:
@@ -207,6 +253,12 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Validación en tiempo real
   - Manejo de errores del backend
   - Mensaje de éxito al unirse
+- [x] Lista de actividades del grupo
+- [x] Botones para confirmar/negar asistencia a actividades
+- [x] Popup de detalles de actividad con:
+  - Información completa (nombre, dirección, fecha, hora, descripción con rich text)
+  - Botones de confirmación/negación
+  - Listas de confirmados, pendientes y denegados
 - [ ] Mostrar código de invitación (si es líder) - Pendiente (esto va en otra vista)
 
 #### 3. **Mis Grupos (`src/pages/Groups.tsx`)**
@@ -219,6 +271,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Código de invitación (con botón para copiar)
   - Número de discípulos
   - Lista de líderes
+- [x] Cards clickeables que navegan a vista de detalle del grupo
 - [x] Botón para crear nuevo grupo
 - [x] Formulario modal para crear grupo:
   - Nombre del grupo
@@ -233,6 +286,24 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
     - Mensaje si no encuentra usuarios
     - Selección de usuario encontrado
 - [ ] Opción para editar grupo (solo líderes) - Pendiente
+
+#### 3.1. **Detalle del Grupo (`src/pages/GroupDetail.tsx`)**
+- [x] Vista de detalle accesible desde "Mis Grupos" (ruta `/groups/:groupId`)
+- [x] Banner con información del grupo
+- [x] Lista de discípulos con sus cursos
+- [x] Lista de actividades del grupo
+- [x] Botón para crear nueva actividad (solo líderes)
+- [x] Modal para crear actividad con:
+  - Nombre de la actividad
+  - Dirección
+  - Fecha y hora (datetime-local)
+  - Editor rich text para descripción (viñetas, negritas, cursivas, listas numeradas)
+- [x] Botones para confirmar/negar asistencia (líderes y discípulos)
+- [x] Popup de detalles de actividad con:
+  - Información completa (nombre, dirección, fecha, hora, descripción con rich text)
+  - Botones de confirmación/negación
+  - Listas de confirmados, pendientes y denegados
+  - Accesible para todos los miembros del grupo
 
 #### 4. **Mi Red (`src/pages/Grid.tsx`)**
 - [ ] Solo visible para pastores
@@ -253,7 +324,14 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - [ ] `Card` - Componente de tarjeta estilo Notion
 - [ ] `Button` - Botones con estilo consistente
 - [ ] `Input` - Inputs con estilo consistente
-- [x] `Modal` - Modal para formularios (implementado en Groups)
+- [x] `Modal` - Modal para formularios (implementado en Groups y Activities)
+  - Soporta diferentes tamaños (sm, md, lg, xl, 2xl)
+  - Padding adecuado en contenido
+  - Overlay con blur
+- [x] `RichTextEditor` - Editor de texto enriquecido (`src/components/RichTextEditor.tsx`)
+  - Basado en Tiptap
+  - Soporta: negritas, cursivas, listas con viñetas, listas numeradas
+  - Toolbar con botones de formato
 - [ ] `LoadingSpinner` - Spinner de carga
 - [x] `EmptyState` - Estado vacío cuando no hay datos (implementado en Groups)
 
@@ -306,6 +384,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
    - `/` o `/dashboard` - Dashboard principal
    - `/my-group` - Mi grupo como discípulo
    - `/groups` - Mis grupos como líder
+   - `/groups/:groupId` - Detalle del grupo (líderes y discípulos)
    - `/grid` - Mi red (solo pastores)
 
 3. **Validaciones de Backend**: Ya están implementadas en las mutations. El frontend debe mostrar mensajes de error apropiados.
@@ -317,11 +396,15 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 ## 🔄 Flujo de Usuario Típico
 
 1. **Registro/Login**: Usuario se registra o inicia sesión
-2. **Completar perfil**: Si es primera vez, completa perfil (name, role, gender)
+2. **Completar perfil**: Si es primera vez, completa perfil (name, role, gender, gridId opcional)
 3. **Dashboard**: Ve su información y grupos
 4. **Crear grupo**: Puede crear un grupo (se convierte en líder)
 5. **Unirse a grupo**: Puede unirse a otro grupo con código (se convierte en discípulo)
 6. **Gestionar red**: Si es pastor, puede crear y gestionar su red
+7. **Actividades**:
+   - Líderes pueden crear actividades para sus grupos
+   - Todos los miembros pueden confirmar/negar asistencia
+   - Todos pueden ver listas de confirmados, pendientes y denegados
 
 ---
 
@@ -371,4 +454,28 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ Creada query `searchUsersByEmail` para búsqueda parcial de usuarios (excluye usuario actual)
 - ✅ Creado componente `Modal` reutilizable (`src/components/Modal.tsx`)
 - ✅ Diseño estilo Notion con colores celeste/azul aplicado
+- ✅ Implementado sistema completo de Actividades
+  - Schema con tablas `activities` y `activityResponses`
+  - Backend completo en `convex/activities.ts`:
+    - Queries: `getActivitiesByGroup`, `getActivityWithResponses`, `getMyActivityResponse`
+    - Mutations: `createActivity`, `respondToActivity`, `updateActivity`, `deleteActivity`
+  - Editor rich text con Tiptap (`src/components/RichTextEditor.tsx`)
+    - Soporta: negritas, cursivas, listas con viñetas, listas numeradas
+  - Vista de detalle del grupo (`src/pages/GroupDetail.tsx`):
+    - Banner con información del grupo
+    - Lista de discípulos con sus cursos
+    - Lista de actividades con botones de confirmación
+    - Modal para crear actividades (solo líderes)
+    - Popup de detalles con listas de respuestas (todos los miembros)
+  - Vista "Mi Grupo" actualizada (`src/pages/MyGroup.tsx`):
+    - Lista de actividades del grupo
+    - Botones para confirmar/negar asistencia
+    - Popup de detalles con listas de respuestas
+  - Funcionalidades:
+    - Líderes pueden crear actividades con rich text
+    - Todos los miembros pueden confirmar/negar asistencia
+    - Todos pueden ver listas de confirmados, pendientes y denegados
+    - La lista "Por Confirmar" muestra automáticamente miembros sin respuesta
+  - Estilos CSS para renderizado de HTML (rich text)
+  - Cards de grupos clickeables para navegar a vista de detalle
 

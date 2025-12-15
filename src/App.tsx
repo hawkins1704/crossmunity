@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import MyGroup from "./pages/MyGroup";
 import Groups from "./pages/Groups";
 import Grid from "./pages/Grid";
+import GroupDetail from "./pages/GroupDetail";
 
 function App() {
     return (
@@ -37,6 +38,7 @@ function App() {
                             <Route index path="/dashboard" element={<Home />} />
                             <Route path="/my-group" element={<MyGroup />} />
                             <Route path="/groups" element={<Groups />} />
+                            <Route path="/groups/:groupId" element={<GroupDetail />} />
                             <Route path="/grid" element={<Grid />} />
                         </Route>
                     </Routes>

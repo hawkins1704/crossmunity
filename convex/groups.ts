@@ -120,6 +120,70 @@ export const getGroupByInvitationCode = query({
 });
 
 /**
+ * Query: Obtiene un grupo por ID con información completa de discípulos y cursos
+ * Útil para mostrar el detalle completo del grupo
+ */
+export const getGroupById = query({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const group = await ctx.db.get(args.groupId);
+    if (!group) {
+      throw new Error("Grupo no encontrado");
+    }
+
+    // Verificar que el usuario pertenece al grupo (líder o discípulo)
+    const isLeader = group.leaders.includes(userId);
+    const isDisciple = group.disciples.includes(userId);
+
+    if (!isLeader && !isDisciple) {
+      throw new Error("No tienes acceso a este grupo");
+    }
+
+    // Enriquecer con información de líderes
+    const leaders = await Promise.all(
+      group.leaders.map(async (leaderId) => {
+        const leader = await ctx.db.get(leaderId);
+        return leader;
+      })
+    );
+
+    // Enriquecer con información de discípulos y sus cursos
+    const disciples = await Promise.all(
+      group.disciples.map(async (discipleId) => {
+        const disciple = await ctx.db.get(discipleId);
+        if (!disciple) return null;
+
+        // Obtener cursos del discípulo
+        const courses =
+          disciple.currentCourses && disciple.currentCourses.length > 0
+            ? (
+                await Promise.all(
+                  disciple.currentCourses.map((courseId) => ctx.db.get(courseId))
+                )
+              ).filter((course): course is NonNullable<typeof course> => course !== null)
+            : [];
+
+        return {
+          ...disciple,
+          courses,
+        };
+      })
+    );
+
+    return {
+      ...group,
+      leaders: leaders.filter(Boolean),
+      disciples: disciples.filter(Boolean),
+    };
+  },
+});
+
+/**
  * Mutation: Crea un nuevo grupo de conexión
  * Valida que haya máximo 2 líderes y que sean de diferente género si hay 2
  * El usuario que crea el grupo se convierte automáticamente en líder

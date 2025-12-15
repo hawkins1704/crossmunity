@@ -63,4 +63,33 @@ export default defineSchema({
     createdAt: v.number(), // Fecha de creación
     updatedAt: v.number(), // Fecha de última actualización
   }),
+
+  // Tabla de actividades de grupos
+  activities: defineTable({
+    groupId: v.id("groups"), // Grupo al que pertenece la actividad
+    name: v.string(), // Nombre de la actividad
+    address: v.string(), // Dirección de la actividad
+    dateTime: v.number(), // Fecha y hora (timestamp)
+    description: v.string(), // Descripción con rich text (HTML)
+    createdBy: v.id("users"), // Líder que creó la actividad
+    createdAt: v.number(), // Fecha de creación
+    updatedAt: v.number(), // Fecha de última actualización
+  })
+    .index("groupId", ["groupId"]) // Para buscar actividades de un grupo
+    .index("createdBy", ["createdBy"]), // Para buscar actividades creadas por un usuario
+
+  // Tabla de respuestas de usuarios a actividades
+  activityResponses: defineTable({
+    activityId: v.id("activities"), // Actividad a la que responde
+    userId: v.id("users"), // Usuario que responde
+    status: v.union(
+      v.literal("confirmed"), // Confirmado (asistirá)
+      v.literal("pending"), // Pendiente (aún no responde)
+      v.literal("denied") // Denegado (no asistirá)
+    ),
+    respondedAt: v.number(), // Timestamp de cuando respondió
+  })
+    .index("activityId", ["activityId"]) // Para buscar respuestas de una actividad
+    .index("userId", ["userId"]) // Para buscar respuestas de un usuario
+    .index("activityId_userId", ["activityId", "userId"]), // Índice compuesto para búsqueda única
 });
