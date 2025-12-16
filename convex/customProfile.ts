@@ -11,6 +11,7 @@ export default Password<DataModel>({
       gender: params.gender as "Male" | "Female",
       gridId: params.gridId ? (params.gridId as Id<"grids">) : undefined, // Opcional por ahora pero requerido en frontend
       isActiveInSchool: false,
+      isAdmin: false, // Por defecto false al registrarse
     };
   },
 });

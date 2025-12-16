@@ -184,6 +184,69 @@ export const getGroupById = query({
 });
 
 /**
+ * Query: Obtiene información de discípulos que son líderes de otros grupos
+ * Recibe un array de user IDs y retorna cuáles son líderes junto con información de sus grupos
+ */
+export const getDisciplesWhoAreLeaders = query({
+  args: { discipleIds: v.array(v.id("users")) },
+  handler: async (ctx, args) => {
+    if (args.discipleIds.length === 0) {
+      return [];
+    }
+
+    // Obtener todos los grupos
+    const allGroups = await ctx.db.query("groups").collect();
+
+    // Crear un mapa de userId -> grupos donde es líder
+    const leadersMap = new Map<Id<"users">, Array<typeof allGroups[0]>>();
+
+    // Para cada discípulo, buscar si es líder de algún grupo
+    for (const discipleId of args.discipleIds) {
+      const groupsWhereLeader = allGroups.filter((group) =>
+        group.leaders.includes(discipleId)
+      );
+
+      if (groupsWhereLeader.length > 0) {
+        leadersMap.set(discipleId, groupsWhereLeader);
+      }
+    }
+
+    // Enriquecer con información del usuario y sus grupos
+    const result = await Promise.all(
+      Array.from(leadersMap.entries()).map(async ([userId, groups]) => {
+        const user = await ctx.db.get(userId);
+        if (!user) return null;
+
+        // Enriquecer grupos con información de líderes y discípulos
+        const enrichedGroups = await Promise.all(
+          groups.map(async (group) => {
+            const groupLeaders = await Promise.all(
+              group.leaders.map((leaderId) => ctx.db.get(leaderId))
+            );
+            const groupDisciples = await Promise.all(
+              group.disciples.map((discipleId) => ctx.db.get(discipleId))
+            );
+
+            return {
+              ...group,
+              leaders: groupLeaders.filter(Boolean),
+              disciples: groupDisciples.filter(Boolean),
+            };
+          })
+        );
+
+        return {
+          user,
+          groups: enrichedGroups,
+        };
+      })
+    );
+
+    return result.filter((item): item is NonNullable<typeof item> => item !== null);
+  },
+});
+
+/**
  * Mutation: Crea un nuevo grupo de conexión
  * Valida que haya máximo 2 líderes y que sean de diferente género si hay 2
  * El usuario que crea el grupo se convierte automáticamente en líder
@@ -388,6 +451,11 @@ export const updateGroup = mutation({
     groupId: v.id("groups"),
     name: v.optional(v.string()),
     address: v.optional(v.string()),
+    district: v.optional(v.string()),
+    minAge: v.optional(v.number()),
+    maxAge: v.optional(v.number()),
+    day: v.optional(v.string()),
+    time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -405,9 +473,24 @@ export const updateGroup = mutation({
       throw new Error("Solo los líderes pueden actualizar el grupo");
     }
 
+    // Validar rango de edad si se proporciona
+    if (args.minAge !== undefined && args.maxAge !== undefined) {
+      if (args.minAge > args.maxAge) {
+        throw new Error("La edad mínima no puede ser mayor que la edad máxima");
+      }
+      if (args.minAge < 0 || args.maxAge < 0) {
+        throw new Error("Las edades deben ser números positivos");
+      }
+    }
+
     const updates: {
       name?: string;
       address?: string;
+      district?: string;
+      minAge?: number;
+      maxAge?: number;
+      day?: string;
+      time?: string;
       updatedAt: number;
     } = {
       updatedAt: Date.now(),
@@ -419,6 +502,26 @@ export const updateGroup = mutation({
 
     if (args.address !== undefined) {
       updates.address = args.address;
+    }
+
+    if (args.district !== undefined) {
+      updates.district = args.district;
+    }
+
+    if (args.minAge !== undefined) {
+      updates.minAge = args.minAge;
+    }
+
+    if (args.maxAge !== undefined) {
+      updates.maxAge = args.maxAge;
+    }
+
+    if (args.day !== undefined) {
+      updates.day = args.day;
+    }
+
+    if (args.time !== undefined) {
+      updates.time = args.time;
     }
 
     await ctx.db.patch(args.groupId, updates);

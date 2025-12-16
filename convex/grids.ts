@@ -51,6 +51,44 @@ export const searchGridsByName = query({
 });
 
 /**
+ * Query: Obtiene todas las redes (solo para administradores)
+ */
+export const getAllGrids = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden ver todas las redes");
+    }
+
+    const grids = await ctx.db.query("grids").collect();
+    
+    // Enriquecer con información del pastor
+    const enrichedGrids = await Promise.all(
+      grids.map(async (grid) => {
+        const pastor = await ctx.db.get(grid.pastorId);
+        return {
+          ...grid,
+          pastor: pastor
+            ? {
+                name: pastor.name,
+                email: pastor.email,
+              }
+            : null,
+        };
+      })
+    );
+
+    return enrichedGrids;
+  },
+});
+
+/**
  * Query: Obtiene la red (grid) del pastor actual
  * Retorna null si el usuario no es pastor o no tiene red creada
  */
@@ -363,6 +401,265 @@ export const updateGrid = mutation({
     await ctx.db.patch(args.gridId, {
       name: args.name,
       updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Query: Obtiene miembros de una red específica (solo para administradores)
+ */
+export const getGridMembersForAdmin = query({
+  args: { gridId: v.id("grids") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden ver los miembros de las redes");
+    }
+
+    const members = await ctx.db
+      .query("users")
+      .withIndex("gridId", (q) => q.eq("gridId", args.gridId))
+      .collect();
+
+    return members;
+  },
+});
+
+/**
+ * Query: Obtiene estadísticas de una red específica (solo para administradores)
+ */
+export const getGridStatsForAdmin = query({
+  args: { gridId: v.id("grids") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden ver las estadísticas de las redes");
+    }
+
+    const grid = await ctx.db.get(args.gridId);
+    if (!grid) {
+      return {
+        totalMembers: 0,
+        membersInSchool: 0,
+        totalGroups: 0,
+        maleCount: 0,
+        femaleCount: 0,
+      };
+    }
+
+    // Obtener todos los miembros de la red
+    const members = await ctx.db
+      .query("users")
+      .withIndex("gridId", (q) => q.eq("gridId", args.gridId))
+      .collect();
+
+    // Calcular estadísticas
+    const totalMembers = members.length;
+    const membersInSchool = members.filter(
+      (member) => member.isActiveInSchool
+    ).length;
+    const maleCount = members.filter((member) => member.gender === "Male").length;
+    const femaleCount = members.filter(
+      (member) => member.gender === "Female"
+    ).length;
+
+    // Contar grupos creados por miembros de la red
+    const allGroups = await ctx.db.query("groups").collect();
+    const memberIds = new Set(members.map((m) => m._id));
+    const groupsInGrid = allGroups.filter((group) =>
+      group.leaders.some((leaderId) => memberIds.has(leaderId))
+    );
+    const totalGroups = groupsInGrid.length;
+
+    return {
+      totalMembers,
+      membersInSchool,
+      totalGroups,
+      maleCount,
+      femaleCount,
+    };
+  },
+});
+
+/**
+ * Mutation: Actualiza el nombre de una red (solo para administradores)
+ */
+export const updateGridForAdmin = mutation({
+  args: {
+    gridId: v.id("grids"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden actualizar redes");
+    }
+
+    const grid = await ctx.db.get(args.gridId);
+    if (!grid) {
+      throw new Error("Red no encontrada");
+    }
+
+    await ctx.db.patch(args.gridId, {
+      name: args.name,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Mutation: Elimina una red (solo para administradores)
+ * También remueve la referencia de gridId de todos los usuarios que pertenecían a la red
+ */
+export const deleteGrid = mutation({
+  args: {
+    gridId: v.id("grids"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden eliminar redes");
+    }
+
+    const grid = await ctx.db.get(args.gridId);
+    if (!grid) {
+      throw new Error("Red no encontrada");
+    }
+
+    // Remover gridId de todos los usuarios que pertenecían a esta red
+    const members = await ctx.db
+      .query("users")
+      .withIndex("gridId", (q) => q.eq("gridId", args.gridId))
+      .collect();
+
+    await Promise.all(
+      members.map((member) =>
+        ctx.db.patch(member._id, {
+          gridId: undefined,
+        })
+      )
+    );
+
+    // Eliminar la red
+    await ctx.db.delete(args.gridId);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Mutation: Agrega un usuario a una red específica (solo para administradores)
+ */
+export const addMemberToGridForAdmin = mutation({
+  args: {
+    gridId: v.id("grids"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden agregar miembros a las redes");
+    }
+
+    const grid = await ctx.db.get(args.gridId);
+    if (!grid) {
+      throw new Error("Red no encontrada");
+    }
+
+    // Buscar el usuario por email
+    const member = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!member) {
+      throw new Error("Usuario no encontrado con ese email");
+    }
+
+    // Verificar que el usuario no pertenezca ya a otra red
+    if (member.gridId && member.gridId !== args.gridId) {
+      throw new Error("El usuario ya pertenece a otra red");
+    }
+
+    // Si ya pertenece a esta red, no hacer nada
+    if (member.gridId === args.gridId) {
+      return { success: true, message: "El usuario ya pertenece a esta red" };
+    }
+
+    // Agregar el usuario a la red
+    await ctx.db.patch(member._id, {
+      gridId: args.gridId,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Mutation: Remueve un usuario de una red específica (solo para administradores)
+ */
+export const removeMemberFromGridForAdmin = mutation({
+  args: {
+    gridId: v.id("grids"),
+    memberId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden remover miembros de las redes");
+    }
+
+    const grid = await ctx.db.get(args.gridId);
+    if (!grid) {
+      throw new Error("Red no encontrada");
+    }
+
+    const member = await ctx.db.get(args.memberId);
+    if (!member) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    if (member.gridId !== args.gridId) {
+      throw new Error("El usuario no pertenece a esta red");
+    }
+
+    // Remover el usuario de la red
+    await ctx.db.patch(args.memberId, {
+      gridId: undefined,
     });
 
     return { success: true };

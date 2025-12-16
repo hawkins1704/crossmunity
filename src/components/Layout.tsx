@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
   HiHome,
   HiUsers,
@@ -10,12 +12,23 @@ import {
   HiLogout,
   HiUser,
   HiSparkles,
+  HiAcademicCap,
+  HiBookOpen,
 } from "react-icons/hi";
 
-const navigation = [
+const baseNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: HiHome },
   { name: "Mi Grupo", href: "/my-group", icon: HiUser },
   { name: "Mis Grupos", href: "/groups", icon: HiUsers },
+  { name: "Escuela", href: "/school", icon: HiAcademicCap },
+];
+
+const adminNavigation = [
+  { name: "Cursos", href: "/courses-admin", icon: HiBookOpen },
+  { name: "Redes", href: "/grid", icon: HiGlobeAlt },
+];
+
+const pastorNavigation = [
   { name: "Mi Red", href: "/grid", icon: HiGlobeAlt },
 ];
 
@@ -24,6 +37,18 @@ const Layout = () => {
   const location = useLocation();
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
+  const profile = useQuery(api.users.getMyProfile);
+
+  // Combinar navegación según el rol del usuario
+  let navigation = [...baseNavigation];
+  
+  if (profile?.isAdmin) {
+    // Administradores ven todas las secciones admin
+    navigation = [...navigation, ...adminNavigation];
+  } else if (profile?.role === "Pastor") {
+    // Pastores ven "Mi Red" en lugar de "Redes"
+    navigation = [...navigation, ...pastorNavigation];
+  }
 
   const handleSignOut = async () => {
     await signOut();
@@ -86,7 +111,40 @@ const Layout = () => {
           </nav>
 
           {/* Footer móvil */}
-          <div className="border-t border-slate-700/50 px-4 py-4">
+          <div className="border-t border-slate-700/50 px-4 py-4 space-y-2">
+            {/* Perfil del usuario */}
+            {profile && (
+              <Link
+                to="/profile"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/profile"
+                    ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/30"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                }`}
+              >
+                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex-shrink-0">
+                  <span className="text-white text-xs font-bold">
+                    {profile.name
+                      ? profile.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : profile.email?.[0].toUpperCase() || "U"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">
+                    {profile.name || "Usuario"}
+                  </p>
+                  <p className="text-xs opacity-75 truncate">
+                    {profile.email || ""}
+                  </p>
+                </div>
+              </Link>
+            )}
             <button
               onClick={handleSignOut}
               className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
@@ -112,16 +170,16 @@ const Layout = () => {
           </div>
 
           {/* Navegación desktop */}
-          <nav className="flex-1 space-y-2 px-4 py-6 overflow-y-auto">
+          <nav className="flex-1 space-y-3 px-4 py-6 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-4 rounded-full p-4 text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/30"
+                      ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white "
                       : "text-slate-300 hover:text-white hover:bg-slate-700/50"
                   }`}
                 >
@@ -133,10 +191,42 @@ const Layout = () => {
           </nav>
 
           {/* Footer desktop */}
-          <div className="border-t border-slate-700/50 px-4 py-4">
+          <div className="border-t border-slate-700/50 px-4 py-4 space-y-2">
+            {/* Perfil del usuario */}
+            {profile && (
+              <Link
+                to="/profile"
+                className={`flex items-center gap-4 rounded-full p-4 text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/profile"
+                    ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                }`}
+              >
+                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex-shrink-0">
+                  <span className="text-white text-sm font-bold">
+                    {profile.name
+                      ? profile.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : profile.email?.[0].toUpperCase() || "U"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">
+                    {profile.name || "Usuario"}
+                  </p>
+                  <p className="text-xs opacity-75 truncate">
+                    {profile.email || ""}
+                  </p>
+                </div>
+              </Link>
+            )}
             <button
               onClick={handleSignOut}
-              className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
+              className="flex w-full items-center gap-4 rounded-full p-4 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
             >
               <HiLogout className="h-5 w-5" />
               <span>Cerrar Sesión</span>

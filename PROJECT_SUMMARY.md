@@ -25,6 +25,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - `leader`: ID del líder asignado cuando se une a un grupo (opcional, solo 1)
 - `isActiveInSchool`: boolean
 - `currentCourses`: array de IDs de cursos (opcional)
+- `isAdmin`: boolean (opcional, default false) - Solo para gestión administrativa
 
 #### 2. **Groups (Grupos de Conexión)**
 - `name`: Nombre del grupo
@@ -49,6 +50,17 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 #### 4. **Courses (Cursos)**
 - `name`: Nombre del curso
 - `description`: Descripción opcional
+- `startDate`: Fecha de inicio del curso (timestamp, opcional)
+- `endDate`: Fecha de fin del curso (timestamp, opcional)
+- `durationWeeks`: Duración en semanas (opcional, default 9)
+- `createdAt`: Timestamp
+- `updatedAt`: Timestamp
+
+#### 4.1. **CourseProgress (Progreso de Cursos)**
+- `userId`: ID del usuario
+- `courseId`: ID del curso
+- `completedWeeks`: Array de números [1-9] (semanas completadas)
+- `completedWorkAndExam`: boolean (trabajo y examen completado)
 - `createdAt`: Timestamp
 - `updatedAt`: Timestamp
 
@@ -97,7 +109,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 ### Cursos
 1. Los cursos son globales (no específicos por red)
 2. Un usuario puede estar inscrito en múltiples cursos
-3. Solo los pastores pueden crear cursos
+3. Solo los administradores pueden crear cursos
 
 ### Actividades
 1. **Creación**: Solo los líderes pueden crear actividades para sus grupos
@@ -129,31 +141,46 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ `getGroupAsDisciple` - Obtiene el grupo donde el usuario es discípulo
 - ✅ `getGroupByInvitationCode` - Busca grupo por código
 - ✅ `getGroupById` - Obtiene grupo por ID con información completa de discípulos y cursos
+- ✅ `getDisciplesWhoAreLeaders` - Obtiene información de discípulos que son líderes de otros grupos
+  - Retorna usuario y sus grupos con información completa (líderes y discípulos)
 - ✅ `createGroup` - Crea grupo con validaciones (máx 2 líderes, géneros diferentes)
   - Campos: name, address, district, minAge, maxAge, day, time, coLeaderId
   - Validaciones: rango de edad, géneros diferentes, máximo 2 líderes
 - ✅ `joinGroup` - Une usuario a grupo (asigna líder según género)
-- ✅ `updateGroup` - Actualiza información del grupo
+- ✅ `updateGroup` - Actualiza información del grupo (solo líderes)
+  - Campos editables: name, address, district, minAge, maxAge, day, time
+  - Validaciones: rango de edad, solo líderes pueden actualizar
 
 **Grids (`convex/grids.ts`)**
 - ✅ `getMyGrid` - Obtiene la red del pastor
-- ✅ `getGridMembers` - Obtiene miembros de la red
-- ✅ `getGridStats` - Estadísticas de la red
+- ✅ `getAllGrids` - Obtiene todas las redes (solo administradores)
+- ✅ `getGridMembers` - Obtiene miembros de la red del pastor
+- ✅ `getGridMembersForAdmin` - Obtiene miembros de una red específica (solo administradores)
+- ✅ `getGridStats` - Estadísticas de la red del pastor
+- ✅ `getGridStatsForAdmin` - Estadísticas de una red específica (solo administradores)
 - ✅ `searchGridsByName` - Busca redes por nombre (búsqueda parcial, hasta 10 resultados)
 - ✅ `createGrid` - Crea red (solo pastores, una por pastor)
-- ✅ `addMemberToGrid` - Agrega miembro a la red
-- ✅ `removeMemberFromGrid` - Remueve miembro de la red
-- ✅ `updateGrid` - Actualiza nombre de la red
+- ✅ `addMemberToGrid` - Agrega miembro a la red del pastor
+- ✅ `addMemberToGridForAdmin` - Agrega miembro a una red específica (solo administradores)
+- ✅ `removeMemberFromGrid` - Remueve miembro de la red del pastor
+- ✅ `removeMemberFromGridForAdmin` - Remueve miembro de una red específica (solo administradores)
+- ✅ `updateGrid` - Actualiza nombre de la red (solo el pastor de la red)
+- ✅ `updateGridForAdmin` - Actualiza nombre de una red (solo administradores)
+- ✅ `deleteGrid` - Elimina una red y remueve a todos sus miembros (solo administradores)
 
 **Courses (`convex/courses.ts`)**
 - ✅ `getAllCourses` - Obtiene todos los cursos
-- ✅ `getMyCourses` - Obtiene cursos del usuario
+- ✅ `getMyCourses` - Obtiene cursos del usuario con progreso semanal
 - ✅ `getCourseById` - Obtiene curso específico
-- ✅ `createCourse` - Crea curso (solo pastores)
+- ✅ `getCourseProgress` - Obtiene progreso del usuario en un curso con estados calculados
+- ✅ `createCourse` - Crea curso (solo administradores)
 - ✅ `enrollInCourses` - Inscribe en cursos
 - ✅ `unenrollFromCourses` - Desinscribe de cursos
 - ✅ `updateSchoolStatus` - Actualiza estado de escuela
-- ✅ `updateCourse` - Actualiza información del curso
+- ✅ `updateCourse` - Actualiza información del curso (solo administradores)
+- ✅ `deleteCourse` - Elimina curso y su progreso asociado (solo administradores)
+- ✅ `toggleWeekCompletion` - Marca o desmarca una semana como completada
+- ✅ `toggleWorkAndExam` - Marca o desmarca trabajo y examen como completado
 
 **Users (`convex/users.ts`)**
 - ✅ `getMyProfile` - Perfil completo del usuario
@@ -204,19 +231,98 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 #### Layout (`src/components/Layout.tsx`)
 - ✅ Sidebar con navegación
 - ✅ Diseño responsive (hamburger menu en mobile)
-- ✅ Rutas configuradas: Dashboard, Mi Grupo, Mis Grupos, Mi Red
+- ✅ Rutas configuradas: Dashboard, Mi Grupo, Mis Grupos, Escuela
+- ✅ Rutas de administración (solo para admins): Cursos, Redes
+- ✅ Rutas para pastores: Mi Red (en lugar de Redes)
+- ✅ Navegación condicional según rol del usuario
 - ✅ Botón de cerrar sesión
+- ✅ Acceso al perfil desde el sidebar
 
 #### Rutas (`src/App.tsx`)
 - ✅ Protección de rutas con Convex Auth
 - ✅ Redirección a /login si no está autenticado
 - ✅ Layout aplicado a rutas autenticadas
 
+#### Páginas Implementadas
+
+**Mi Grupo (`src/pages/MyGroup.tsx`)**
+- ✅ Vista del grupo donde el usuario es discípulo
+- ✅ Información completa del grupo (nombre, dirección, distrito, edad, día, hora)
+- ✅ Lista de líderes con información detallada
+- ✅ Lista de otros discípulos con sus cursos
+- ✅ Formulario para unirse a un grupo con código de invitación
+- ✅ Lista de actividades del grupo
+- ✅ Botones para confirmar/negar asistencia a actividades
+- ✅ Popup de detalles de actividad con listas de respuestas
+
+**Mis Grupos (`src/pages/Groups.tsx`)**
+- ✅ Lista de grupos donde el usuario es líder
+- ✅ Cards con información completa del grupo
+- ✅ Código de invitación con botón para copiar
+- ✅ Cards clickeables que navegan a vista de detalle
+- ✅ Botón para crear nuevo grupo
+- ✅ Modal con formulario completo para crear grupo
+- ✅ Buscador de co-líder con autocompletado
+
+**Detalle del Grupo (`src/pages/GroupDetail.tsx`)**
+- ✅ Vista de detalle accesible desde "Mis Grupos" (ruta `/groups/:groupId`)
+- ✅ Banner con información completa del grupo (nombre, dirección, distrito, edad, día, hora)
+- ✅ Botón de editar en el banner (solo visible para líderes)
+- ✅ Modal para editar información del grupo (solo líderes):
+  - Formulario prellenado con datos actuales
+  - Campos editables: nombre, dirección, distrito, rango de edad, día, hora
+  - Validaciones en frontend y backend
+- ✅ Lista de líderes con información detallada
+- ✅ Lista de discípulos con sus cursos inscritos
+- ✅ Modal de detalles de discípulo con información completa y progreso de cursos
+- ✅ Sección de líderes (discípulos que tienen su propio grupo):
+  - Tabla para desktop y cards para mobile
+  - Click en líder abre modal con información de sus grupos
+  - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
+- ✅ Lista de actividades del grupo ordenadas por fecha
+- ✅ Modal para crear actividad con editor rich text (solo líderes)
+- ✅ Botones para confirmar/negar asistencia a actividades
+- ✅ Popup de detalles de actividad con listas organizadas:
+  - Confirmados (con check verde)
+  - Por Confirmar (pendientes, automáticamente incluye miembros sin respuesta)
+  - No asistirán (denegados)
+- ✅ Estados vacíos cuando no hay discípulos o actividades
+- ✅ Navegación de regreso a "Mis Grupos"
+
+**Escuela (`src/pages/School.tsx`)**
+- ✅ Vista de cursos inscritos del usuario
+- ✅ Modal para inscribirse en nuevos cursos
+- ✅ Progreso semanal por curso (9 semanas + trabajo/examen)
+- ✅ Estados visuales calculados automáticamente: Al día (verde), Atrasado (rojo), Pendiente (gris)
+- ✅ Botones interactivos para marcar semanas completadas
+- ✅ Botón para marcar trabajo y examen completado
+- ✅ Información de fechas de inicio y fin de cada curso
+- ✅ Diseño con cards y colores consistentes
+
+**Mi Perfil (`src/pages/Profile.tsx`)**
+- ✅ Vista de información personal del usuario
+- ✅ Edición de nombre, género y teléfono
+- ✅ Toggle para estado de escuela (isActiveInSchool)
+- ✅ Información relacionada: cursos inscritos, red, líder asignado
+- ✅ Acceso desde sidebar haciendo click en nombre del usuario
+- ✅ Diseño con cards y formularios estilo Notion
+
+**Redes (`src/pages/Grid.tsx`)**
+- ✅ Vista diferenciada para administradores y pastores
+- ✅ Administradores: gestión completa de todas las redes
+- ✅ Pastores: gestión de su propia red
+- ✅ Estadísticas expandibles por red
+- ✅ Gestión de miembros con buscador de email
+- ✅ Modales para edición y confirmaciones
+
+**Cursos - Administración (`src/pages/CoursesAdmin.tsx`)**
+- ✅ Solo visible para administradores
+- ✅ Lista de todos los cursos con información completa
+- ✅ Crear, editar y eliminar cursos
+- ✅ Gestión de fechas y duración automática
+
 #### Páginas Placeholder
-- ✅ `Home.tsx` - Página principal (placeholder)
-- ✅ `MyGroup.tsx` - Mi Grupo (placeholder)
-- ✅ `Groups.tsx` - Mis Grupos (placeholder)
-- ✅ `Grid.tsx` - Mi Red (placeholder)
+- ⚠️ `Home.tsx` - Dashboard principal (placeholder básico - falta implementar funcionalidad completa)
 
 #### Estilos (`src/index.css`)
 - ✅ Configuración de Tailwind CSS
@@ -235,122 +341,62 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 ### Frontend - Páginas Principales
 
 #### 1. **Dashboard (`src/pages/Home.tsx` o `/dashboard`)**
-- [ ] Mostrar información del usuario (perfil)
-- [ ] Mostrar grupo como discípulo (si existe)
-- [ ] Mostrar grupos como líder
-- [ ] Mostrar cursos del usuario
-- [ ] Mostrar información de red (si es pastor)
+- [ ] Implementar dashboard completo (actualmente es solo un placeholder)
+- [ ] Mostrar información resumida del usuario (perfil)
+- [ ] Mostrar grupo como discípulo (si existe) con link a `/my-group`
+- [ ] Mostrar grupos como líder con links a `/groups/:groupId`
+- [ ] Mostrar cursos del usuario con progreso resumido
+- [ ] Mostrar información de red (si es pastor) con link a `/grid`
+- [ ] Mostrar actividades próximas del usuario (próximas 5 actividades)
 - [ ] Diseño estilo Notion con cards y colores pasteles
-
-#### 2. **Mi Grupo (`src/pages/MyGroup.tsx`)**
-- [x] Mostrar información del grupo donde el usuario es discípulo
-- [x] Mostrar líderes del grupo con información completa
-- [x] Mostrar otros discípulos del grupo con sus cursos
-- [x] Mostrar información completa del grupo (nombre, dirección, distrito, edad, día, hora)
-- [x] Opción para unirse a un grupo (si no tiene grupo)
-- [x] Formulario para unirse con código de invitación:
-  - Input con formato de código (6 caracteres, mayúsculas)
-  - Validación en tiempo real
-  - Manejo de errores del backend
-  - Mensaje de éxito al unirse
-- [x] Lista de actividades del grupo
-- [x] Botones para confirmar/negar asistencia a actividades
-- [x] Popup de detalles de actividad con:
-  - Información completa (nombre, dirección, fecha, hora, descripción con rich text)
-  - Botones de confirmación/negación
-  - Listas de confirmados, pendientes y denegados
-- [ ] Mostrar código de invitación (si es líder) - Pendiente (esto va en otra vista)
-
-#### 3. **Mis Grupos (`src/pages/Groups.tsx`)**
-- [x] Lista de grupos donde el usuario es líder
-- [x] Card para cada grupo con:
-  - Nombre y dirección
-  - Distrito
-  - Rango de edad (si está definido)
-  - Día y hora de reunión
-  - Código de invitación (con botón para copiar)
-  - Número de discípulos
-  - Lista de líderes
-- [x] Cards clickeables que navegan a vista de detalle del grupo
-- [x] Botón para crear nuevo grupo
-- [x] Formulario modal para crear grupo:
-  - Nombre del grupo
-  - Dirección
-  - Distrito (dropdown con todos los distritos de Lima)
-  - Rango de edad (min y max, opcional)
-  - Día de la semana (dropdown)
-  - Hora (input tipo time)
-  - Buscador de co-líder con autocompletado:
-    - Búsqueda en tiempo real por email
-    - Muestra resultados mientras se escribe
-    - Mensaje si no encuentra usuarios
-    - Selección de usuario encontrado
-- [ ] Opción para editar grupo (solo líderes) - Pendiente
-
-#### 3.1. **Detalle del Grupo (`src/pages/GroupDetail.tsx`)**
-- [x] Vista de detalle accesible desde "Mis Grupos" (ruta `/groups/:groupId`)
-- [x] Banner con información del grupo
-- [x] Lista de discípulos con sus cursos
-- [x] Lista de actividades del grupo
-- [x] Botón para crear nueva actividad (solo líderes)
-- [x] Modal para crear actividad con:
-  - Nombre de la actividad
-  - Dirección
-  - Fecha y hora (datetime-local)
-  - Editor rich text para descripción (viñetas, negritas, cursivas, listas numeradas)
-- [x] Botones para confirmar/negar asistencia (líderes y discípulos)
-- [x] Popup de detalles de actividad con:
-  - Información completa (nombre, dirección, fecha, hora, descripción con rich text)
-  - Botones de confirmación/negación
-  - Listas de confirmados, pendientes y denegados
-  - Accesible para todos los miembros del grupo
-
-#### 4. **Mi Red (`src/pages/Grid.tsx`)**
-- [ ] Solo visible para pastores
-- [ ] Si no tiene red: opción para crear una
-- [ ] Si tiene red:
-  - Estadísticas de la red (cards con números):
-    - Total de miembros
-    - Miembros en escuela
-    - Grupos creados
-    - Distribución por género (hombres/mujeres)
-  - Tabla de miembros con:
-    - Nombre, email, rol, género, estado en escuela
-  - Opción para agregar miembros por email
-  - Opción para remover miembros
+- [ ] Usar query `getDashboard` del backend que ya existe
 
 ### Componentes Reutilizables
 
-- [ ] `Card` - Componente de tarjeta estilo Notion
-- [ ] `Button` - Botones con estilo consistente
-- [ ] `Input` - Inputs con estilo consistente
-- [x] `Modal` - Modal para formularios (implementado en Groups y Activities)
+- [x] `Modal` - Modal para formularios (`src/components/Modal.tsx`)
+  - Implementado y usado en múltiples páginas (Groups, GroupDetail, CoursesAdmin, Grid)
   - Soporta diferentes tamaños (sm, md, lg, xl, 2xl)
   - Padding adecuado en contenido
-  - Overlay con blur
+  - Overlay con blur y animaciones
+  - Manejo de scroll del body
 - [x] `RichTextEditor` - Editor de texto enriquecido (`src/components/RichTextEditor.tsx`)
   - Basado en Tiptap
   - Soporta: negritas, cursivas, listas con viñetas, listas numeradas
   - Toolbar con botones de formato
-- [ ] `LoadingSpinner` - Spinner de carga
-- [x] `EmptyState` - Estado vacío cuando no hay datos (implementado en Groups)
+  - Placeholder personalizable
+- [ ] `Card` - Componente de tarjeta estilo Notion (actualmente se usan estilos inline)
+- [ ] `Button` - Botones con estilo consistente (actualmente se usan estilos inline)
+- [ ] `Input` - Inputs con estilo consistente (actualmente se usan estilos inline)
+- [ ] `LoadingSpinner` - Spinner de carga reutilizable (actualmente se usa inline con Tailwind)
+- [ ] `EmptyState` - Componente reutilizable para estados vacíos (actualmente se implementa inline en cada página)
 
 ### Funcionalidades Adicionales
 
-- [ ] **Búsqueda de usuarios**: Para agregar co-líderes o miembros a la red
-- [ ] **Notificaciones**: Cuando alguien se une a tu grupo
-- [ ] **Validación de perfil completo**: Redirigir si falta completar perfil
-- [ ] **Manejo de errores**: Mensajes de error amigables
-- [ ] **Loading states**: Estados de carga en todas las queries
+- [x] **Búsqueda de usuarios**: Para agregar co-líderes o miembros a la red
+  - Implementado en `searchUsersByEmail` (búsqueda parcial por email)
+  - Usado en formularios de grupos (co-líder) y redes (agregar miembros)
+  - Autocompletado en tiempo real con hasta 10 resultados
+- [x] **Loading states**: Estados de carga básicos implementados (spinner con Tailwind)
+  - Implementado en: Groups, Grid, GroupDetail, MyGroup, School, Profile
+  - Usa `useQuery` que retorna `undefined` mientras carga
+- [x] **Manejo de errores**: Mensajes de error en formularios
+  - Implementado en formularios de creación/edición
+  - Validaciones en frontend y backend
+- [ ] **Notificaciones**: Sistema de notificaciones cuando alguien se une a tu grupo
+- [ ] **Validación de perfil completo**: Redirigir si falta completar perfil al registrarse
+- [ ] **Mejora de mensajes de error**: Mensajes más amigables y contextuales
 
 ### Diseño y UX
 
-- [ ] Aplicar diseño estilo Notion con colores celeste/azul en todas las páginas
-- [ ] Usar tipografía Poppins en toda la aplicación
-- [ ] Botones con `rounded-full` donde corresponda
-- [ ] Cards con bordes redondeados y sombras suaves
-- [ ] Transiciones suaves en todas las interacciones
-- [ ] Responsive design completo
+- [x] Diseño estilo Notion con colores celeste/azul aplicado en la mayoría de páginas
+  - SignIn, Groups, MyGroup, GroupDetail, School, Profile, Grid, CoursesAdmin
+- [x] Tipografía Poppins configurada globalmente
+- [x] Botones con `rounded-full` aplicados en navegación y acciones principales
+- [x] Cards con bordes redondeados (`rounded-xl`, `rounded-2xl`) y sombras suaves
+- [x] Transiciones suaves en interacciones (hover, focus, etc.)
+- [x] Responsive design implementado en Layout (hamburger menu en mobile)
+- [ ] Verificar y mejorar responsive design en todas las páginas individuales
+- [ ] Estandarizar estilos de loading states en todas las páginas
 
 ### Testing y Optimización
 
@@ -381,11 +427,15 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 1. **Autenticación**: Ya está configurada con Convex Auth. El usuario se redirige a `/login` si no está autenticado.
 
 2. **Rutas**: 
+   - `/login` - Página de login y registro
    - `/` o `/dashboard` - Dashboard principal
    - `/my-group` - Mi grupo como discípulo
    - `/groups` - Mis grupos como líder
    - `/groups/:groupId` - Detalle del grupo (líderes y discípulos)
-   - `/grid` - Mi red (solo pastores)
+   - `/school` - Escuela (mis cursos con progreso)
+   - `/profile` - Mi perfil
+   - `/courses-admin` - Administración de cursos (solo administradores)
+   - `/grid` - Redes (administradores ven todas las redes) o Mi Red (pastores ven solo su red)
 
 3. **Validaciones de Backend**: Ya están implementadas en las mutations. El frontend debe mostrar mensajes de error apropiados.
 
@@ -409,7 +459,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 ---
 
 **Última actualización**: Diciembre 2024
-**Estado**: En desarrollo - Backend completo, Frontend en progreso
+**Estado**: En desarrollo - Backend completo, Frontend ~90% completo (falta principalmente Dashboard)
 
 ## 📝 Changelog
 
@@ -421,9 +471,6 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Campo opcional (puede registrarse sin seleccionar una red)
   - Query `searchGridsByName` creada para búsqueda parcial
   - Actualizado `customProfile.ts` para aceptar gridId opcional
-- ✅ Implementada página "Mi Grupo" (`src/pages/MyGroup.tsx`)
-  - Vista del grupo actual si el usuario pertenece a uno
-  - Formulario para unirse con código de invitación
 - ✅ Implementada página "Mis Grupos" (`src/pages/Groups.tsx`)
   - Lista de grupos donde el usuario es líder
   - Cards con información completa del grupo (nombre, dirección, distrito, edad, día, hora, código de invitación)
@@ -478,4 +525,79 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
     - La lista "Por Confirmar" muestra automáticamente miembros sin respuesta
   - Estilos CSS para renderizado de HTML (rich text)
   - Cards de grupos clickeables para navegar a vista de detalle
+- ✅ Implementada sección "Escuela" (`src/pages/School.tsx`)
+  - Vista de cursos inscritos con progreso semanal
+  - 9 botones de semanas + 1 botón de trabajo/examen
+  - Estados visuales: Al día (verde), Atrasado (rojo), Pendiente (gris)
+  - Cálculo automático de estados basado en fecha de inicio del curso
+  - Sistema de progreso con tabla `courseProgress`
+- ✅ Implementada sección "Mi Perfil" (`src/pages/Profile.tsx`)
+  - Vista y edición de información personal
+  - Toggle para estado de escuela
+  - Información relacionada: cursos, red, líder
+  - Acceso desde sidebar haciendo click en nombre del usuario
+- ✅ Implementado sistema de administración
+  - Campo `isAdmin` agregado a usuarios (default false)
+  - Sección "Cursos" para administradores (`src/pages/CoursesAdmin.tsx`)
+    - Crear, editar, eliminar cursos
+    - Gestión completa de cursos con fechas y duración
+    - Fechas solo con fecha (sin hora) - tipo `date`
+    - Duración en semanas calculada automáticamente según las fechas (campo deshabilitado)
+  - Sección "Redes" para administradores (`src/pages/Grid.tsx`)
+    - Vista de todas las redes
+    - Estadísticas y miembros por red
+  - Navegación condicional: secciones admin solo visibles para administradores
+- ✅ Actualizado schema de cursos con campos de fechas y duración
+- ✅ Creada tabla `courseProgress` para seguimiento de progreso semanal
+- ✅ Mutations actualizadas para verificar permisos de administrador
+- ✅ Implementada funcionalidad completa de gestión de redes
+  - Vista diferenciada para administradores y pastores
+  - Administradores pueden ver, editar y eliminar todas las redes
+  - Pastores pueden crear y gestionar solo su red
+  - Mutations para administradores: `updateGridForAdmin`, `deleteGrid`, `addMemberToGridForAdmin`, `removeMemberFromGridForAdmin`
+  - Queries para administradores: `getGridMembersForAdmin`, `getGridStatsForAdmin`
+  - Vista de edición con modales similar a CoursesAdmin
+  - Buscador de usuarios por email para agregar miembros
+  - Funcionalidad de agregar/remover miembros con confirmaciones
+  - Navegación condicional: "Mi Red" para pastores, "Redes" para administradores
+- ✅ Implementada funcionalidad de edición de grupos en GroupDetail
+  - Botón de editar en el banner del grupo (solo visible para líderes)
+  - Modal de edición con formulario prellenado con datos actuales del grupo
+  - Campos editables: nombre, dirección, distrito, rango de edad, día, hora
+  - Actualización de mutation `updateGroup` para aceptar todos los campos editables
+  - Validaciones en frontend y backend
+  - Manejo de errores y estados de carga
+- ✅ Implementada funcionalidad de detalles de líderes en GroupDetail
+  - Sección "Líderes" muestra discípulos que tienen su propio grupo
+  - Filas y cards clickeables para abrir modal de detalles
+  - Modal muestra información completa del líder y todos sus grupos
+  - Para cada grupo muestra: información completa, lista de líderes, lista completa de discípulos
+  - Diseño consistente con otros modales de la aplicación
+  - Responsive: tabla para desktop, cards para mobile
+- ✅ Mejoras en diseño y UX
+  - Diseño estilo Notion aplicado consistentemente en todas las páginas implementadas
+  - Estados vacíos (EmptyState) implementados inline en todas las páginas principales
+  - Loading states con spinners consistentes
+  - Transiciones y animaciones suaves
+  - Responsive design en Layout con hamburger menu para mobile
+- ✅ Funcionalidad de edición de grupos en GroupDetail
+  - Botón de editar en el banner del grupo (solo líderes)
+  - Modal de edición con formulario prellenado
+  - Actualización de mutation `updateGroup` para aceptar todos los campos editables
+  - Validaciones en frontend y backend
+- ✅ Funcionalidad de detalles de líderes en GroupDetail
+  - Sección de líderes muestra discípulos que tienen su propio grupo
+  - Click en líder abre modal con información completa de sus grupos
+  - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
+  - Diseño consistente con modales existentes
+- ✅ Funcionalidad de edición de grupos en GroupDetail
+  - Botón de editar en el banner del grupo (solo líderes)
+  - Modal de edición con formulario prellenado
+  - Actualización de mutation `updateGroup` para aceptar todos los campos editables
+  - Validaciones en frontend y backend
+- ✅ Funcionalidad de detalles de líderes en GroupDetail
+  - Sección de líderes muestra discípulos que tienen su propio grupo
+  - Click en líder abre modal con información completa de sus grupos
+  - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
+  - Diseño consistente con modales existentes
 
