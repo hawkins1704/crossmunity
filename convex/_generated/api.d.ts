@@ -15,6 +15,7 @@ import type * as customProfile from "../customProfile.js";
 import type * as grids from "../grids.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
+import type * as services from "../services.js";
 import type * as users from "../users.js";
 
 import type {
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   grids: typeof grids;
   groups: typeof groups;
   http: typeof http;
+  services: typeof services;
   users: typeof users;
 }>;
 

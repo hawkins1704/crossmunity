@@ -10,7 +10,7 @@ export const getAllCourses = query({
   args: {},
   handler: async (ctx) => {
     const courses = await ctx.db.query("courses").collect();
-    return courses.sort((a, b) => b.createdAt - a.createdAt); // Más recientes primero
+    return courses; // Más recientes primero
   },
 });
 
@@ -58,7 +58,7 @@ export const getMyCourses = query({
 
         // Calcular estados para cada semana
         const completedWeeks = progress?.completedWeeks || [];
-        const weekStatuses = [];
+        const weekStatuses: { week: number; status: "al-dia" | "atrasado" | "pendiente"; isCompleted: boolean }[] = [];
         for (let week = 1; week <= durationWeeks; week++) {
           const isCompleted = completedWeeks.includes(week);
           let status: "al-dia" | "atrasado" | "pendiente";
@@ -132,7 +132,7 @@ export const getUserCoursesProgress = query({
 
         // Calcular estados para cada semana
         const completedWeeks = progress?.completedWeeks || [];
-        const weekStatuses = [];
+        const weekStatuses: { week: number; status: "al-dia" | "atrasado" | "pendiente"; isCompleted: boolean }[] = [];
         let hasBacklog = false; // Si tiene semanas atrasadas
         
         for (let week = 1; week <= durationWeeks; week++) {
@@ -212,7 +212,6 @@ export const createCourse = mutation({
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin");
     }
 
-    const now = Date.now();
     const durationWeeks = args.durationWeeks ?? 9;
 
     const courseId = await ctx.db.insert("courses", {
@@ -221,8 +220,6 @@ export const createCourse = mutation({
       startDate: args.startDate,
       endDate: args.endDate,
       durationWeeks,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return courseId;
@@ -274,7 +271,6 @@ export const enrollInCourses = mutation({
     });
 
     // Crear registros de progreso para los nuevos cursos
-    const now = Date.now();
     for (const courseId of newCourseIds) {
       // Verificar si ya existe un registro de progreso
       const existingProgress = await ctx.db
@@ -290,8 +286,6 @@ export const enrollInCourses = mutation({
           courseId,
           completedWeeks: [],
           completedWorkAndExam: false,
-          createdAt: now,
-          updatedAt: now,
         });
       }
     }
@@ -416,10 +410,7 @@ export const updateCourse = mutation({
       startDate?: number;
       endDate?: number;
       durationWeeks?: number;
-      updatedAt: number;
-    } = {
-      updatedAt: Date.now(),
-    };
+    } = {};
 
     if (args.name !== undefined) {
       updates.name = args.name;
@@ -489,7 +480,7 @@ export const getCourseProgress = query({
     }
 
     // Calcular estados para cada semana
-    const weekStatuses = [];
+    const weekStatuses: { week: number; status: "al-dia" | "atrasado" | "pendiente"; isCompleted: boolean }[] = [];
     for (let week = 1; week <= durationWeeks; week++) {
       const isCompleted = completedWeeks.includes(week);
       let status: "al-dia" | "atrasado" | "pendiente";
@@ -564,7 +555,6 @@ export const toggleWeekCompletion = mutation({
       )
       .first();
 
-    const now = Date.now();
     const completedWeeks = progress?.completedWeeks || [];
 
     if (completedWeeks.includes(args.week)) {
@@ -573,7 +563,6 @@ export const toggleWeekCompletion = mutation({
       if (progress) {
         await ctx.db.patch(progress._id, {
           completedWeeks: updatedWeeks,
-          updatedAt: now,
         });
       }
     } else {
@@ -582,7 +571,6 @@ export const toggleWeekCompletion = mutation({
       if (progress) {
         await ctx.db.patch(progress._id, {
           completedWeeks: updatedWeeks,
-          updatedAt: now,
         });
       } else {
         // Crear nuevo progreso si no existe
@@ -591,8 +579,6 @@ export const toggleWeekCompletion = mutation({
           courseId: args.courseId,
           completedWeeks: updatedWeeks,
           completedWorkAndExam: false,
-          createdAt: now,
-          updatedAt: now,
         });
       }
     }
@@ -633,13 +619,11 @@ export const toggleWorkAndExam = mutation({
       )
       .first();
 
-    const now = Date.now();
     const newStatus = progress ? !progress.completedWorkAndExam : true;
 
     if (progress) {
       await ctx.db.patch(progress._id, {
         completedWorkAndExam: newStatus,
-        updatedAt: now,
       });
     } else {
       // Crear nuevo progreso si no existe
@@ -648,8 +632,6 @@ export const toggleWorkAndExam = mutation({
         courseId: args.courseId,
         completedWeeks: [],
         completedWorkAndExam: newStatus,
-        createdAt: now,
-        updatedAt: now,
       });
     }
 

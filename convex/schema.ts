@@ -19,16 +19,19 @@ export default defineSchema({
     // Campos adicionales de la aplicación
     role: v.union(v.literal("Pastor"), v.literal("Member")), // Rol del usuario
     gender: v.union(v.literal("Male"), v.literal("Female")), // Género del usuario
+    birthday: v.optional(v.number()), // Fecha de cumpleaños (timestamp)
     gridId: v.optional(v.id("grids")), // Red a la que pertenece (solo para miembros de una red)
     leader: v.optional(v.id("users")), // Líder asignado cuando se une a un grupo (solo 1 líder)
     isActiveInSchool: v.boolean(), // Si está activo en la escuela
     currentCourses: v.optional(v.array(v.id("courses"))), // Cursos en los que está inscrito
+    serviceId: v.optional(v.id("services")), // Área de servicio asignada (solo un servicio por usuario)
     isAdmin: v.boolean(), // Si el usuario es administrador (solo para gestión de cursos y redes)
   })
     .index("email", ["email"])
     .index("leader", ["leader"]) // Para buscar discípulos de un líder
     .index("gridId", ["gridId"]) // Para buscar usuarios de una red
-    .index("role", ["role"]), // Para filtrar por rol
+    .index("role", ["role"]) // Para filtrar por rol
+    .index("serviceId", ["serviceId"]), // Para buscar usuarios por área de servicio
 
   // Tabla de grupos de conexión
   groups: defineTable({
@@ -42,8 +45,6 @@ export default defineSchema({
     leaders: v.array(v.id("users")), // Líderes del grupo (máximo 2: uno hombre, una mujer)
     disciples: v.array(v.id("users")), // Discípulos del grupo
     invitationCode: v.string(), // Código de invitación único para unirse al grupo
-    createdAt: v.number(), // Fecha de creación
-    updatedAt: v.number(), // Fecha de última actualización
   })
     .index("invitationCode", ["invitationCode"]) // Para buscar grupo por código de invitación
     .index("leaders", ["leaders"]), // Para buscar grupos donde un usuario es líder
@@ -52,8 +53,6 @@ export default defineSchema({
   grids: defineTable({
     name: v.string(), // Nombre de la red
     pastorId: v.id("users"), // ID del pastor creador de la red
-    createdAt: v.number(), // Fecha de creación
-    updatedAt: v.number(), // Fecha de última actualización
   })
     .index("pastorId", ["pastorId"]), // Para buscar la red de un pastor
 
@@ -64,8 +63,11 @@ export default defineSchema({
     startDate: v.optional(v.number()), // Fecha de inicio del curso (timestamp)
     endDate: v.optional(v.number()), // Fecha de fin del curso (timestamp)
     durationWeeks: v.optional(v.number()), // Duración en semanas (por defecto 9)
-    createdAt: v.number(), // Fecha de creación
-    updatedAt: v.number(), // Fecha de última actualización
+  }),
+
+  // Tabla de áreas de servicio
+  services: defineTable({
+    name: v.string(), // Nombre del área de servicio
   }),
 
   // Tabla de progreso de usuarios en cursos
@@ -74,8 +76,6 @@ export default defineSchema({
     courseId: v.id("courses"), // Curso del progreso
     completedWeeks: v.array(v.number()), // Array de semanas completadas (1-9)
     completedWorkAndExam: v.boolean(), // Si completó trabajo y examen
-    createdAt: v.number(), // Fecha de creación
-    updatedAt: v.number(), // Fecha de última actualización
   })
     .index("userId", ["userId"]) // Para buscar progreso de un usuario
     .index("courseId", ["courseId"]) // Para buscar progreso de un curso
@@ -89,8 +89,6 @@ export default defineSchema({
     dateTime: v.number(), // Fecha y hora (timestamp)
     description: v.string(), // Descripción con rich text (HTML)
     createdBy: v.id("users"), // Líder que creó la actividad
-    createdAt: v.number(), // Fecha de creación
-    updatedAt: v.number(), // Fecha de última actualización
   })
     .index("groupId", ["groupId"]) // Para buscar actividades de un grupo
     .index("createdBy", ["createdBy"]), // Para buscar actividades creadas por un usuario

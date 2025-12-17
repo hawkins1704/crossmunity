@@ -9,11 +9,298 @@ import {
   HiUser,
   HiCheckCircle,
   HiXCircle,
+  HiViewList,
+  HiViewGrid,
+  HiChevronLeft,
+  HiChevronRight,
 } from "react-icons/hi";
 import Modal from "../components/Modal";
 import type { Id } from "../../convex/_generated/dataModel";
 
 const HiPending = HiClock;
+
+// Componente para la vista de calendario de actividades (tipo Google Calendar)
+function ActivitiesCalendarView({
+  activities,
+  isLeader,
+  onActivityClick,
+  ActivityResponseButtons,
+}: {
+  activities: Array<{
+    _id: Id<"activities">;
+    name: string;
+    address: string;
+    dateTime: number;
+  }>;
+  isLeader: boolean;
+  onActivityClick: (activityId: Id<"activities">) => void;
+  ActivityResponseButtons: React.ComponentType<{ activityId: Id<"activities"> }>;
+}) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Nombres de los días de la semana
+  const weekDays = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
+
+  // Obtener el primer día del mes y el número de días
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  const daysInMonth = lastDayOfMonth.getDate();
+  
+  // Obtener el día de la semana del primer día (0 = domingo, 1 = lunes, etc.)
+  // Ajustar para que lunes sea 0
+  const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+
+  // Obtener días del mes anterior para completar la primera semana
+  const prevMonth = new Date(year, month - 1, 0);
+  const daysInPrevMonth = prevMonth.getDate();
+  const prevMonthDays: number[] = [];
+  if (firstDayOfWeek > 0) {
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      prevMonthDays.push(daysInPrevMonth - i);
+    }
+  }
+
+  // Obtener días del mes siguiente para completar la última semana
+  const totalCells = Math.ceil((firstDayOfWeek + daysInMonth) / 7) * 7;
+  const nextMonthDays: number[] = [];
+  const remainingCells = totalCells - (firstDayOfWeek + daysInMonth);
+  for (let i = 1; i <= remainingCells; i++) {
+    nextMonthDays.push(i);
+  }
+
+  // Agrupar actividades por fecha (solo día del mes, sin hora)
+  const activitiesByDate = activities.reduce((acc, activity) => {
+    const date = new Date(activity.dateTime);
+    const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    
+    acc[dateKey].push(activity);
+    return acc;
+  }, {} as Record<string, typeof activities>);
+
+  // Función para obtener actividades de un día específico
+  const getActivitiesForDate = (day: number, isCurrentMonth: boolean, isPrevMonth: boolean) => {
+    if (!isCurrentMonth) {
+      const checkDate = isPrevMonth 
+        ? new Date(year, month - 1, day)
+        : new Date(year, month + 1, day);
+      const dateKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+      return activitiesByDate[dateKey] || [];
+    }
+    const dateKey = `${year}-${month}-${day}`;
+    return activitiesByDate[dateKey] || [];
+  };
+
+  // Verificar si un día es hoy
+  const isToday = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return false;
+    const today = new Date();
+    return (
+      day === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()
+    );
+  };
+
+  // Navegación de meses
+  const goToPreviousMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Formatear nombre del mes y año
+  const monthName = currentDate.toLocaleDateString("es-ES", { 
+    month: "long", 
+    year: "numeric" 
+  });
+
+  // Función para obtener la hora formateada
+  const getTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString("es-ES", { 
+      hour: "2-digit", 
+      minute: "2-digit" 
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Navegación del calendario */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={goToPreviousMonth}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Mes anterior"
+          >
+            <HiChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <h3 className="text-xl font-semibold text-gray-900 capitalize">
+            {monthName}
+          </h3>
+          <button
+            onClick={goToNextMonth}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Mes siguiente"
+          >
+            <HiChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
+        </div>
+        <button
+          onClick={goToToday}
+          className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          Hoy
+        </button>
+      </div>
+
+      {/* Calendario */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Encabezados de días de la semana */}
+        <div className="grid grid-cols-7 border-b border-gray-200">
+          {weekDays.map((day) => (
+            <div
+              key={day}
+              className="p-3 text-center text-xs font-semibold text-gray-600 uppercase bg-gray-50"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Días del calendario */}
+        <div className="grid grid-cols-7">
+          {/* Días del mes anterior */}
+          {prevMonthDays.map((day, index) => {
+            const dayActivities = getActivitiesForDate(day, false, true);
+            const dayIndex = index;
+            const isLastColumn = (dayIndex + 1) % 7 === 0;
+            return (
+              <div
+                key={`prev-${day}`}
+                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
+                  !isLastColumn ? "border-r" : ""
+                }`}
+              >
+                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="space-y-0.5">
+                  {dayActivities.slice(0, 4).map((activity) => (
+                    <div
+                      key={activity._id}
+                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      onClick={() => onActivityClick(activity._id)}
+                      title={`${getTime(activity.dateTime)} - ${activity.name}`}
+                    >
+                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                    </div>
+                  ))}
+                  {dayActivities.length > 4 && (
+                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                      +{dayActivities.length - 4} más
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Días del mes actual */}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day, dayMapIndex) => {
+            const dayActivities = getActivitiesForDate(day, true, false);
+            const today = isToday(day, true);
+            const dayIndex = prevMonthDays.length + dayMapIndex;
+            const isLastColumn = (dayIndex + 1) % 7 === 0;
+            
+            return (
+              <div
+                key={day}
+                className={`min-h-[120px] border-b border-gray-200 p-2 hover:bg-gray-50 transition-colors ${
+                  today ? "bg-blue-50" : ""
+                } ${!isLastColumn ? "border-r" : ""}`}
+              >
+                <div
+                  className={`text-sm font-medium mb-1 inline-flex items-center justify-center ${
+                    today
+                      ? "w-7 h-7 rounded-full bg-blue-600 text-white"
+                      : "text-gray-900"
+                  }`}
+                >
+                  {day}
+                </div>
+                <div className="space-y-0.5">
+                  {dayActivities.slice(0, 4).map((activity) => (
+                    <div
+                      key={activity._id}
+                      className={`text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
+                        isLeader
+                          ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      onClick={() => onActivityClick(activity._id)}
+                      title={`${getTime(activity.dateTime)} - ${activity.name}`}
+                    >
+                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                    </div>
+                  ))}
+                  {dayActivities.length > 4 && (
+                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                      +{dayActivities.length - 4} más
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Días del mes siguiente */}
+          {nextMonthDays.map((day, index) => {
+            const dayActivities = getActivitiesForDate(day, false, false);
+            const dayIndex = prevMonthDays.length + daysInMonth + index;
+            const isLastColumn = (dayIndex + 1) % 7 === 0;
+            return (
+              <div
+                key={`next-${day}`}
+                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
+                  !isLastColumn ? "border-r" : ""
+                }`}
+              >
+                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="space-y-0.5">
+                  {dayActivities.slice(0, 4).map((activity) => (
+                    <div
+                      key={activity._id}
+                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      onClick={() => onActivityClick(activity._id)}
+                      title={`${getTime(activity.dateTime)} - ${activity.name}`}
+                    >
+                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                    </div>
+                  ))}
+                  {dayActivities.length > 4 && (
+                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                      +{dayActivities.length - 4} más
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Componente para los botones de respuesta de actividad
 function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> }) {
@@ -29,41 +316,41 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
   };
 
   return (
-    <div className="flex flex-col items-end gap-2 ml-4">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col items-start md:items-end gap-2 md:ml-4 w-full md:w-auto">
+      <div className="flex items-center gap-2 w-full md:w-auto">
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleRespond("confirmed");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm ${
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
             myResponse?.status === "confirmed"
               ? "bg-green-100 text-green-700 border-2 border-green-300"
               : "bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700 border-2 border-transparent"
           }`}
           title="Confirmar asistencia"
         >
-          <HiCheckCircle className="h-4 w-4" />
-          <span>Confirmar</span>
+          <HiCheckCircle className="h-4 w-4 flex-shrink-0" />
+          <span className="truncate">Confirmar</span>
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleRespond("denied");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm ${
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
             myResponse?.status === "denied"
               ? "bg-red-100 text-red-700 border-2 border-red-300"
               : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-700 border-2 border-transparent"
           }`}
           title="No asistiré"
         >
-          <HiXCircle className="h-4 w-4" />
-          <span>No asistiré</span>
+          <HiXCircle className="h-4 w-4 flex-shrink-0" />
+          <span className="truncate">No asistiré</span>
         </button>
       </div>
       {myResponse?.status && (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-gray-500 md:text-right w-full md:w-auto">
           {myResponse.status === "confirmed" && "✓ Confirmado"}
           {myResponse.status === "denied" && "✗ No asistirás"}
         </span>
@@ -94,6 +381,7 @@ export default function MyGroup() {
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [activitiesView, setActivitiesView] = useState<"list" | "calendar">("list");
 
   const handleJoinGroup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -393,14 +681,45 @@ export default function MyGroup() {
 
         {/* Actividades */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Actividades ({activities?.length || 0})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Actividades ({activities?.length || 0})
+            </h3>
+            {/* Toggle de vista */}
+            {activities && activities.length > 0 && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setActivitiesView("list")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                    activitiesView === "list"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  title="Vista de lista"
+                >
+                  <HiViewList className="h-4 w-4" />
+                  <span className="text-sm font-medium">Lista</span>
+                </button>
+                <button
+                  onClick={() => setActivitiesView("calendar")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                    activitiesView === "calendar"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  title="Vista de calendario"
+                >
+                  <HiViewGrid className="h-4 w-4" />
+                  <span className="text-sm font-medium">Calendario</span>
+                </button>
+              </div>
+            )}
+          </div>
           {!activities || activities.length === 0 ? (
             <p className="text-sm text-gray-500 italic">
               Aún no hay actividades en este grupo
             </p>
-          ) : (
+          ) : activitiesView === "list" ? (
             <div className="space-y-3">
               {activities.map((activity) => {
                 const dateTime = formatDateTime(activity.dateTime);
@@ -411,27 +730,30 @@ export default function MyGroup() {
                     className="p-4 rounded-xl border-2 border-gray-200 transition-all cursor-pointer hover:border-blue-300 hover:shadow-md"
                     onClick={() => setSelectedActivityId(activity._id)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
                         <h4 className="text-base font-semibold text-gray-900 mb-1">
                           {activity.name}
                         </h4>
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                          <HiLocationMarker className="h-4 w-4" />
-                          <span>{activity.address}</span>
+                          <HiLocationMarker className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{activity.address}</span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
-                            <HiCalendar className="h-4 w-4" />
-                            <span>{dateTime.date}</span>
+                            <HiCalendar className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{dateTime.date}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <HiClock className="h-4 w-4" />
+                            <HiClock className="h-4 w-4 flex-shrink-0" />
                             <span>{dateTime.time}</span>
                           </div>
                         </div>
                       </div>
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div 
+                        className="flex-shrink-0 md:ml-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <ActivityResponseButtons activityId={activity._id} />
                       </div>
                     </div>
@@ -439,6 +761,13 @@ export default function MyGroup() {
                 );
               })}
             </div>
+          ) : (
+            <ActivitiesCalendarView
+              activities={activities}
+              isLeader={false}
+              onActivityClick={(activityId) => setSelectedActivityId(activityId)}
+              ActivityResponseButtons={ActivityResponseButtons}
+            />
           )}
         </div>
 

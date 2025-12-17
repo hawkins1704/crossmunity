@@ -152,7 +152,7 @@ export const getGroupById = query({
       })
     );
 
-    // Enriquecer con información de discípulos y sus cursos
+    // Enriquecer con información de discípulos, sus cursos y servicio
     const disciples = await Promise.all(
       group.disciples.map(async (discipleId) => {
         const disciple = await ctx.db.get(discipleId);
@@ -168,9 +168,13 @@ export const getGroupById = query({
               ).filter((course): course is NonNullable<typeof course> => course !== null)
             : [];
 
+        // Obtener servicio del discípulo si existe
+        const service = disciple.serviceId ? await ctx.db.get(disciple.serviceId) : null;
+
         return {
           ...disciple,
           courses,
+          service,
         };
       })
     );
@@ -329,8 +333,6 @@ export const createGroup = mutation({
       throw new Error("Error al generar código único. Intenta nuevamente.");
     }
 
-    const now = Date.now();
-
     const groupId = await ctx.db.insert("groups", {
       name: args.name,
       address: args.address,
@@ -342,8 +344,6 @@ export const createGroup = mutation({
       leaders,
       disciples: [],
       invitationCode,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return groupId;
@@ -435,7 +435,6 @@ export const joinGroup = mutation({
     // Agregar el usuario a la lista de discípulos del grupo
     await ctx.db.patch(group._id, {
       disciples: [...group.disciples, userId],
-      updatedAt: Date.now(),
     });
 
     return { success: true, groupId: group._id, leaderId: assignedLeader };
@@ -491,10 +490,7 @@ export const updateGroup = mutation({
       maxAge?: number;
       day?: string;
       time?: string;
-      updatedAt: number;
-    } = {
-      updatedAt: Date.now(),
-    };
+    } = {};
 
     if (args.name !== undefined) {
       updates.name = args.name;

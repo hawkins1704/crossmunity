@@ -26,6 +26,9 @@ export const getMyProfile = query({
     // Obtener información de la red si existe
     const grid = user.gridId ? await ctx.db.get(user.gridId) : null;
 
+    // Obtener información del servicio si existe
+    const service = user.serviceId ? await ctx.db.get(user.serviceId) : null;
+
     // Obtener información de los cursos
     const courses =
       user.currentCourses && user.currentCourses.length > 0
@@ -40,6 +43,7 @@ export const getMyProfile = query({
       ...user,
       leader,
       grid,
+      service,
       courses,
     };
   },
@@ -124,6 +128,7 @@ export const updateMyProfile = mutation({
     name: v.optional(v.string()),
     gender: v.optional(v.union(v.literal("Male"), v.literal("Female"))),
     phone: v.optional(v.string()),
+    birthday: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -135,6 +140,7 @@ export const updateMyProfile = mutation({
       name?: string;
       gender?: "Male" | "Female";
       phone?: string;
+      birthday?: number;
     } = {};
 
     if (args.name !== undefined) {
@@ -147,6 +153,10 @@ export const updateMyProfile = mutation({
 
     if (args.phone !== undefined) {
       updates.phone = args.phone;
+    }
+
+    if (args.birthday !== undefined) {
+      updates.birthday = args.birthday;
     }
 
     await ctx.db.patch(userId, updates);

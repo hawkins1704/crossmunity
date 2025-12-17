@@ -170,6 +170,7 @@ export const getActivityWithResponses = query({
         .filter(Boolean)
         .map((user) => ({
           _id: "" as Id<"activityResponses">,
+          _creationTime: Date.now(),
           activityId: args.activityId,
           userId: user!._id,
           status: "pending" as const,
@@ -266,8 +267,6 @@ export const createActivity = mutation({
       throw new Error("La descripción debe tener al menos 10 caracteres");
     }
 
-    const now = Date.now();
-
     // Crear la actividad
     const activityId = await ctx.db.insert("activities", {
       groupId: args.groupId,
@@ -276,8 +275,6 @@ export const createActivity = mutation({
       dateTime: args.dateTime,
       description: args.description,
       createdBy: userId,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return activityId;
@@ -382,10 +379,7 @@ export const updateActivity = mutation({
       address?: string;
       dateTime?: number;
       description?: string;
-      updatedAt: number;
-    } = {
-      updatedAt: Date.now(),
-    };
+    } = {};
 
     if (args.name !== undefined) {
       if (!args.name || args.name.trim().length < 2) {

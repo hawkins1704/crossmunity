@@ -21,10 +21,12 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - Campos de Convex Auth (email, name, image, etc.)
 - `role`: "Pastor" | "Member"
 - `gender`: "Male" | "Female"
+- `birthday`: Fecha de cumpleaños (timestamp, opcional)
 - `gridId`: ID de la red a la que pertenece (opcional)
 - `leader`: ID del líder asignado cuando se une a un grupo (opcional, solo 1)
 - `isActiveInSchool`: boolean
 - `currentCourses`: array de IDs de cursos (opcional)
+- `serviceId`: ID del área de servicio asignada (opcional, solo un servicio por usuario)
 - `isAdmin`: boolean (opcional, default false) - Solo para gestión administrativa
 
 #### 2. **Groups (Grupos de Conexión)**
@@ -80,6 +82,11 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - `status`: "confirmed" | "pending" | "denied"
 - `respondedAt`: Timestamp de cuando respondió
 
+#### 7. **Services (Áreas de Servicio)**
+- `name`: Nombre del área de servicio
+- `createdAt`: Timestamp
+- `updatedAt`: Timestamp
+
 ## 📐 Reglas de Negocio
 
 ### Grupos
@@ -111,6 +118,14 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 2. Un usuario puede estar inscrito en múltiples cursos
 3. Solo los administradores pueden crear cursos
 
+### Servicios (Áreas de Servicio)
+1. **Un usuario solo puede tener UN servicio asignado**
+2. Los servicios son globales (no específicos por red)
+3. Solo los administradores pueden crear, editar y eliminar servicios
+4. Los usuarios pueden asignarse su propio servicio desde su perfil
+5. Los líderes pueden ver el área de servicio de sus discípulos en la lista de discípulos
+6. Útil para métricas futuras de quiénes están sirviendo y quiénes no
+
 ### Actividades
 1. **Creación**: Solo los líderes pueden crear actividades para sus grupos
 2. **Respuestas**: Todos los miembros del grupo (líderes y discípulos) pueden confirmar o negar asistencia
@@ -130,6 +145,8 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ Tabla `groups` con validaciones
 - ✅ Tabla `grids` para redes
 - ✅ Tabla `courses` para cursos globales
+- ✅ Tabla `courseProgress` para progreso de usuarios en cursos
+- ✅ Tabla `services` para áreas de servicio
 - ✅ Tabla `activities` para actividades de grupos
 - ✅ Tabla `activityResponses` para respuestas de usuarios a actividades
 - ✅ Índices optimizados para consultas
@@ -140,7 +157,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ `getGroupsAsLeader` - Obtiene grupos donde el usuario es líder
 - ✅ `getGroupAsDisciple` - Obtiene el grupo donde el usuario es discípulo
 - ✅ `getGroupByInvitationCode` - Busca grupo por código
-- ✅ `getGroupById` - Obtiene grupo por ID con información completa de discípulos y cursos
+- ✅ `getGroupById` - Obtiene grupo por ID con información completa de discípulos, cursos y servicios
 - ✅ `getDisciplesWhoAreLeaders` - Obtiene información de discípulos que son líderes de otros grupos
   - Retorna usuario y sus grupos con información completa (líderes y discípulos)
 - ✅ `createGroup` - Crea grupo con validaciones (máx 2 líderes, géneros diferentes)
@@ -183,13 +200,25 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 - ✅ `toggleWorkAndExam` - Marca o desmarca trabajo y examen como completado
 
 **Users (`convex/users.ts`)**
-- ✅ `getMyProfile` - Perfil completo del usuario
+- ✅ `getMyProfile` - Perfil completo del usuario (incluye servicio)
 - ✅ `getUserByEmail` - Busca usuario por email (coincidencia exacta)
 - ✅ `searchUsersByEmail` - Busca usuarios por email (búsqueda parcial, hasta 10 resultados)
 - ✅ `getDisciplesByLeader` - Obtiene discípulos de un líder
 - ✅ `getDashboard` - Dashboard completo (grupos, cursos, red)
-- ✅ `updateMyProfile` - Actualiza perfil
+- ✅ `updateMyProfile` - Actualiza perfil (incluye birthday)
 - ✅ `completeProfile` - Completa perfil inicial
+
+**Services (`convex/services.ts`)**
+- ✅ `getAllServices` - Obtiene todos los servicios disponibles (ordenados alfabéticamente)
+- ✅ `getServiceById` - Obtiene un servicio específico por ID
+- ✅ `getMyService` - Obtiene el servicio del usuario actual
+- ✅ `createService` - Crea nuevo servicio (solo administradores)
+- ✅ `updateService` - Actualiza información del servicio (solo administradores)
+- ✅ `deleteService` - Elimina servicio y remueve de usuarios (solo administradores)
+- ✅ `assignServiceToUser` - Asigna servicio al usuario actual
+- ✅ `removeServiceFromUser` - Remueve servicio del usuario actual
+- ✅ `assignServiceToUserForAdmin` - Asigna servicio a usuario específico (solo administradores)
+- ✅ `removeServiceFromUserForAdmin` - Remueve servicio de usuario específico (solo administradores)
 
 **Activities (`convex/activities.ts`)**
 - ✅ `getActivitiesByGroup` - Obtiene todas las actividades de un grupo
@@ -273,7 +302,10 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Campos editables: nombre, dirección, distrito, rango de edad, día, hora
   - Validaciones en frontend y backend
 - ✅ Lista de líderes con información detallada
-- ✅ Lista de discípulos con sus cursos inscritos
+- ✅ Lista de discípulos con sus cursos inscritos y área de servicio:
+  - Tabla desktop: columna "Área de Servicio" con badge morado
+  - Cards mobile: badge de servicio junto a información de cursos
+  - Modal de detalles: muestra área de servicio en información básica
 - ✅ Modal de detalles de discípulo con información completa y progreso de cursos
 - ✅ Sección de líderes (discípulos que tienen su propio grupo):
   - Tabla para desktop y cards para mobile
@@ -301,8 +333,14 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 
 **Mi Perfil (`src/pages/Profile.tsx`)**
 - ✅ Vista de información personal del usuario
-- ✅ Edición de nombre, género y teléfono
+- ✅ Edición de nombre, género, teléfono y fecha de cumpleaños
 - ✅ Toggle para estado de escuela (isActiveInSchool)
+- ✅ Sección "Área de Servicio" con selector dropdown:
+  - Muestra servicio actual si tiene uno asignado
+  - Dropdown con todos los servicios disponibles
+  - Opción para remover servicio ("Sin área de servicio")
+  - Badge morado mostrando el servicio actual
+  - Actualización automática al seleccionar
 - ✅ Información relacionada: cursos inscritos, red, líder asignado
 - ✅ Acceso desde sidebar haciendo click en nombre del usuario
 - ✅ Diseño con cards y formularios estilo Notion
@@ -459,7 +497,7 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
 ---
 
 **Última actualización**: Diciembre 2024
-**Estado**: En desarrollo - Backend completo, Frontend ~90% completo (falta principalmente Dashboard)
+**Estado**: En desarrollo - Backend completo, Frontend ~92% completo (falta principalmente Dashboard)
 
 ## 📝 Changelog
 
@@ -585,19 +623,28 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Modal de edición con formulario prellenado
   - Actualización de mutation `updateGroup` para aceptar todos los campos editables
   - Validaciones en frontend y backend
-- ✅ Funcionalidad de detalles de líderes en GroupDetail
-  - Sección de líderes muestra discípulos que tienen su propio grupo
-  - Click en líder abre modal con información completa de sus grupos
-  - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
-  - Diseño consistente con modales existentes
-- ✅ Funcionalidad de edición de grupos en GroupDetail
-  - Botón de editar en el banner del grupo (solo líderes)
-  - Modal de edición con formulario prellenado
-  - Actualización de mutation `updateGroup` para aceptar todos los campos editables
-  - Validaciones en frontend y backend
-- ✅ Funcionalidad de detalles de líderes en GroupDetail
-  - Sección de líderes muestra discípulos que tienen su propio grupo
-  - Click en líder abre modal con información completa de sus grupos
-  - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
-  - Diseño consistente con modales existentes
+- ✅ Agregado campo `birthday` (fecha de cumpleaños) al modelo Users
+  - Campo opcional en el schema
+  - Agregado a la vista de perfil con selector de fecha
+  - Manejo correcto de zona horaria (mismo patrón que fechas de cursos)
+  - Funciones helper para conversión timestamp ↔ fecha local
+- ✅ Implementado sistema completo de Áreas de Servicio (Services)
+  - Schema con tabla `services` (name, createdAt, updatedAt)
+  - Campo `serviceId` opcional en usuarios (un usuario solo puede tener un servicio)
+  - Backend completo en `convex/services.ts`:
+    - Queries: `getAllServices`, `getServiceById`, `getMyService`
+    - Mutations: `createService`, `updateService`, `deleteService` (solo admins)
+    - Mutations de usuario: `assignServiceToUser`, `removeServiceFromUser`
+    - Mutations de admin: `assignServiceToUserForAdmin`, `removeServiceFromUserForAdmin`
+  - Vista de perfil (`src/pages/Profile.tsx`):
+    - Sección "Área de Servicio" debajo de "Estado en Escuela"
+    - Dropdown para seleccionar servicio
+    - Badge morado mostrando servicio actual
+    - Actualización automática al cambiar
+  - Vista de detalle de grupo (`src/pages/GroupDetail.tsx`):
+    - Columna "Área de Servicio" en tabla de discípulos (desktop)
+    - Badge de servicio en cards de discípulos (mobile)
+    - Área de servicio visible en modal de detalles del discípulo
+  - `getMyProfile` y `getGroupById` actualizados para incluir información de servicio
+  - Índice `serviceId` en usuarios para búsquedas optimizadas
 

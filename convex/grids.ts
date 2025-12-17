@@ -259,13 +259,9 @@ export const createGrid = mutation({
       throw new Error("Ya tienes una red creada. Un pastor solo puede tener una red.");
     }
 
-    const now = Date.now();
-
     const gridId = await ctx.db.insert("grids", {
       name: args.name,
       pastorId: userId,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return gridId;
@@ -400,7 +396,6 @@ export const updateGrid = mutation({
 
     await ctx.db.patch(args.gridId, {
       name: args.name,
-      updatedAt: Date.now(),
     });
 
     return { success: true };
@@ -519,7 +514,6 @@ export const updateGridForAdmin = mutation({
 
     await ctx.db.patch(args.gridId, {
       name: args.name,
-      updatedAt: Date.now(),
     });
 
     return { success: true };
