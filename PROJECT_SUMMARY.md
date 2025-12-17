@@ -229,7 +229,12 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Validaciones: nombre mínimo 2 caracteres, dirección válida, fecha futura, descripción mínimo 10 caracteres
 - ✅ `respondToActivity` - Responde a una actividad (confirmar, negar o pendiente)
 - ✅ `updateActivity` - Actualiza una actividad (solo el creador)
+  - Campos editables: name, address, dateTime, description
+  - Validaciones: nombre mínimo 2 caracteres, dirección válida, fecha futura
+  - Verifica que el usuario sea el creador de la actividad
 - ✅ `deleteActivity` - Elimina una actividad y sus respuestas (solo el creador)
+  - Elimina automáticamente todas las respuestas asociadas
+  - Verifica que el usuario sea el creador de la actividad
 
 **Auth (`convex/auth.ts` y `convex/customProfile.ts`)**
 - ✅ Configuración de Convex Auth con Password provider
@@ -313,11 +318,24 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
   - Modal muestra: información del grupo, líderes del grupo, lista completa de discípulos
 - ✅ Lista de actividades del grupo ordenadas por fecha
 - ✅ Modal para crear actividad con editor rich text (solo líderes)
+- ✅ Modal para editar actividad (solo el creador):
+  - Botón "Editar" en el modal de detalles de actividad
+  - Formulario prellenado con datos actuales de la actividad
+  - Campos editables: nombre, dirección, fecha/hora, descripción (rich text)
+  - Validaciones en frontend y backend
+  - Manejo de errores y estados de carga
+- ✅ Modal de confirmación para eliminar actividad (solo el creador):
+  - Botón "Eliminar" en el modal de detalles de actividad
+  - Modal de confirmación con advertencia
+  - Muestra información de la actividad a eliminar
+  - Advertencia de que se eliminarán todas las respuestas asociadas
+  - Eliminación automática de respuestas al eliminar actividad
 - ✅ Botones para confirmar/negar asistencia a actividades
 - ✅ Popup de detalles de actividad con listas organizadas:
   - Confirmados (con check verde)
   - Por Confirmar (pendientes, automáticamente incluye miembros sin respuesta)
   - No asistirán (denegados)
+  - Botones de editar/eliminar visibles solo para el creador
 - ✅ Estados vacíos cuando no hay discípulos o actividades
 - ✅ Navegación de regreso a "Mis Grupos"
 
@@ -551,6 +569,8 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
     - Lista de discípulos con sus cursos
     - Lista de actividades con botones de confirmación
     - Modal para crear actividades (solo líderes)
+    - Modal para editar actividades (solo el creador)
+    - Modal de confirmación para eliminar actividades (solo el creador)
     - Popup de detalles con listas de respuestas (todos los miembros)
   - Vista "Mi Grupo" actualizada (`src/pages/MyGroup.tsx`):
     - Lista de actividades del grupo
@@ -558,6 +578,8 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
     - Popup de detalles con listas de respuestas
   - Funcionalidades:
     - Líderes pueden crear actividades con rich text
+    - Creador puede editar actividades (nombre, dirección, fecha/hora, descripción)
+    - Creador puede eliminar actividades (con confirmación, elimina respuestas asociadas)
     - Todos los miembros pueden confirmar/negar asistencia
     - Todos pueden ver listas de confirmados, pendientes y denegados
     - La lista "Por Confirmar" muestra automáticamente miembros sin respuesta
@@ -645,6 +667,18 @@ La aplicación busca facilitar la gestión de grupos de conexión dentro de una 
     - Columna "Área de Servicio" en tabla de discípulos (desktop)
     - Badge de servicio en cards de discípulos (mobile)
     - Área de servicio visible en modal de detalles del discípulo
-  - `getMyProfile` y `getGroupById` actualizados para incluir información de servicio
-  - Índice `serviceId` en usuarios para búsquedas optimizadas
+   - `getMyProfile` y `getGroupById` actualizados para incluir información de servicio
+   - Índice `serviceId` en usuarios para búsquedas optimizadas
+- ✅ Funcionalidad de editar y eliminar actividades en GroupDetail
+  - Botones de editar/eliminar en el modal de detalles de actividad (solo visible para el creador)
+  - Modal de edición con formulario prellenado:
+    - Campos editables: nombre, dirección, fecha/hora, descripción (rich text)
+    - Validaciones en frontend (nombre mínimo 2 caracteres, dirección válida, fecha futura)
+    - Manejo de errores y estados de carga
+  - Modal de confirmación para eliminar:
+    - Advertencia de que se eliminarán todas las respuestas asociadas
+    - Muestra información de la actividad a eliminar
+    - Botones de cancelar y confirmar con estados de carga
+  - Verificación de permisos: solo el creador puede editar/eliminar
+  - Actualización automática de la lista después de editar/eliminar
 

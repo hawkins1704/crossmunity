@@ -681,3 +681,172 @@ export const deleteCourse = mutation({
   },
 });
 
+/**
+ * Mutation: Permite a un líder marcar o desmarcar una semana como completada para un discípulo
+ * Solo funciona si el usuario actual es líder de un grupo donde el discípulo está inscrito
+ */
+export const toggleDiscipleWeekCompletion = mutation({
+  args: {
+    discipleId: v.id("users"), // ID del discípulo
+    courseId: v.id("courses"),
+    week: v.number(), // Número de semana (1 hasta durationWeeks del curso)
+  },
+  handler: async (ctx, args) => {
+    const leaderId = await getAuthUserId(ctx);
+    if (!leaderId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el discípulo existe
+    const disciple = await ctx.db.get(args.discipleId);
+    if (!disciple) {
+      throw new Error("Discípulo no encontrado");
+    }
+
+    // Verificar que el curso existe
+    const course = await ctx.db.get(args.courseId);
+    if (!course) {
+      throw new Error("Curso no encontrado");
+    }
+
+    // Verificar que el discípulo está inscrito en el curso
+    if (!disciple.currentCourses?.includes(args.courseId)) {
+      throw new Error("El discípulo no está inscrito en este curso");
+    }
+
+    // Verificar que el usuario actual es líder de un grupo donde el discípulo está inscrito
+    const allGroups = await ctx.db.query("groups").collect();
+    const isLeaderOfDiscipleGroup = allGroups.some(
+      (group) =>
+        group.leaders.includes(leaderId) &&
+        group.disciples.includes(args.discipleId)
+    );
+
+    if (!isLeaderOfDiscipleGroup) {
+      throw new Error(
+        "Solo puedes editar el progreso de tus propios discípulos"
+      );
+    }
+
+    // Obtener la duración del curso (por defecto 9 semanas)
+    const durationWeeks = course.durationWeeks || 9;
+
+    // Validar que la semana esté en rango válido según la duración del curso
+    if (args.week < 1 || args.week > durationWeeks) {
+      throw new Error(`La semana debe estar entre 1 y ${durationWeeks}`);
+    }
+
+    // Obtener o crear progreso
+    const progress = await ctx.db
+      .query("courseProgress")
+      .withIndex("userId_courseId", (q) =>
+        q.eq("userId", args.discipleId).eq("courseId", args.courseId)
+      )
+      .first();
+
+    const completedWeeks = progress?.completedWeeks || [];
+
+    if (completedWeeks.includes(args.week)) {
+      // Desmarcar semana
+      const updatedWeeks = completedWeeks.filter((w) => w !== args.week);
+      if (progress) {
+        await ctx.db.patch(progress._id, {
+          completedWeeks: updatedWeeks,
+        });
+      }
+    } else {
+      // Marcar semana
+      const updatedWeeks = [...completedWeeks, args.week].sort((a, b) => a - b);
+      if (progress) {
+        await ctx.db.patch(progress._id, {
+          completedWeeks: updatedWeeks,
+        });
+      } else {
+        // Crear nuevo progreso si no existe
+        await ctx.db.insert("courseProgress", {
+          userId: args.discipleId,
+          courseId: args.courseId,
+          completedWeeks: updatedWeeks,
+          completedWorkAndExam: false,
+        });
+      }
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Mutation: Permite a un líder marcar o desmarcar trabajo y examen como completado para un discípulo
+ * Solo funciona si el usuario actual es líder de un grupo donde el discípulo está inscrito
+ */
+export const toggleDiscipleWorkAndExam = mutation({
+  args: {
+    discipleId: v.id("users"), // ID del discípulo
+    courseId: v.id("courses"),
+  },
+  handler: async (ctx, args) => {
+    const leaderId = await getAuthUserId(ctx);
+    if (!leaderId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el discípulo existe
+    const disciple = await ctx.db.get(args.discipleId);
+    if (!disciple) {
+      throw new Error("Discípulo no encontrado");
+    }
+
+    // Verificar que el curso existe
+    const course = await ctx.db.get(args.courseId);
+    if (!course) {
+      throw new Error("Curso no encontrado");
+    }
+
+    // Verificar que el discípulo está inscrito en el curso
+    if (!disciple.currentCourses?.includes(args.courseId)) {
+      throw new Error("El discípulo no está inscrito en este curso");
+    }
+
+    // Verificar que el usuario actual es líder de un grupo donde el discípulo está inscrito
+    const allGroups = await ctx.db.query("groups").collect();
+    const isLeaderOfDiscipleGroup = allGroups.some(
+      (group) =>
+        group.leaders.includes(leaderId) &&
+        group.disciples.includes(args.discipleId)
+    );
+
+    if (!isLeaderOfDiscipleGroup) {
+      throw new Error(
+        "Solo puedes editar el progreso de tus propios discípulos"
+      );
+    }
+
+    // Obtener o crear progreso
+    const progress = await ctx.db
+      .query("courseProgress")
+      .withIndex("userId_courseId", (q) =>
+        q.eq("userId", args.discipleId).eq("courseId", args.courseId)
+      )
+      .first();
+
+    const newStatus = progress ? !progress.completedWorkAndExam : true;
+
+    if (progress) {
+      await ctx.db.patch(progress._id, {
+        completedWorkAndExam: newStatus,
+      });
+    } else {
+      // Crear nuevo progreso si no existe
+      await ctx.db.insert("courseProgress", {
+        userId: args.discipleId,
+        courseId: args.courseId,
+        completedWeeks: [],
+        completedWorkAndExam: newStatus,
+      });
+    }
+
+    return { success: true };
+  },
+});
+

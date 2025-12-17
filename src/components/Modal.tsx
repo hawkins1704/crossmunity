@@ -1,11 +1,11 @@
-import { ReactNode, useEffect } from "react";
+import {  useEffect } from "react";
 import { HiX } from "react-icons/hi";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
+  children: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 

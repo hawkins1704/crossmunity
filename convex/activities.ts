@@ -224,6 +224,54 @@ export const getMyActivityResponse = query({
 });
 
 /**
+ * Query: Obtiene todas las actividades de los grupos donde el usuario es líder o discípulo
+ * Incluye información sobre si es líder o discípulo en cada grupo
+ */
+export const getMyActivities = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Obtener todos los grupos
+    const allGroups = await ctx.db.query("groups").collect();
+
+    // Filtrar grupos donde el usuario es líder o discípulo
+    const userGroups = allGroups.filter(
+      (group) =>
+        group.leaders.includes(userId) || group.disciples.includes(userId)
+    );
+
+    // Obtener todas las actividades de estos grupos
+    const allActivities = await ctx.db.query("activities").collect();
+
+    // Filtrar actividades de los grupos del usuario y agregar información del tipo
+    const myActivities = allActivities
+      .filter((activity) =>
+        userGroups.some((group) => group._id === activity.groupId)
+      )
+      .map((activity) => {
+        const group = userGroups.find((g) => g._id === activity.groupId);
+        const isLeader = group?.leaders.includes(userId) || false;
+        const isDisciple = group?.disciples.includes(userId) || false;
+
+        return {
+          ...activity,
+          groupName: group?.name || "",
+          activityType: isLeader ? ("leader" as const) : ("disciple" as const),
+        };
+      });
+
+    // Ordenar por fecha (más recientes primero)
+    myActivities.sort((a, b) => b.dateTime - a.dateTime);
+
+    return myActivities;
+  },
+});
+
+/**
  * Mutation: Crea una nueva actividad
  */
 export const createActivity = mutation({
@@ -263,17 +311,13 @@ export const createActivity = mutation({
       throw new Error("La fecha y hora deben ser futuras");
     }
 
-    if (!args.description || args.description.trim().length < 10) {
-      throw new Error("La descripción debe tener al menos 10 caracteres");
-    }
-
     // Crear la actividad
     const activityId = await ctx.db.insert("activities", {
       groupId: args.groupId,
       name: args.name.trim(),
       address: args.address.trim(),
       dateTime: args.dateTime,
-      description: args.description,
+      description: args.description || "",
       createdBy: userId,
     });
 
@@ -403,10 +447,7 @@ export const updateActivity = mutation({
     }
 
     if (args.description !== undefined) {
-      if (!args.description || args.description.trim().length < 10) {
-        throw new Error("La descripción debe tener al menos 10 caracteres");
-      }
-      updates.description = args.description;
+      updates.description = args.description || "";
     }
 
     await ctx.db.patch(args.activityId, updates);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -19,6 +20,7 @@ import {
   HiViewGrid,
   HiChevronLeft,
   HiChevronRight,
+  HiTrash,
 } from "react-icons/hi";
 import Modal from "../components/Modal";
 import RichTextEditor from "../components/RichTextEditor";
@@ -86,7 +88,6 @@ function ActivitiesCalendarView({
   activities,
   isLeader,
   onActivityClick,
-  ActivityResponseButtons,
 }: {
   activities: Array<{
     _id: Id<"activities">;
@@ -434,15 +435,22 @@ export default function GroupDetail() {
     groupId ? { groupId: groupId as Id<"groups"> } : "skip"
   );
   const createActivity = useMutation(api.activities.createActivity);
+  const updateActivity = useMutation(api.activities.updateActivity);
+  const deleteActivity = useMutation(api.activities.deleteActivity);
   const updateGroup = useMutation(api.groups.updateGroup);
   const currentUser = useQuery(api.users.getMyProfile);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditActivityModalOpen, setIsEditActivityModalOpen] = useState(false);
+  const [isDeleteActivityConfirmOpen, setIsDeleteActivityConfirmOpen] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<Id<"activities"> | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activityErrors, setActivityErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdatingGroup, setIsUpdatingGroup] = useState(false);
+  const [isUpdatingActivity, setIsUpdatingActivity] = useState(false);
+  const [isDeletingActivity, setIsDeletingActivity] = useState(false);
   const [activitiesView, setActivitiesView] = useState<"list" | "calendar">("list");
 
   // Estados para el formulario de actividad
@@ -605,19 +613,13 @@ export default function GroupDetail() {
       return;
     }
 
-    if (!activityDescription || activityDescription.trim().length < 10) {
-      setErrors({ description: "La descripción debe tener al menos 10 caracteres" });
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       await createActivity({
         groupId: groupId as Id<"groups">,
         name: activityName.trim(),
         address: activityAddress.trim(),
         dateTime,
-        description: activityDescription,
+        description: activityDescription.trim() || "",
       });
 
       // Reset form
@@ -634,6 +636,106 @@ export default function GroupDetail() {
     }
   };
 
+  // Función para abrir el modal de edición de actividad
+  const handleOpenEditActivityModal = () => {
+    if (!activityDetails) return;
+    
+    const date = new Date(activityDetails.activity.dateTime);
+    // Formatear fecha y hora para el input datetime-local
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    setActivityName(activityDetails.activity.name);
+    setActivityAddress(activityDetails.activity.address);
+    setActivityDateTime(dateTimeString);
+    setActivityDescription(activityDetails.activity.description);
+    setActivityErrors({});
+    setIsEditActivityModalOpen(true);
+  };
+
+  // Función para cerrar el modal de edición de actividad
+  const handleCloseEditActivityModal = () => {
+    setIsEditActivityModalOpen(false);
+    setActivityErrors({});
+    setActivityName("");
+    setActivityAddress("");
+    setActivityDateTime("");
+    setActivityDescription("");
+  };
+
+  // Función para actualizar una actividad
+  const handleUpdateActivity = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedActivityId) return;
+
+    setIsUpdatingActivity(true);
+    setActivityErrors({});
+
+    // Validaciones
+    if (!activityName || activityName.trim().length < 2) {
+      setActivityErrors({ name: "El nombre debe tener al menos 2 caracteres" });
+      setIsUpdatingActivity(false);
+      return;
+    }
+
+    if (!activityAddress || activityAddress.trim().length < 5) {
+      setActivityErrors({ address: "Ingresa una dirección válida" });
+      setIsUpdatingActivity(false);
+      return;
+    }
+
+    if (!activityDateTime) {
+      setActivityErrors({ dateTime: "Selecciona una fecha y hora" });
+      setIsUpdatingActivity(false);
+      return;
+    }
+
+    const dateTime = new Date(activityDateTime).getTime();
+    if (dateTime < Date.now()) {
+      setActivityErrors({ dateTime: "La fecha y hora deben ser futuras" });
+      setIsUpdatingActivity(false);
+      return;
+    }
+
+    try {
+      await updateActivity({
+        activityId: selectedActivityId,
+        name: activityName.trim(),
+        address: activityAddress.trim(),
+        dateTime,
+        description: activityDescription.trim() || "",
+      });
+
+      handleCloseEditActivityModal();
+      setSelectedActivityId(null); // Cerrar también el modal de detalles
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error al actualizar la actividad";
+      setActivityErrors({ submit: errorMessage });
+    } finally {
+      setIsUpdatingActivity(false);
+    }
+  };
+
+  // Función para eliminar una actividad
+  const handleDeleteActivity = async () => {
+    if (!selectedActivityId) return;
+
+    setIsDeletingActivity(true);
+    try {
+      await deleteActivity({ activityId: selectedActivityId });
+      setIsDeleteActivityConfirmOpen(false);
+      setSelectedActivityId(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error al eliminar la actividad";
+      setActivityErrors({ submit: errorMessage });
+    } finally {
+      setIsDeletingActivity(false);
+    }
+  };
 
   const formatDateTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -681,7 +783,7 @@ export default function GroupDetail() {
           {isLeader && (
             <button
               onClick={handleOpenEditModal}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
               title="Editar información del grupo"
             >
               <HiPencil className="h-4 w-4" />
@@ -729,7 +831,7 @@ export default function GroupDetail() {
       </div>
 
       {/* Lista de discípulos */}
-      <DisciplesSection disciples={group.disciples} />
+      <DisciplesSection disciples={group.disciples} isLeader={isLeader} />
 
       {/* Lista de líderes (discípulos que tienen su propio grupo) */}
       <LeadersSection disciples={group.disciples} />
@@ -852,6 +954,7 @@ export default function GroupDetail() {
           setActivityDescription("");
         }}
         title="Crear Nueva Actividad"
+        maxWidth="2xl"
       >
         <form onSubmit={handleCreateActivity} className="space-y-4">
           <div>
@@ -915,16 +1018,13 @@ export default function GroupDetail() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción
+              Descripción <span className="text-gray-400 font-normal">(opcional)</span>
             </label>
             <RichTextEditor
               content={activityDescription}
               onChange={setActivityDescription}
-              placeholder="Describe la actividad..."
+              placeholder="Describe la actividad (opcional)..."
             />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-500">{errors.description}</p>
-            )}
           </div>
 
           {errors.submit && (
@@ -1151,11 +1251,37 @@ export default function GroupDetail() {
       {isLeader && activityDetails && selectedActivityId && (
         <Modal
           isOpen={!!selectedActivityId}
-          onClose={() => setSelectedActivityId(null)}
+          onClose={() => {
+            setSelectedActivityId(null);
+            setIsEditActivityModalOpen(false);
+            setIsDeleteActivityConfirmOpen(false);
+          }}
           title={activityDetails.activity.name}
-          maxWidth="xl"
+          maxWidth="2xl"
         >
           <div className="space-y-6">
+            {/* Botones de acción (solo si es el creador) */}
+            {activityDetails.activity.creator?._id === currentUser._id && (
+              <div className="flex items-center justify-end gap-2 pb-4 border-b border-gray-200">
+                <button
+                  onClick={handleOpenEditActivityModal}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                  title="Editar actividad"
+                >
+                  <HiPencil className="h-4 w-4" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => setIsDeleteActivityConfirmOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+                  title="Eliminar actividad"
+                >
+                  <HiTrash className="h-4 w-4" />
+                  Eliminar
+                </button>
+              </div>
+            )}
+
             {/* Información de la actividad */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -1262,12 +1388,171 @@ export default function GroupDetail() {
           </div>
         </Modal>
       )}
+
+      {/* Modal para editar actividad */}
+      <Modal
+        isOpen={isEditActivityModalOpen}
+        onClose={handleCloseEditActivityModal}
+        title="Editar Actividad"
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleUpdateActivity} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nombre de la Actividad
+            </label>
+            <input
+              type="text"
+              value={activityName}
+              onChange={(e) => setActivityName(e.target.value)}
+              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                activityErrors.name
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+              }`}
+              placeholder="Ej: Reunión de oración"
+            />
+            {activityErrors.name && (
+              <p className="mt-1 text-sm text-red-500">{activityErrors.name}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Dirección
+            </label>
+            <input
+              type="text"
+              value={activityAddress}
+              onChange={(e) => setActivityAddress(e.target.value)}
+              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                activityErrors.address
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+              }`}
+              placeholder="Ej: Av. Principal 123"
+            />
+            {activityErrors.address && (
+              <p className="mt-1 text-sm text-red-500">{activityErrors.address}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fecha y Hora
+            </label>
+            <input
+              type="datetime-local"
+              value={activityDateTime}
+              onChange={(e) => setActivityDateTime(e.target.value)}
+              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                activityErrors.dateTime
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+              }`}
+            />
+            {activityErrors.dateTime && (
+              <p className="mt-1 text-sm text-red-500">{activityErrors.dateTime}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Descripción <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <RichTextEditor
+              content={activityDescription}
+              onChange={setActivityDescription}
+              placeholder="Describe la actividad (opcional)..."
+            />
+          </div>
+
+          {activityErrors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-sm text-red-600">{activityErrors.submit}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={handleCloseEditActivityModal}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdatingActivity}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isUpdatingActivity ? "Guardando..." : "Guardar Cambios"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal de confirmación para eliminar actividad */}
+      <Modal
+        isOpen={isDeleteActivityConfirmOpen}
+        onClose={() => setIsDeleteActivityConfirmOpen(false)}
+        title="Confirmar Eliminación"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <HiExclamationCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-900 mb-1">
+                ¿Estás seguro de que deseas eliminar esta actividad?
+              </p>
+              <p className="text-sm text-red-700">
+                Esta acción no se puede deshacer. Se eliminarán todas las respuestas asociadas a esta actividad.
+              </p>
+            </div>
+          </div>
+
+          {activityDetails && (
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <p className="text-sm font-medium text-gray-900">{activityDetails.activity.name}</p>
+              <p className="text-xs text-gray-600">{activityDetails.activity.address}</p>
+              <p className="text-xs text-gray-600">
+                {formatDateTime(activityDetails.activity.dateTime).date} a las {formatDateTime(activityDetails.activity.dateTime).time}
+              </p>
+            </div>
+          )}
+
+          {activityErrors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-sm text-red-600">{activityErrors.submit}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsDeleteActivityConfirmOpen(false)}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteActivity}
+              disabled={isDeletingActivity}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletingActivity ? "Eliminando..." : "Eliminar Actividad"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 
 // Componente para la sección de discípulos
-function DisciplesSection({ disciples }: { disciples: Array<any> }) {
+function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLeader: boolean }) {
   const [selectedDiscipleId, setSelectedDiscipleId] = useState<Id<"users"> | null>(null);
   const selectedDisciple = disciples.find((d) => d?._id === selectedDiscipleId);
   const discipleCourses = useQuery(
@@ -1333,6 +1618,7 @@ function DisciplesSection({ disciples }: { disciples: Array<any> }) {
           courses={discipleCourses}
           isOpen={!!selectedDiscipleId}
           onClose={() => setSelectedDiscipleId(null)}
+          isLeader={isLeader}
         />
       )}
     </div>
@@ -1492,12 +1778,16 @@ function DiscipleDetailsModal({
   courses,
   isOpen,
   onClose,
+  isLeader,
 }: {
   disciple: any;
   courses: any;
   isOpen: boolean;
   onClose: () => void;
+  isLeader: boolean;
 }) {
+  const toggleDiscipleWeek = useMutation(api.courses.toggleDiscipleWeekCompletion);
+  const toggleDiscipleWorkAndExam = useMutation(api.courses.toggleDiscipleWorkAndExam);
   if (courses === undefined) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title={`Detalles - ${disciple.name || "Discípulo"}`} maxWidth="2xl">
@@ -1598,21 +1888,41 @@ function DiscipleDetailsModal({
                 {/* Progreso semanal */}
                 {course.weekStatuses && course.weekStatuses.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-xs font-medium text-gray-700 mb-2">
-                      Progreso Semanal (Semana {course.currentWeek} de {course.durationWeeks || 9})
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium text-gray-700">
+                        Progreso Semanal (Semana {course.currentWeek} de {course.durationWeeks || 9})
+                      </p>
+                      {isLeader && (
+                        <p className="text-xs text-gray-600 italic">Haz clic en las semanas para marcarlas/desmarcarlas</p>
+                      )}
+                    </div>
                     <div className="grid grid-cols-9 gap-1">
                       {course.weekStatuses.map((weekStatus: any) => (
                         <div
                           key={weekStatus.week}
-                          className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium ${
+                          onClick={isLeader ? async () => {
+                            try {
+                              await toggleDiscipleWeek({
+                                discipleId: disciple._id,
+                                courseId: course._id,
+                                week: weekStatus.week,
+                              });
+                            } catch (error) {
+                              console.error("Error al actualizar semana:", error);
+                            }
+                          } : undefined}
+                          className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
                             weekStatus.status === "al-dia"
                               ? "bg-green-100 text-green-700"
                               : weekStatus.status === "atrasado"
                               ? "bg-red-100 text-red-700"
                               : "bg-gray-100 text-gray-500"
+                          } ${
+                            isLeader
+                              ? "cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-1"
+                              : ""
                           }`}
-                          title={`Semana ${weekStatus.week}: ${weekStatus.status}`}
+                          title={isLeader ? `Haz clic para ${weekStatus.isCompleted ? "desmarcar" : "marcar"} la semana ${weekStatus.week}` : `Semana ${weekStatus.week}: ${weekStatus.status}`}
                         >
                           {weekStatus.isCompleted ? (
                             <HiCheckCircle className="h-4 w-4" />
@@ -1642,7 +1952,22 @@ function DiscipleDetailsModal({
                 {/* Trabajo y examen */}
                 {course.completedWorkAndExam !== undefined && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="flex items-center gap-2">
+                    <div
+                      onClick={isLeader ? async () => {
+                        try {
+                          await toggleDiscipleWorkAndExam({
+                            discipleId: disciple._id,
+                            courseId: course._id,
+                          });
+                        } catch (error) {
+                          console.error("Error al actualizar trabajo y examen:", error);
+                        }
+                      } : undefined}
+                      className={`flex items-center gap-2 ${
+                        isLeader ? "cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" : ""
+                      }`}
+                      title={isLeader ? `Haz clic para ${course.completedWorkAndExam ? "desmarcar" : "marcar"} trabajo y examen` : undefined}
+                    >
                       {course.completedWorkAndExam ? (
                         <>
                           <HiCheckCircle className="h-4 w-4 text-green-600" />
@@ -1653,6 +1978,9 @@ function DiscipleDetailsModal({
                           <HiXCircle className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-500">Trabajo y examen pendientes</span>
                         </>
+                      )}
+                      {isLeader && (
+                        <span className="ml-auto text-xs text-gray-600 italic">(Clic para editar)</span>
                       )}
                     </div>
                   </div>

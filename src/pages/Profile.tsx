@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { HiUser, HiMail, HiPhone, HiAcademicCap, HiUserGroup, HiGlobeAlt, HiBookOpen, HiCalendar, HiBriefcase } from "react-icons/hi";
+import type { Id } from "../../convex/_generated/dataModel";
 
 export default function Profile() {
   const profile = useQuery(api.users.getMyProfile);
@@ -138,7 +139,7 @@ export default function Profile() {
         await removeService({});
       } else {
         // Asignar servicio
-        await assignService({ serviceId: serviceId as any });
+        await assignService({ serviceId: serviceId as Id<"services"> });
       }
     } catch (error) {
       alert(

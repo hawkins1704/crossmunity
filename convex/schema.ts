@@ -107,4 +107,20 @@ export default defineSchema({
     .index("activityId", ["activityId"]) // Para buscar respuestas de una actividad
     .index("userId", ["userId"]) // Para buscar respuestas de un usuario
     .index("activityId_userId", ["activityId", "userId"]), // Índice compuesto para búsqueda única
+
+  // Tabla de registros de asistencia y contadores
+  attendanceRecords: defineTable({
+    userId: v.id("users"), // Usuario que registra
+    date: v.number(), // Fecha del registro (timestamp, solo fecha, sin hora)
+    type: v.union(
+      v.literal("nuevos_asistentes"), // Nuevos asistentes (solo domingos)
+      v.literal("reset"), // Personas enviadas a RESET
+      v.literal("conferencia") // Asistencia a conferencia
+    ),
+    attended: v.optional(v.boolean()), // Si asistió (solo para nuevos_asistentes y conferencia)
+    count: v.number(), // Cantidad de personas nuevas/enviadas
+  })
+    .index("userId", ["userId"]) // Para buscar registros de un usuario
+    .index("userId_date", ["userId", "date"]) // Para buscar registros por usuario y fecha
+    .index("userId_type", ["userId", "type"]), // Para buscar registros por usuario y tipo
 });
