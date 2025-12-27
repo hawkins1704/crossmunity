@@ -32,6 +32,20 @@ function getMonthEnd(timestamp: number): number {
 }
 
 /**
+ * Helper: Obtiene el inicio del año (timestamp) para un año dado
+ */
+function getYearStart(year: number): number {
+  return new Date(year, 0, 1).getTime();
+}
+
+/**
+ * Helper: Obtiene el fin del año (timestamp) para un año dado
+ */
+function getYearEnd(year: number): number {
+  return new Date(year, 11, 31, 23, 59, 59, 999).getTime();
+}
+
+/**
  * Helper: Normaliza un timestamp para que solo contenga la fecha (sin hora)
  * Establece la hora a medianoche en la zona horaria local
  */
@@ -147,12 +161,12 @@ export const getMyAttendanceRecords = query({
 });
 
 /**
- * Query: Obtiene el reporte mensual del usuario actual
- * Retorna totales agrupados por tipo para el mes especificado
+ * Query: Obtiene el reporte mensual o anual del usuario actual
+ * Retorna totales agrupados por tipo para el mes o año especificado
  */
 export const getMyMonthlyReport = query({
   args: {
-    month: v.number(), // Mes (1-12)
+    month: v.optional(v.number()), // Mes (1-12), opcional. Si no se proporciona, filtra por año completo
     year: v.number(), // Año (ej: 2024)
   },
   handler: async (ctx, args) => {
@@ -161,21 +175,32 @@ export const getMyMonthlyReport = query({
       throw new Error("Usuario no autenticado");
     }
 
-    const monthStart = getMonthStart(
-      new Date(args.year, args.month - 1, 1).getTime()
-    );
-    const monthEnd = getMonthEnd(
-      new Date(args.year, args.month - 1, 1).getTime()
-    );
+    // Calcular rango de fechas: mes específico o año completo
+    let periodStart: number;
+    let periodEnd: number;
 
-    // Obtener todos los registros del mes
+    if (args.month !== undefined) {
+      // Filtrar por mes específico
+      periodStart = getMonthStart(
+        new Date(args.year, args.month - 1, 1).getTime()
+      );
+      periodEnd = getMonthEnd(
+        new Date(args.year, args.month - 1, 1).getTime()
+      );
+    } else {
+      // Filtrar por año completo
+      periodStart = getYearStart(args.year);
+      periodEnd = getYearEnd(args.year);
+    }
+
+    // Obtener todos los registros del usuario
     const allRecords = await ctx.db
       .query("attendanceRecords")
       .withIndex("userId", (q) => q.eq("userId", userId))
       .collect();
 
-    const monthRecords = allRecords.filter(
-      (r) => r.date >= monthStart && r.date <= monthEnd
+    const periodRecords = allRecords.filter(
+      (r) => r.date >= periodStart && r.date <= periodEnd
     );
 
     // Obtener información del usuario para conocer su género
@@ -185,10 +210,10 @@ export const getMyMonthlyReport = query({
     }
 
     // Helper para calcular total de personas en un registro (incluyendo al usuario si asistió)
-    const getRecordTotal = (record: typeof monthRecords[0]): number => {
-      // Para reset y conferencia, siempre cuenta el usuario (1) + count adicionales
+    const getRecordTotal = (record: typeof periodRecords[0]): number => {
+      // Para reset y conferencia, count representa el total de personas
       if (record.type === "reset" || record.type === "conferencia") {
-        return 1 + record.count;
+        return record.count;
       }
       // Para nuevos_asistentes, solo cuenta el usuario si asistió
       if (record.type === "nuevos_asistentes") {
@@ -198,7 +223,7 @@ export const getMyMonthlyReport = query({
     };
 
     // Helper para calcular hombres/mujeres en un registro
-    const getGenderCount = (record: typeof monthRecords[0]): { male: number; female: number } => {
+    const getGenderCount = (record: typeof periodRecords[0]): { male: number; female: number } => {
       const total = getRecordTotal(record);
       if (user.gender === "Male") {
         return { male: total, female: 0 };
@@ -213,19 +238,19 @@ export const getMyMonthlyReport = query({
         total: 0,
         male: 0,
         female: 0,
-        records: monthRecords.filter((r) => r.type === "nuevos_asistentes"),
+        records: periodRecords.filter((r) => r.type === "nuevos_asistentes"),
       },
       reset: {
         total: 0,
         male: 0,
         female: 0,
-        records: monthRecords.filter((r) => r.type === "reset"),
+        records: periodRecords.filter((r) => r.type === "reset"),
       },
       conferencia: {
         total: 0,
         male: 0,
         female: 0,
-        records: monthRecords.filter((r) => r.type === "conferencia"),
+        records: periodRecords.filter((r) => r.type === "conferencia"),
       },
     };
 
@@ -259,14 +284,15 @@ export const getMyMonthlyReport = query({
 });
 
 /**
- * Query: Obtiene el reporte mensual de grupo para líderes
+ * Query: Obtiene el reporte mensual o anual de grupo para líderes
  * Incluye totales de sus discípulos + sus propios registros
  * Agrupado por tipo y con desglose de propios vs discípulos
  */
 export const getGroupAttendanceReport = query({
   args: {
-    month: v.number(), // Mes (1-12)
+    month: v.optional(v.number()), // Mes (1-12), opcional. Si no se proporciona, filtra por año completo
     year: v.number(), // Año (ej: 2024)
+    discipleId: v.optional(v.id("users")), // ID del discípulo para filtrar, opcional. Si no se proporciona, muestra todos los discípulos
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -286,28 +312,41 @@ export const getGroupAttendanceReport = query({
       throw new Error("Usuario no encontrado");
     }
 
+    // Calcular rango de fechas: mes específico o año completo
+    let periodStart: number;
+    let periodEnd: number;
+
+    if (args.month !== undefined) {
+      // Filtrar por mes específico
+      periodStart = getMonthStart(
+        new Date(args.year, args.month - 1, 1).getTime()
+      );
+      periodEnd = getMonthEnd(
+        new Date(args.year, args.month - 1, 1).getTime()
+      );
+    } else {
+      // Filtrar por año completo
+      periodStart = getYearStart(args.year);
+      periodEnd = getYearEnd(args.year);
+    }
+
     if (userGroups.length === 0) {
       // Si no es líder, retornar solo su reporte personal
-      const monthStart = getMonthStart(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-      const monthEnd = getMonthEnd(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
 
       const allRecords = await ctx.db
         .query("attendanceRecords")
         .withIndex("userId", (q) => q.eq("userId", userId))
         .collect();
 
-      const monthRecords = allRecords.filter(
-        (r) => r.date >= monthStart && r.date <= monthEnd
+      const periodRecords = allRecords.filter(
+        (r) => r.date >= periodStart && r.date <= periodEnd
       );
 
       // Helper para calcular total de personas en un registro
-      const getRecordTotal = (record: typeof monthRecords[0]): number => {
+      const getRecordTotal = (record: typeof periodRecords[0]): number => {
+        // Para reset y conferencia, count representa el total de personas
         if (record.type === "reset" || record.type === "conferencia") {
-          return 1 + record.count;
+          return record.count;
         }
         if (record.type === "nuevos_asistentes") {
           return (record.attended ? 1 : 0) + record.count;
@@ -316,7 +355,7 @@ export const getGroupAttendanceReport = query({
       };
 
       // Helper para calcular hombres/mujeres en un registro
-      const getGenderCount = (record: typeof monthRecords[0]): { male: number; female: number } => {
+      const getGenderCount = (record: typeof periodRecords[0]): { male: number; female: number } => {
         const total = getRecordTotal(record);
         if (user.gender === "Male") {
           return { male: total, female: 0 };
@@ -330,19 +369,19 @@ export const getGroupAttendanceReport = query({
           total: 0,
           male: 0,
           female: 0,
-          records: monthRecords.filter((r) => r.type === "nuevos_asistentes"),
+          records: periodRecords.filter((r) => r.type === "nuevos_asistentes"),
         },
         reset: {
           total: 0,
           male: 0,
           female: 0,
-          records: monthRecords.filter((r) => r.type === "reset"),
+          records: periodRecords.filter((r) => r.type === "reset"),
         },
         conferencia: {
           total: 0,
           male: 0,
           female: 0,
-          records: monthRecords.filter((r) => r.type === "conferencia"),
+          records: periodRecords.filter((r) => r.type === "conferencia"),
         },
       };
 
@@ -378,29 +417,32 @@ export const getGroupAttendanceReport = query({
     }
 
     // Obtener todos los discípulos de los grupos del usuario
-    const allDisciples = await ctx.db
+    let allDisciples = await ctx.db
       .query("users")
       .withIndex("leader", (q) => q.eq("leader", userId))
       .collect();
 
-    const monthStart = getMonthStart(
-      new Date(args.year, args.month - 1, 1).getTime()
-    );
-    const monthEnd = getMonthEnd(
-      new Date(args.year, args.month - 1, 1).getTime()
-    );
+    // Si se especifica un discípulo, filtrar solo ese
+    if (args.discipleId !== undefined) {
+      // Verificar que el discípulo pertenezca al líder
+      const disciple = allDisciples.find((d) => d._id === args.discipleId);
+      if (!disciple) {
+        throw new Error("El discípulo especificado no pertenece a tus grupos");
+      }
+      allDisciples = [disciple];
+    }
 
-    // Obtener registros propios del mes
+    // Obtener registros propios del período
     const myRecords = await ctx.db
       .query("attendanceRecords")
       .withIndex("userId", (q) => q.eq("userId", userId))
       .collect();
 
-    const myMonthRecords = myRecords.filter(
-      (r) => r.date >= monthStart && r.date <= monthEnd
+    const myPeriodRecords = myRecords.filter(
+      (r) => r.date >= periodStart && r.date <= periodEnd
     );
 
-    // Obtener registros de todos los discípulos del mes
+    // Obtener registros de todos los discípulos del período
     const discipleIds = allDisciples.map((d) => d._id);
     const allDiscipleRecords = await Promise.all(
       discipleIds.map(async (discipleId) => {
@@ -409,12 +451,12 @@ export const getGroupAttendanceReport = query({
           .withIndex("userId", (q) => q.eq("userId", discipleId))
           .collect();
         return records.filter(
-          (r) => r.date >= monthStart && r.date <= monthEnd
+          (r) => r.date >= periodStart && r.date <= periodEnd
         );
       })
     );
 
-    const discipleMonthRecords = allDiscipleRecords.flat();
+    const disciplePeriodRecords = allDiscipleRecords.flat();
 
     // Crear mapa de userId -> género para los discípulos
     const discipleGenderMap = new Map<Id<"users">, "Male" | "Female">();
@@ -423,9 +465,10 @@ export const getGroupAttendanceReport = query({
     });
 
     // Helper para calcular total de personas en un registro
-    const getRecordTotal = (record: typeof myMonthRecords[0]): number => {
+    const getRecordTotal = (record: typeof myPeriodRecords[0]): number => {
+      // Para reset y conferencia, count representa el total de personas
       if (record.type === "reset" || record.type === "conferencia") {
-        return 1 + record.count;
+        return record.count;
       }
       if (record.type === "nuevos_asistentes") {
         return (record.attended ? 1 : 0) + record.count;
@@ -434,7 +477,7 @@ export const getGroupAttendanceReport = query({
     };
 
     // Helper para calcular género de un registro propio
-    const getMyGenderCount = (record: typeof myMonthRecords[0]): { male: number; female: number } => {
+    const getMyGenderCount = (record: typeof myPeriodRecords[0]): { male: number; female: number } => {
       const total = getRecordTotal(record);
       if (user.gender === "Male") {
         return { male: total, female: 0 };
@@ -444,7 +487,7 @@ export const getGroupAttendanceReport = query({
     };
 
     // Helper para calcular género de un registro de discípulo
-    const getDiscipleGenderCount = (record: typeof discipleMonthRecords[0]): { male: number; female: number } => {
+    const getDiscipleGenderCount = (record: typeof disciplePeriodRecords[0]): { male: number; female: number } => {
       const total = getRecordTotal(record);
       const discipleGender = discipleGenderMap.get(record.userId);
       if (discipleGender === "Male") {
@@ -460,19 +503,19 @@ export const getGroupAttendanceReport = query({
         total: 0,
         male: 0,
         female: 0,
-        records: myMonthRecords.filter((r) => r.type === "nuevos_asistentes"),
+        records: myPeriodRecords.filter((r) => r.type === "nuevos_asistentes"),
       },
       reset: {
         total: 0,
         male: 0,
         female: 0,
-        records: myMonthRecords.filter((r) => r.type === "reset"),
+        records: myPeriodRecords.filter((r) => r.type === "reset"),
       },
       conferencia: {
         total: 0,
         male: 0,
         female: 0,
-        records: myMonthRecords.filter((r) => r.type === "conferencia"),
+        records: myPeriodRecords.filter((r) => r.type === "conferencia"),
       },
     };
 
@@ -506,7 +549,7 @@ export const getGroupAttendanceReport = query({
         total: 0,
         male: 0,
         female: 0,
-        records: discipleMonthRecords.filter(
+        records: disciplePeriodRecords.filter(
           (r) => r.type === "nuevos_asistentes"
         ),
       },
@@ -514,13 +557,13 @@ export const getGroupAttendanceReport = query({
         total: 0,
         male: 0,
         female: 0,
-        records: discipleMonthRecords.filter((r) => r.type === "reset"),
+        records: disciplePeriodRecords.filter((r) => r.type === "reset"),
       },
       conferencia: {
         total: 0,
         male: 0,
         female: 0,
-        records: discipleMonthRecords.filter((r) => r.type === "conferencia"),
+        records: disciplePeriodRecords.filter((r) => r.type === "conferencia"),
       },
     };
 
@@ -549,37 +592,36 @@ export const getGroupAttendanceReport = query({
     });
 
     // Calcular totales combinados
+    // El total solo incluye los discípulos filtrados, SIN incluir los registros del líder
     const groupReport = {
       nuevos_asistentes: {
-        total:
-          myReport.nuevos_asistentes.total +
-          disciplesReport.nuevos_asistentes.total,
+        total: disciplesReport.nuevos_asistentes.total, // Solo discípulos filtrados
         myTotal: myReport.nuevos_asistentes.total,
         disciplesTotal: disciplesReport.nuevos_asistentes.total,
-        male: myReport.nuevos_asistentes.male + disciplesReport.nuevos_asistentes.male,
-        female: myReport.nuevos_asistentes.female + disciplesReport.nuevos_asistentes.female,
+        male: disciplesReport.nuevos_asistentes.male, // Solo discípulos filtrados
+        female: disciplesReport.nuevos_asistentes.female, // Solo discípulos filtrados
         myMale: myReport.nuevos_asistentes.male,
         myFemale: myReport.nuevos_asistentes.female,
         disciplesMale: disciplesReport.nuevos_asistentes.male,
         disciplesFemale: disciplesReport.nuevos_asistentes.female,
       },
       reset: {
-        total: myReport.reset.total + disciplesReport.reset.total,
+        total: disciplesReport.reset.total, // Solo discípulos filtrados
         myTotal: myReport.reset.total,
         disciplesTotal: disciplesReport.reset.total,
-        male: myReport.reset.male + disciplesReport.reset.male,
-        female: myReport.reset.female + disciplesReport.reset.female,
+        male: disciplesReport.reset.male, // Solo discípulos filtrados
+        female: disciplesReport.reset.female, // Solo discípulos filtrados
         myMale: myReport.reset.male,
         myFemale: myReport.reset.female,
         disciplesMale: disciplesReport.reset.male,
         disciplesFemale: disciplesReport.reset.female,
       },
       conferencia: {
-        total: myReport.conferencia.total + disciplesReport.conferencia.total,
+        total: disciplesReport.conferencia.total, // Solo discípulos filtrados
         myTotal: myReport.conferencia.total,
         disciplesTotal: disciplesReport.conferencia.total,
-        male: myReport.conferencia.male + disciplesReport.conferencia.male,
-        female: myReport.conferencia.female + disciplesReport.conferencia.female,
+        male: disciplesReport.conferencia.male, // Solo discípulos filtrados
+        female: disciplesReport.conferencia.female, // Solo discípulos filtrados
         myMale: myReport.conferencia.male,
         myFemale: myReport.conferencia.female,
         disciplesMale: disciplesReport.conferencia.male,

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
@@ -21,6 +21,8 @@ import {
   HiChevronLeft,
   HiChevronRight,
   HiTrash,
+  HiSearch,
+  HiX,
 } from "react-icons/hi";
 import Modal from "../components/Modal";
 import RichTextEditor from "../components/RichTextEditor";
@@ -468,6 +470,37 @@ export default function GroupDetail() {
   const [groupDay, setGroupDay] = useState("");
   const [groupTime, setGroupTime] = useState("");
 
+  // Estados para el buscador de co-líder
+  const [coLeaderSearch, setCoLeaderSearch] = useState("");
+  const [coLeaderId, setCoLeaderId] = useState<Id<"users"> | null>(null);
+  const [selectedCoLeader, setSelectedCoLeader] = useState<{
+    _id: Id<"users">;
+    name?: string;
+    email?: string;
+    role: "Pastor" | "Member";
+    gender: "Male" | "Female";
+  } | null>(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Buscar usuarios mientras se escribe
+  const searchResults = useQuery(
+    api.users.searchUsersByEmail,
+    coLeaderSearch.length >= 2 ? { searchTerm: coLeaderSearch } : "skip"
+  );
+
+  // Cerrar resultados al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Obtener detalles de actividad seleccionada (solo para líderes)
   const activityDetails = useQuery(
     api.activities.getActivityWithResponses,
@@ -498,6 +531,32 @@ export default function GroupDetail() {
     setGroupMaxAge(group.maxAge?.toString() || "");
     setGroupDay(group.day);
     setGroupTime(group.time);
+    
+    // Inicializar co-líder si existe
+    const currentLeaders = group.leaders || [];
+    if (currentLeaders.length === 2) {
+      // Hay un co-líder, encontrar cuál no es el usuario actual
+      const coLeader = currentLeaders.find(
+        (leader) => leader?._id !== currentUser._id
+      );
+      if (coLeader) {
+        setSelectedCoLeader({
+          _id: coLeader._id,
+          name: coLeader.name,
+          email: coLeader.email,
+          role: coLeader.role,
+          gender: coLeader.gender,
+        });
+        setCoLeaderId(coLeader._id);
+        setCoLeaderSearch(coLeader.email || "");
+      }
+    } else {
+      // No hay co-líder
+      setSelectedCoLeader(null);
+      setCoLeaderId(null);
+      setCoLeaderSearch("");
+    }
+    
     setErrors({});
     setIsEditModalOpen(true);
   };
@@ -512,6 +571,31 @@ export default function GroupDetail() {
     setGroupMaxAge("");
     setGroupDay("");
     setGroupTime("");
+    setSelectedCoLeader(null);
+    setCoLeaderId(null);
+    setCoLeaderSearch("");
+    setShowSearchResults(false);
+  };
+
+  const handleSelectCoLeader = (user: {
+    _id: Id<"users">;
+    name?: string;
+    email?: string;
+    role: "Pastor" | "Member";
+    gender: "Male" | "Female";
+  }) => {
+    setSelectedCoLeader(user);
+    setCoLeaderId(user._id);
+    setCoLeaderSearch(user.email || "");
+    setShowSearchResults(false);
+    setErrors((prev) => ({ ...prev, coLeader: "" }));
+  };
+
+  const handleRemoveCoLeader = () => {
+    setSelectedCoLeader(null);
+    setCoLeaderId(null);
+    setCoLeaderSearch("");
+    setErrors((prev) => ({ ...prev, coLeader: "" }));
   };
 
   const handleUpdateGroup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -572,6 +656,7 @@ export default function GroupDetail() {
         maxAge: maxAgeNum,
         day: groupDay,
         time: groupTime,
+        coLeaderId: coLeaderId || undefined,
       });
 
       setIsEditModalOpen(false);
@@ -1220,6 +1305,99 @@ export default function GroupDetail() {
                 <p className="mt-1 text-sm text-red-500">{errors.time}</p>
               )}
             </div>
+          </div>
+
+          {/* Co-líder (buscador) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Co-líder (Opcional)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Busca un usuario por email para agregarlo como co-líder. Debe ser
+              de diferente género al tuyo. Deja vacío para quitar el co-líder actual.
+            </p>
+            
+            <div className="relative" ref={searchRef}>
+              {selectedCoLeader ? (
+                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedCoLeader.name || "Sin nombre"}
+                    </p>
+                    <p className="text-xs text-gray-600">{selectedCoLeader.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoLeader}
+                    className="p-1 rounded-full hover:bg-blue-100 transition-colors"
+                  >
+                    <HiX className="h-4 w-4 text-gray-600" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <HiSearch className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={coLeaderSearch}
+                      onChange={(e) => {
+                        setCoLeaderSearch(e.target.value);
+                        setShowSearchResults(true);
+                        setErrors((prev) => ({ ...prev, coLeader: "" }));
+                      }}
+                      onFocus={() => {
+                        if (coLeaderSearch.length >= 2) {
+                          setShowSearchResults(true);
+                        }
+                      }}
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                        errors.coLeader
+                          ? "border-red-300 focus:ring-red-200"
+                          : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                      }`}
+                      placeholder="Buscar por email..."
+                    />
+                  </div>
+
+                  {/* Resultados de búsqueda */}
+                  {showSearchResults && coLeaderSearch.length >= 2 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults === undefined ? (
+                        <div className="p-4 text-center text-sm text-gray-500">
+                          Buscando...
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-gray-500">
+                          No se encontraron usuarios con ese correo
+                        </div>
+                      ) : (
+                        <div className="py-2">
+                          {searchResults.map((user) => (
+                            <button
+                              key={user._id}
+                              type="button"
+                              onClick={() => handleSelectCoLeader(user)}
+                              className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                            >
+                              <p className="text-sm font-medium text-gray-900">
+                                {user.name || "Sin nombre"}
+                              </p>
+                              <p className="text-xs text-gray-600">{user.email}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            {errors.coLeader && (
+              <p className="mt-1 text-sm text-red-500">{errors.coLeader}</p>
+            )}
           </div>
 
           {errors.submit && (

@@ -455,6 +455,7 @@ export const updateGroup = mutation({
     maxAge: v.optional(v.number()),
     day: v.optional(v.string()),
     time: v.optional(v.string()),
+    coLeaderId: v.optional(v.id("users")), // ID del co-líder opcional. Si no se proporciona y hay un co-líder, se quita.
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -472,6 +473,11 @@ export const updateGroup = mutation({
       throw new Error("Solo los líderes pueden actualizar el grupo");
     }
 
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
     // Validar rango de edad si se proporciona
     if (args.minAge !== undefined && args.maxAge !== undefined) {
       if (args.minAge > args.maxAge) {
@@ -482,6 +488,42 @@ export const updateGroup = mutation({
       }
     }
 
+    // Manejar co-líder
+    let newLeaders: Id<"users">[] = [userId]; // El usuario actual siempre es líder
+
+    if (args.coLeaderId !== undefined) {
+      if (args.coLeaderId) {
+        // Se quiere agregar un co-líder
+        // Verificar que no sea el mismo usuario
+        if (args.coLeaderId === userId) {
+          throw new Error("No puedes agregarte a ti mismo como co-líder");
+        }
+
+        const coLeader = await ctx.db.get(args.coLeaderId);
+        if (!coLeader) {
+          throw new Error("Co-líder no encontrado");
+        }
+
+        // Validar que el co-líder sea de diferente género
+        if (coLeader.gender === user.gender) {
+          throw new Error(
+            "El co-líder debe ser de diferente género (uno hombre, una mujer)"
+          );
+        }
+
+        newLeaders.push(args.coLeaderId);
+      }
+      // Si args.coLeaderId es null/undefined, solo mantenemos al usuario actual (quitar co-líder)
+    } else {
+      // Si no se proporciona coLeaderId, mantener los líderes actuales
+      newLeaders = group.leaders;
+    }
+
+    // Validar máximo 2 líderes
+    if (newLeaders.length > 2) {
+      throw new Error("Un grupo solo puede tener máximo 2 líderes");
+    }
+
     const updates: {
       name?: string;
       address?: string;
@@ -490,6 +532,7 @@ export const updateGroup = mutation({
       maxAge?: number;
       day?: string;
       time?: string;
+      leaders?: Id<"users">[];
     } = {};
 
     if (args.name !== undefined) {
@@ -518,6 +561,11 @@ export const updateGroup = mutation({
 
     if (args.time !== undefined) {
       updates.time = args.time;
+    }
+
+    // Actualizar líderes si se proporcionó coLeaderId
+    if (args.coLeaderId !== undefined) {
+      updates.leaders = newLeaders;
     }
 
     await ctx.db.patch(args.groupId, updates);
