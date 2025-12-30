@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { HiGlobeAlt, HiUsers, HiAcademicCap, HiUserGroup, HiPlus, HiPencil, HiTrash, HiX, HiSearch } from "react-icons/hi";
 import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
+import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 const Grid = () => {
@@ -45,16 +47,19 @@ const Grid = () => {
 // Vista para administradores: muestra todas las redes
 function AdminGridView() {
   const grids = useQuery(api.grids.getAllGrids);
+  const pastors = useQuery(api.users.getPastors);
+  const createGrid = useMutation(api.grids.createGridForAdmin);
   const updateGrid = useMutation(api.grids.updateGridForAdmin);
   const deleteGrid = useMutation(api.grids.deleteGrid);
   const addMember = useMutation(api.grids.addMemberToGridForAdmin);
   const removeMember = useMutation(api.grids.removeMemberFromGridForAdmin);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModal, setIsCreateModal] = useState(false);
   const [editingGrid, setEditingGrid] = useState<Id<"grids"> | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: "" });
+  const [formData, setFormData] = useState({ name: "", pastorId: "" as Id<"users"> | "" });
   
   // Estados para agregar miembros
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -79,17 +84,27 @@ function AdminGridView() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleOpenCreateModal = () => {
+    setIsCreateModal(true);
+    setEditingGrid(null);
+    setFormData({ name: "", pastorId: "" });
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
   const handleOpenEditModal = (grid: { _id: Id<"grids">; name: string }) => {
+    setIsCreateModal(false);
     setEditingGrid(grid._id);
-    setFormData({ name: grid.name });
+    setFormData({ name: grid.name, pastorId: "" });
     setErrors({});
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setIsCreateModal(false);
     setEditingGrid(null);
-    setFormData({ name: "" });
+    setFormData({ name: "", pastorId: "" });
     setErrors({});
   };
 
@@ -104,17 +119,23 @@ function AdminGridView() {
       return;
     }
 
+    if (isCreateModal && !formData.pastorId) {
+      setErrors({ pastorId: "Debes seleccionar un pastor" });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      if (editingGrid) {
+      if (isCreateModal) {
+        await createGrid({
+          name: formData.name.trim(),
+          pastorId: formData.pastorId as Id<"users">,
+        });
+      } else if (editingGrid) {
         await updateGrid({
           gridId: editingGrid,
           name: formData.name.trim(),
         });
-      } else {
-        // Los admins no pueden crear redes directamente, solo los pastores
-        setErrors({ submit: "Los administradores no pueden crear redes. Las redes son creadas por los pastores." });
-        setIsSubmitting(false);
-        return;
       }
       handleCloseModal();
     } catch (error) {
@@ -196,12 +217,18 @@ function AdminGridView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Redes</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Gestiona todas las redes de la plataforma
-        </p>
-      </div>
+      <PageHeader
+        title="Redes"
+        description="Gestiona todas las redes de la plataforma"
+        button={
+          <Button
+            onClick={handleOpenCreateModal}
+            icon={<HiPlus className="h-4 w-4" />}
+          >
+            Crear Red
+          </Button>
+        }
+      />
 
       {grids.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
@@ -231,11 +258,11 @@ function AdminGridView() {
         </div>
       )}
 
-      {/* Modal para editar red */}
+      {/* Modal para crear/editar red */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingGrid ? "Editar Red" : "Crear Red"}
+        title={isCreateModal ? "Crear Red" : "Editar Red"}
         maxWidth="xl"
       >
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -262,6 +289,39 @@ function AdminGridView() {
             {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
           </div>
 
+          {isCreateModal && (
+            <div>
+              <label htmlFor="pastorId" className="block text-sm font-medium text-gray-700 mb-2">
+                Asignar a Pastor *
+              </label>
+              <select
+                id="pastorId"
+                value={formData.pastorId}
+                onChange={(e) => {
+                  setFormData({ ...formData, pastorId: e.target.value as Id<"users"> | "" });
+                  setErrors({ ...errors, pastorId: "" });
+                }}
+                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                  errors.pastorId
+                    ? "border-red-300 focus:ring-red-200"
+                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                }`}
+                required={isCreateModal}
+              >
+                <option value="">Selecciona un pastor</option>
+                {pastors?.map((pastor) => (
+                  <option key={pastor._id} value={pastor._id}>
+                    {pastor.name || pastor.email} {pastor.email ? `(${pastor.email})` : ""}
+                  </option>
+                ))}
+              </select>
+              {errors.pastorId && <p className="mt-1 text-sm text-red-500">{errors.pastorId}</p>}
+              {pastors?.length === 0 && (
+                <p className="mt-1 text-sm text-gray-500">No hay pastores disponibles</p>
+              )}
+            </div>
+          )}
+
           {errors.submit && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3">
               <p className="text-sm text-red-600">{errors.submit}</p>
@@ -269,20 +329,23 @@ function AdminGridView() {
           )}
 
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={handleCloseModal}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              variant="outline"
+              rounded="xl"
+              fullWidth
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              rounded="xl"
+              fullWidth
             >
-              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-            </button>
+              {isSubmitting ? (isCreateModal ? "Creando..." : "Guardando...") : (isCreateModal ? "Crear Red" : "Guardar Cambios")}
+            </Button>
           </div>
         </form>
       </Modal>
@@ -356,7 +419,7 @@ function AdminGridView() {
           )}
 
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setShowAddMemberModal(false);
@@ -364,17 +427,20 @@ function AdminGridView() {
                 setMemberSearch("");
                 setErrors({});
               }}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              variant="outline"
+              rounded="xl"
+              fullWidth
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              rounded="xl"
+              fullWidth
             >
               {isSubmitting ? "Agregando..." : "Agregar Miembro"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -387,13 +453,11 @@ function PastorGridView() {
   const myGrid = useQuery(api.grids.getMyGrid);
   const members = useQuery(api.grids.getGridMembers);
   const stats = useQuery(api.grids.getGridStats);
-  const createGrid = useMutation(api.grids.createGrid);
   const updateGrid = useMutation(api.grids.updateGrid);
   const addMember = useMutation(api.grids.addMemberToGrid);
   const removeMember = useMutation(api.grids.removeMemberFromGrid);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModal, setIsEditModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -418,16 +482,8 @@ function PastorGridView() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleOpenCreateModal = () => {
-    setIsEditModal(false);
-    setFormData({ name: "" });
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
   const handleOpenEditModal = () => {
     if (!myGrid) return;
-    setIsEditModal(true);
     setFormData({ name: myGrid.name });
     setErrors({});
     setIsModalOpen(true);
@@ -435,13 +491,14 @@ function PastorGridView() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setIsEditModal(false);
     setFormData({ name: "" });
     setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!myGrid) return;
+
     setIsSubmitting(true);
     setErrors({});
 
@@ -452,16 +509,10 @@ function PastorGridView() {
     }
 
     try {
-      if (isEditModal && myGrid) {
-        await updateGrid({
-          gridId: myGrid._id,
-          name: formData.name.trim(),
-        });
-      } else {
-        await createGrid({
-          name: formData.name.trim(),
-        });
-      }
+      await updateGrid({
+        gridId: myGrid._id,
+        name: formData.name.trim(),
+      });
       handleCloseModal();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Error al guardar la red";
@@ -517,91 +568,26 @@ function PastorGridView() {
     );
   }
 
-  // Si no tiene red, mostrar opción para crear
+  // Si no tiene red, mostrar mensaje informativo
   if (!myGrid) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Red</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Crea y gestiona tu red
-          </p>
-        </div>
+        <PageHeader
+          title="Mi Red"
+          description="Gestiona tu red y sus miembros"
+        />
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
             <HiGlobeAlt className="h-8 w-8 text-blue-500" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No tienes una red creada
+            No tienes una red asignada
           </h3>
-          <p className="text-gray-600 mb-6">
-            Crea tu red para comenzar a gestionar a tus miembros.
+          <p className="text-gray-600">
+            Contacta a un administrador para que te asigne una red.
           </p>
-          <button
-            onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-          >
-            <HiPlus className="h-5 w-5" />
-            Crear Mi Red
-          </button>
         </div>
-
-        {/* Modal para crear red */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          title="Crear Mi Red"
-          maxWidth="xl"
-        >
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre de la Red *
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  setErrors({ ...errors, name: "" });
-                }}
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
-                  errors.name
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
-                }`}
-                placeholder="Ej: Red Norte"
-                required
-              />
-              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-            </div>
-
-            {errors.submit && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-sm text-red-600">{errors.submit}</p>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isSubmitting ? "Creando..." : "Crear Red"}
-              </button>
-            </div>
-          </form>
-        </Modal>
       </div>
     );
   }
@@ -609,30 +595,28 @@ function PastorGridView() {
   // Si tiene red, mostrar información y opciones de edición
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Red</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Gestiona tu red y sus miembros
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleOpenEditModal}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
-          >
-            <HiPencil className="h-4 w-4" />
-            Editar Red
-          </button>
-          <button
-            onClick={() => setShowAddMemberModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-          >
-            <HiPlus className="h-4 w-4" />
-            Agregar Miembro
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Mi Red"
+        description="Gestiona tu red y sus miembros"
+        button={
+          <div className="flex gap-3">
+            <button
+              onClick={handleOpenEditModal}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+            >
+              <HiPencil className="h-4 w-4" />
+              Editar Red
+            </button>
+            <Button
+              onClick={() => setShowAddMemberModal(true)}
+              icon={<HiPlus className="h-4 w-4" />}
+              size="lg"
+            >
+                Agregar Miembro
+            </Button>
+          </div>
+        }
+      />
 
       <GridCard
         grid={myGrid}
@@ -680,20 +664,23 @@ function PastorGridView() {
           )}
 
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={handleCloseModal}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              variant="outline"
+              rounded="xl"
+              fullWidth
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              rounded="xl"
+              fullWidth
             >
               {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -767,7 +754,7 @@ function PastorGridView() {
           )}
 
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setShowAddMemberModal(false);
@@ -775,17 +762,20 @@ function PastorGridView() {
                 setMemberSearch("");
                 setErrors({});
               }}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              variant="outline"
+              rounded="xl"
+              fullWidth
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              rounded="xl"
+              fullWidth
             >
               {isSubmitting ? "Agregando..." : "Agregar Miembro"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

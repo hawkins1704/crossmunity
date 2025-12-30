@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import PageHeader from "../components/PageHeader";
 import {
   HiUsers,
   HiLocationMarker,
@@ -442,13 +443,10 @@ export default function MyGroup() {
   if (!group) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Grupo</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Únete a un grupo de conexión usando un código de invitación
-          </p>
-        </div>
+        <PageHeader
+          title="Mi Grupo"
+          description="Únete a un grupo de conexión usando un código de invitación"
+        />
 
         {/* Card para unirse */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -541,13 +539,10 @@ export default function MyGroup() {
   if (group) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Grupo</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Información del grupo al que perteneces
-          </p>
-        </div>
+        <PageHeader
+          title="Mi Grupo"
+          description="Información del grupo al que perteneces"
+        />
 
         {/* Card del grupo */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

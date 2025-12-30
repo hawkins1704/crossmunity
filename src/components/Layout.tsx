@@ -44,7 +44,7 @@ const Layout = () => {
   
   if (profile?.isAdmin) {
     // Administradores ven todas las secciones admin
-    navigation = [...navigation, ...adminNavigation];
+    navigation = [ ...adminNavigation];
   } else if (profile?.role === "Pastor") {
     // Pastores ven "Mi Red" en lugar de "Redes"
     navigation = [...navigation, ...pastorNavigation];

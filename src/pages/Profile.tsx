@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { HiUser, HiMail, HiPhone, HiAcademicCap, HiUserGroup, HiGlobeAlt, HiBookOpen, HiCalendar, HiBriefcase } from "react-icons/hi";
+import { HiUser, HiMail, HiPhone, HiAcademicCap, HiUserGroup, HiGlobeAlt, HiBookOpen, HiCalendar, HiBriefcase, HiPencil } from "react-icons/hi";
+import PageHeader from "../components/PageHeader";
+import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function Profile() {
@@ -160,23 +162,20 @@ export default function Profile() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Gestiona tu información personal
-          </p>
-        </div>
-        {!isEditing && (
-          <button
-            onClick={handleEdit}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-          >
-            Editar Perfil
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Mi Perfil"
+        description="Gestiona tu información personal"
+        button={
+          !isEditing ? (
+            <Button
+              onClick={handleEdit}
+              size="lg"
+            >
+              Editar Perfil
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Información Principal */}
@@ -312,20 +311,23 @@ export default function Profile() {
 
                 {/* Botones */}
                 <div className="flex gap-3 pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={handleCancel}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                    variant="outline"
+                    rounded="xl"
+                    fullWidth
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    rounded="xl"
+                    fullWidth
                   >
                     {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (

@@ -239,6 +239,37 @@ export const getDisciplesByLeader = query({
 });
 
 /**
+ * Query: Obtiene todos los pastores (solo para administradores)
+ * Útil para que los administradores puedan asignar redes a pastores
+ */
+export const getPastors = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden ver la lista de pastores");
+    }
+
+    const pastors = await ctx.db
+      .query("users")
+      .withIndex("role", (q) => q.eq("role", "Pastor"))
+      .collect();
+
+    // Retornar solo información necesaria
+    return pastors.map((pastor) => ({
+      _id: pastor._id,
+      name: pastor.name,
+      email: pastor.email,
+    }));
+  },
+});
+
+/**
  * Query: Obtiene el dashboard completo del usuario actual
  * Incluye: perfil, grupo como discípulo, grupos como líder, y estadísticas básicas
  */

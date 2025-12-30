@@ -229,6 +229,7 @@ export const getGridStats = query({
 /**
  * Mutation: Crea una nueva red (grid) para el pastor actual
  * Valida que el pastor no tenga ya una red creada
+ * @deprecated Esta función está deprecada. Los administradores deben usar createGridForAdmin
  */
 export const createGrid = mutation({
   args: {
@@ -262,6 +263,55 @@ export const createGrid = mutation({
     const gridId = await ctx.db.insert("grids", {
       name: args.name,
       pastorId: userId,
+    });
+
+    return gridId;
+  },
+});
+
+/**
+ * Mutation: Crea una nueva red (grid) y la asigna a un pastor (solo para administradores)
+ * Valida que el pastor no tenga ya una red asignada
+ */
+export const createGridForAdmin = mutation({
+  args: {
+    name: v.string(),
+    pastorId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user || !user.isAdmin) {
+      throw new Error("Solo los administradores pueden crear redes y asignarlas a pastores");
+    }
+
+    // Verificar que el usuario asignado sea un pastor
+    const pastor = await ctx.db.get(args.pastorId);
+    if (!pastor) {
+      throw new Error("Pastor no encontrado");
+    }
+
+    if (pastor.role !== "Pastor") {
+      throw new Error("El usuario asignado debe ser un pastor");
+    }
+
+    // Verificar que el pastor no tenga ya una red
+    const existingGrid = await ctx.db
+      .query("grids")
+      .withIndex("pastorId", (q) => q.eq("pastorId", args.pastorId))
+      .first();
+
+    if (existingGrid) {
+      throw new Error("Este pastor ya tiene una red asignada. Un pastor solo puede tener una red.");
+    }
+
+    const gridId = await ctx.db.insert("grids", {
+      name: args.name,
+      pastorId: args.pastorId,
     });
 
     return gridId;

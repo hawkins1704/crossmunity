@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { HiPlus, HiBookOpen, HiX, HiCheck, HiCheckCircle } from "react-icons/hi";
+import { HiPlus, HiBookOpen, HiCheck, HiCheckCircle } from "react-icons/hi";
 import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
+import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function School() {
@@ -19,11 +21,11 @@ export default function School() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Obtener IDs de cursos en los que ya está inscrito
-  const enrolledCourseIds = myCourses?.map((course) => course._id) || [];
+  const enrolledCourseIds = myCourses?.map((course) => course?._id || "" as Id<"courses">) || [];
 
   // Filtrar cursos disponibles (excluir los ya inscritos)
   const availableCourses =
-    allCourses?.filter((course) => !enrolledCourseIds.includes(course._id)) || [];
+    allCourses?.filter((course) => !enrolledCourseIds.includes(course?._id || "" as Id<"courses">)) || [];
 
   const handleToggleCourse = (courseId: Id<"courses">) => {
     setSelectedCourses((prev) => {
@@ -117,24 +119,21 @@ export default function School() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Escuela</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Cursos en los que estás inscrito
-          </p>
-        </div>
-        {availableCourses.length > 0 && (
-          <button
-            onClick={handleModalOpen}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-          >
-            <HiPlus className="h-5 w-5" />
-            Agregar Cursos
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Escuela"
+        description="Cursos en los que estás inscrito"
+        button={
+          availableCourses.length > 0 ? (
+            <Button
+              onClick={handleModalOpen}
+              size="lg"
+              icon={<HiPlus className="h-5 w-5" />}
+            >
+              Agregar Cursos
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Lista de cursos */}
       {myCourses.length === 0 ? (
@@ -151,22 +150,22 @@ export default function School() {
               : "No hay cursos disponibles en este momento."}
           </p>
           {availableCourses.length > 0 && (
-            <button
+            <Button
               onClick={handleModalOpen}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              size="lg"
+              icon={<HiPlus className="h-5 w-5" />}
             >
-              <HiPlus className="h-5 w-5" />
               Agregar tu primer curso
-            </button>
+            </Button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {myCourses.map((course) => {
-            const weekStatuses = course.weekStatuses || [];
+            const weekStatuses = course?.weekStatuses || [];
             return (
               <div
-                key={course._id}
+                key={course?._id || ""}
                 className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-start justify-between mb-6">
@@ -176,12 +175,12 @@ export default function School() {
                         <HiBookOpen className="h-5 w-5 text-blue-500" />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-900">
-                        {course.name}
+                        {course?.name || ""}
                       </h3>
                     </div>
-                    {course.description && (
+                    {course?.description && (
                       <p className="text-sm text-gray-600 mt-2">
-                        {course.description}
+                        {course?.description || ""}
                       </p>
                     )}
                   </div>
@@ -228,7 +227,7 @@ export default function School() {
                       return (
                         <button
                           key={week}
-                          onClick={() => handleToggleWeek(course._id, week)}
+                          onClick={() => handleToggleWeek(course?._id || "" as Id<"courses">, week)}
                           className={`relative p-3 rounded-xl border-2 transition-all hover:scale-105 ${styles.bg} ${styles.border} ${styles.text}`}
                         >
                           <div className="flex flex-col items-center gap-1">
@@ -258,16 +257,16 @@ export default function School() {
                     Trabajo y Examen
                   </h4>
                   <button
-                    onClick={() => handleToggleWorkAndExam(course._id)}
+                    onClick={() => handleToggleWorkAndExam(course?._id || "" as Id<"courses">)}
                     className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-[1.02] ${
-                      course.completedWorkAndExam
+                      course?.completedWorkAndExam
                         ? "bg-green-50 border-green-300 text-green-700"
                         : "bg-gray-50 border-gray-200 text-gray-600"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {course.completedWorkAndExam ? (
+                        {course?.completedWorkAndExam ? (
                           <HiCheckCircle className="h-6 w-6" />
                         ) : (
                           <div className="h-6 w-6 rounded-full border-2 border-current" />
@@ -276,12 +275,12 @@ export default function School() {
                       </div>
                       <span
                         className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          course.completedWorkAndExam
+                          course?.completedWorkAndExam
                             ? "bg-green-100 text-green-700"
                             : "bg-gray-100 text-gray-600"
                         }`}
                       >
-                        {course.completedWorkAndExam ? "COMPLETADO" : "PENDIENTE"}
+                        {course?.completedWorkAndExam ? "COMPLETADO" : "PENDIENTE"}
                       </span>
                     </div>
                   </button>
@@ -290,7 +289,7 @@ export default function School() {
                 {/* Botón para desinscribirse */}
                 <div className="pt-4 border-t border-gray-200">
                   <button
-                    onClick={() => handleUnenroll(course._id)}
+                    onClick={() => handleUnenroll(course?._id || "" as Id<"courses">)}
                     className="w-full px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
                   >
                     Desinscribirse
@@ -305,13 +304,14 @@ export default function School() {
       {/* Botón para agregar más cursos si ya tiene algunos */}
       {myCourses.length > 0 && availableCourses.length > 0 && (
         <div className="flex justify-center">
-          <button
+          <Button
             onClick={handleModalOpen}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-sky-300 text-sky-600 rounded-full font-medium shadow-sm hover:shadow-md hover:bg-sky-50 transform hover:scale-105 transition-all duration-200"
+            variant="secondary"
+            size="lg"
+            icon={<HiPlus className="h-5 w-5" />}
           >
-            <HiPlus className="h-5 w-5" />
             Agregar Más Cursos
-          </button>
+          </Button>
         </div>
       )}
 
@@ -344,12 +344,12 @@ export default function School() {
                 </label>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {availableCourses.map((course) => {
-                    const isSelected = selectedCourses.includes(course._id);
+                    const isSelected = selectedCourses.includes(course?._id || "" as Id<"courses">);
                     return (
                       <button
-                        key={course._id}
+                        key={course?._id || ""}
                         type="button"
-                        onClick={() => handleToggleCourse(course._id)}
+                        onClick={() => handleToggleCourse(course?._id || "" as Id<"courses">)}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                           isSelected
                             ? "border-sky-500 bg-sky-50"
@@ -363,12 +363,12 @@ export default function School() {
                                 <HiCheck className="h-5 w-5 text-sky-500 flex-shrink-0" />
                               )}
                               <h4 className="font-semibold text-gray-900">
-                                {course.name}
+                                {course?.name || ""}
                               </h4>
                             </div>
-                            {course.description && (
+                            {course?.description && (
                               <p className="text-sm text-gray-600 mt-1">
-                                {course.description}
+                                {course?.description || ""}
                               </p>
                             )}
                           </div>
@@ -391,20 +391,23 @@ export default function School() {
 
               {/* Botones */}
               <div className="flex gap-3 pt-4">
-                <button
+                <Button
                   type="button"
                   onClick={handleModalClose}
-                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                  variant="outline"
+                  rounded="xl"
+                  fullWidth
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSubmitting || selectedCourses.length === 0}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  rounded="xl"
+                  fullWidth
                 >
                   {isSubmitting ? "Inscribiendo..." : "Inscribirse"}
-                </button>
+                </Button>
               </div>
             </>
           )}

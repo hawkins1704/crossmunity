@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { HiPlus, HiBookOpen, HiPencil, HiTrash } from "react-icons/hi";
 import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
+import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function CoursesAdmin() {
@@ -228,22 +230,19 @@ export default function CoursesAdmin() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cursos</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Gestiona los cursos disponibles
-          </p>
-        </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-        >
-          <HiPlus className="h-5 w-5" />
-          Crear Curso
-        </button>
-      </div>
+      <PageHeader
+        title="Cursos"
+        description="Gestiona los cursos disponibles"
+        button={
+          <Button
+            onClick={handleOpenCreateModal}
+            size="lg"
+            icon={<HiPlus className="h-5 w-5" />}
+          >
+            Crear Curso
+          </Button>
+        }
+      />
 
       {/* Lista de cursos */}
       {courses.length === 0 ? (
@@ -257,13 +256,13 @@ export default function CoursesAdmin() {
           <p className="text-gray-600 mb-6">
             Crea tu primer curso para comenzar.
           </p>
-          <button
+          <Button
             onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            size="lg"
+            icon={<HiPlus className="h-5 w-5" />}
           >
-            <HiPlus className="h-5 w-5" />
             Crear tu primer curso
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -516,17 +515,20 @@ export default function CoursesAdmin() {
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={handleCloseModal}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              variant="outline"
+              rounded="xl"
+              fullWidth
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              rounded="xl"
+              fullWidth
             >
               {isSubmitting
                 ? editingCourse
@@ -535,7 +537,7 @@ export default function CoursesAdmin() {
                 : editingCourse
                 ? "Guardar Cambios"
                 : "Crear Curso"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
