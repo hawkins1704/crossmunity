@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { HiUser, HiMail, HiPhone, HiAcademicCap, HiUserGroup, HiGlobeAlt, HiBookOpen, HiCalendar, HiBriefcase, HiPencil } from "react-icons/hi";
+import { HiUser, HiMail, HiPhone, HiAcademicCap, HiUserGroup, HiGlobeAlt, HiBookOpen, HiCalendar, HiBriefcase } from "react-icons/hi";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";

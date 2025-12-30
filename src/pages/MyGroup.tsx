@@ -25,7 +25,6 @@ function ActivitiesCalendarView({
   activities,
   isLeader,
   onActivityClick,
-  ActivityResponseButtons,
 }: {
   activities: Array<{
     _id: Id<"activities">;

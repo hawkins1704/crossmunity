@@ -255,7 +255,6 @@ export const getMyActivities = query({
       .map((activity) => {
         const group = userGroups.find((g) => g._id === activity.groupId);
         const isLeader = group?.leaders.includes(userId) || false;
-        const isDisciple = group?.disciples.includes(userId) || false;
 
         return {
           ...activity,
