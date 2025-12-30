@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline";
@@ -20,7 +20,7 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseClasses = "inline-flex items-center gap-2 font-medium transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none";
+  const baseClasses = "inline-flex justify-center items-center gap-2 font-medium transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none";
   
   const variantClasses = {
     primary: "bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg hover:shadow-xl",

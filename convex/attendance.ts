@@ -108,6 +108,99 @@ export const recordAttendance = mutation({
 });
 
 /**
+ * Mutation: Actualiza un registro de asistencia existente
+ * Solo el usuario que creó el registro puede actualizarlo
+ */
+export const updateAttendance = mutation({
+  args: {
+    recordId: v.id("attendanceRecords"),
+    date: v.number(), // Timestamp de la fecha
+    type: v.union(
+      v.literal("nuevos_asistentes"),
+      v.literal("reset"),
+      v.literal("conferencia")
+    ),
+    attended: v.optional(v.boolean()), // Solo para nuevos_asistentes y conferencia
+    count: v.number(), // Cantidad de personas
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el registro existe y pertenece al usuario
+    const record = await ctx.db.get(args.recordId);
+    if (!record) {
+      throw new Error("Registro no encontrado");
+    }
+
+    if (record.userId !== userId) {
+      throw new Error("No tienes permiso para editar este registro");
+    }
+
+    // Normalizar fecha (solo fecha, sin hora)
+    const normalizedDate = normalizeDate(args.date);
+
+    // Validar que nuevos_asistentes solo se pueda registrar los domingos
+    if (args.type === "nuevos_asistentes" && !isSunday(normalizedDate)) {
+      throw new Error("Los nuevos asistentes solo se pueden registrar los domingos");
+    }
+
+    // Validar que attended esté presente solo para nuevos_asistentes
+    if (args.type === "nuevos_asistentes" && args.attended === undefined) {
+      throw new Error("Debes indicar si asististe o no");
+    }
+
+    // Validar que count sea positivo
+    if (args.count < 0) {
+      throw new Error("La cantidad debe ser un número positivo");
+    }
+
+    // Actualizar registro
+    await ctx.db.patch(args.recordId, {
+      date: normalizedDate,
+      type: args.type,
+      attended: args.attended,
+      count: args.count,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Mutation: Elimina un registro de asistencia
+ * Solo el usuario que creó el registro puede eliminarlo
+ */
+export const deleteAttendance = mutation({
+  args: {
+    recordId: v.id("attendanceRecords"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el registro existe y pertenece al usuario
+    const record = await ctx.db.get(args.recordId);
+    if (!record) {
+      throw new Error("Registro no encontrado");
+    }
+
+    if (record.userId !== userId) {
+      throw new Error("No tienes permiso para eliminar este registro");
+    }
+
+    // Eliminar registro
+    await ctx.db.delete(args.recordId);
+
+    return { success: true };
+  },
+});
+
+/**
  * Query: Obtiene los registros de asistencia del usuario actual
  * Opcionalmente filtrados por tipo, mes y año
  */
@@ -152,6 +245,53 @@ export const getMyAttendanceRecords = query({
         (r) => r.date >= monthStart && r.date <= monthEnd
       );
     }
+
+    // Ordenar por fecha (más recientes primero)
+    records.sort((a, b) => b.date - a.date);
+
+    return records;
+  },
+});
+
+/**
+ * Query: Obtiene los registros de asistencia de un usuario específico (solo para líderes)
+ * Permite a los líderes ver los registros de sus discípulos
+ */
+export const getAttendanceRecordsByUserId = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el usuario actual sea líder del usuario solicitado
+    const allGroups = await ctx.db.query("groups").collect();
+    const userGroups = allGroups.filter((group) =>
+      group.leaders.includes(currentUserId)
+    );
+
+    if (userGroups.length === 0) {
+      throw new Error("Solo los líderes pueden ver los registros de sus discípulos");
+    }
+
+    // Verificar que el usuario solicitado sea discípulo del líder
+    const disciple = await ctx.db.get(args.userId);
+    if (!disciple) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    if (disciple.leader !== currentUserId) {
+      throw new Error("Solo puedes ver los registros de tus discípulos");
+    }
+
+    // Obtener todos los registros del discípulo
+    const records = await ctx.db
+      .query("attendanceRecords")
+      .withIndex("userId", (q) => q.eq("userId", args.userId))
+      .collect();
 
     // Ordenar por fecha (más recientes primero)
     records.sort((a, b) => b.date - a.date);

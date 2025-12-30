@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Grid from "./pages/Grid";
 import CoursesAdmin from "./pages/CoursesAdmin";
 import GroupDetail from "./pages/GroupDetail";
+import Records from "./pages/Records";
 
 function App() {
     return (
@@ -48,6 +49,7 @@ function App() {
                             />
                             <Route path="/school" element={<School />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/records" element={<Records />} />
                             <Route path="/courses-admin" element={<CoursesAdmin />} />
                             <Route path="/grid" element={<Grid />} />
                         </Route>

@@ -14,6 +14,7 @@ import {
   HiSparkles,
   HiAcademicCap,
   HiBookOpen,
+  HiClipboardList,
 } from "react-icons/hi";
 
 const baseNavigation = [
@@ -21,6 +22,7 @@ const baseNavigation = [
   { name: "Mi Grupo", href: "/my-group", icon: HiUser },
   { name: "Mis Grupos", href: "/groups", icon: HiUsers },
   { name: "Escuela", href: "/school", icon: HiAcademicCap },
+  { name: "Registros", href: "/records", icon: HiClipboardList },
 ];
 
 const adminNavigation = [

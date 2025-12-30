@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
@@ -23,6 +23,8 @@ import {
   HiTrash,
   HiSearch,
   HiX,
+  HiArrowUp,
+  HiArrowDown,
 } from "react-icons/hi";
 import Modal from "../components/Modal";
 import RichTextEditor from "../components/RichTextEditor";
@@ -1732,6 +1734,9 @@ export default function GroupDetail() {
 // Componente para la sección de discípulos
 function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLeader: boolean }) {
   const [selectedDiscipleId, setSelectedDiscipleId] = useState<Id<"users"> | null>(null);
+  const [sortColumn, setSortColumn] = useState<"name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  
   const selectedDisciple = disciples.find((d) => d?._id === selectedDiscipleId);
   const discipleCourses = useQuery(
     api.courses.getUserCoursesProgress,
@@ -1743,6 +1748,18 @@ function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLe
 
   const hasDiscípulos = disciplesWithProgress.length > 0;
 
+  // Función para manejar el ordenamiento
+  const handleSort = (column: "name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia") => {
+    if (sortColumn === column) {
+      // Si es la misma columna, invertir la dirección
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Nueva columna, ordenar descendente por defecto
+      setSortColumn(column);
+      setSortDirection("desc");
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -1751,42 +1768,13 @@ function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLe
       {!hasDiscípulos ? (
         <p className="text-sm text-gray-500 italic">Aún no hay discípulos en este grupo</p>
       ) : (
-        <>
-          {/* Tabla para desktop */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Nombre</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Escuela</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Cursos</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Área de Servicio</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {disciplesWithProgress.map((disciple) => (
-                  <DiscipleRow
-                    key={disciple._id}
-                    disciple={disciple}
-                    onClick={() => setSelectedDiscipleId(disciple._id)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Cards para mobile */}
-          <div className="md:hidden grid grid-cols-1 gap-3">
-            {disciplesWithProgress.map((disciple) => (
-              <DiscipleCard
-                key={disciple._id}
-                disciple={disciple}
-                onClick={() => setSelectedDiscipleId(disciple._id)}
-              />
-            ))}
-          </div>
-        </>
+        <SortableDiscipleTable
+          disciples={disciplesWithProgress}
+          onDiscipleClick={setSelectedDiscipleId}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+        />
       )}
 
       {/* Modal de detalles del discípulo */}
@@ -1803,8 +1791,237 @@ function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLe
   );
 }
 
-// Componente de fila de tabla para desktop
-function DiscipleRow({
+// Componente que maneja la tabla ordenable
+function SortableDiscipleTable({
+  disciples,
+  onDiscipleClick,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: {
+  disciples: Array<any>;
+  onDiscipleClick: (id: Id<"users">) => void;
+  sortColumn: "name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia" | null;
+  sortDirection: "asc" | "desc";
+  onSort: (column: "name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia") => void;
+}) {
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const [sortData, setSortData] = useState<Map<Id<"users">, Record<string, any>>>(new Map());
+
+  // Ordenar discípulos usando useMemo
+  const sortedDisciples = useMemo(() => {
+    if (!sortColumn) return disciples;
+
+    return [...disciples].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortColumn) {
+        case "name":
+          aValue = (a.name || a.email || "").toLowerCase();
+          bValue = (b.name || b.email || "").toLowerCase();
+          break;
+        case "service":
+          aValue = a.service?.name || "";
+          bValue = b.service?.name || "";
+          break;
+        case "courses":
+        case "nuevos_asistentes":
+        case "reset":
+        case "conferencia": {
+          // Usar datos de sortData si están disponibles, sino usar 0
+          const aData = sortData.get(a._id);
+          const bData = sortData.get(b._id);
+          aValue = aData?.[sortColumn] ?? 0;
+          bValue = bData?.[sortColumn] ?? 0;
+          break;
+        }
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [disciples, sortColumn, sortDirection, sortData]);
+
+  // Actualizar sortData cuando los data attributes cambien
+  useEffect(() => {
+    if (!tbodyRef.current) return;
+
+    const updateSortData = () => {
+      const rows = Array.from(tbodyRef.current!.querySelectorAll("tr[data-disciple-id]"));
+      const newSortData = new Map<Id<"users">, Record<string, any>>();
+
+      rows.forEach((row) => {
+        const discipleId = row.getAttribute("data-disciple-id") as Id<"users">;
+        if (!discipleId) return;
+
+        newSortData.set(discipleId, {
+          courses: Number(row.getAttribute("data-sort-courses")) || 0,
+          nuevos_asistentes: Number(row.getAttribute("data-sort-nuevos-asistentes")) || 0,
+          reset: Number(row.getAttribute("data-sort-reset")) || 0,
+          conferencia: Number(row.getAttribute("data-sort-conferencia")) || 0,
+        });
+      });
+
+      // Actualizar si hay datos
+      if (newSortData.size > 0) {
+        setSortData((prev) => {
+          // Comparar si hay cambios reales antes de actualizar
+          let hasChanges = false;
+          if (prev.size !== newSortData.size) {
+            hasChanges = true;
+          } else {
+            for (const [id, data] of newSortData) {
+              const prevData = prev.get(id);
+              if (!prevData || 
+                  prevData.courses !== data.courses ||
+                  prevData.nuevos_asistentes !== data.nuevos_asistentes ||
+                  prevData.reset !== data.reset ||
+                  prevData.conferencia !== data.conferencia) {
+                hasChanges = true;
+                break;
+              }
+            }
+          }
+          return hasChanges ? newSortData : prev;
+        });
+      }
+    };
+
+    // Ejecutar después de que el DOM se actualice
+    const timeoutId = setTimeout(updateSortData, 100);
+    
+    // También usar MutationObserver para detectar cambios en los data attributes
+    if (tbodyRef.current) {
+      const observer = new MutationObserver(() => {
+        updateSortData();
+      });
+      
+      observer.observe(tbodyRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-sort-courses', 'data-sort-nuevos-asistentes', 'data-sort-reset', 'data-sort-conferencia'],
+      });
+      
+      return () => {
+        clearTimeout(timeoutId);
+        observer.disconnect();
+      };
+    }
+    
+    return () => clearTimeout(timeoutId);
+  }, [disciples.length, sortColumn]); // Ejecutar cuando cambie el número de discípulos o la columna de ordenamiento
+
+  return (
+    <>
+      {/* Tabla para desktop */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th 
+                className="text-left py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("name")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Nombre</span>
+                  {sortColumn === "name" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th 
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("courses")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Cursos</span>
+                  {sortColumn === "courses" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th 
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("service")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Área de Servicio</span>
+                  {sortColumn === "service" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th 
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("nuevos_asistentes")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <HiUsers className="h-4 w-4 text-blue-500" />
+                  <span>Nuevos Asistentes</span>
+                  {sortColumn === "nuevos_asistentes" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th 
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("reset")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <HiAcademicCap className="h-4 w-4 text-purple-500" />
+                  <span>RESET</span>
+                  {sortColumn === "reset" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th 
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onSort("conferencia")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <HiCalendar className="h-4 w-4 text-green-500" />
+                  <span>Conferencia</span>
+                  {sortColumn === "conferencia" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody ref={tbodyRef}>
+            {sortedDisciples.map((disciple) => (
+              <SortableDiscipleRow
+                key={disciple._id}
+                disciple={disciple}
+                onClick={() => onDiscipleClick(disciple._id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Cards para mobile */}
+      <div className="md:hidden grid grid-cols-1 gap-3">
+        {sortedDisciples.map((disciple) => (
+          <DiscipleCard
+            key={disciple._id}
+            disciple={disciple}
+            onClick={() => onDiscipleClick(disciple._id)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// Componente de fila que obtiene sus datos y expone valores para ordenamiento
+function SortableDiscipleRow({
   disciple,
   onClick,
 }: {
@@ -1812,15 +2029,27 @@ function DiscipleRow({
   onClick: () => void;
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
-  
+  const currentYear = new Date().getFullYear();
+  const report = useQuery(
+    api.attendance.getGroupAttendanceReport,
+    { year: currentYear, discipleId: disciple._id }
+  );
+
   const courseCount = courses?.length || 0;
-  const isActiveInSchool = disciple.isActiveInSchool || false;
-  
-  // Determinar si está atrasado (si tiene algún curso con backlog)
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
-  
+  const nuevosAsistentesTotal = report?.groupReport?.nuevos_asistentes?.disciplesTotal || 0;
+  const resetTotal = report?.groupReport?.reset?.disciplesTotal || 0;
+  const conferenciaTotal = report?.groupReport?.conferencia?.disciplesTotal || 0;
+
   return (
     <tr
+      data-disciple-id={disciple._id}
+      data-sort-name={(disciple.name || disciple.email || "").toLowerCase()}
+      data-sort-courses={courseCount}
+      data-sort-service={disciple.service?.name || ""}
+      data-sort-nuevos-asistentes={nuevosAsistentesTotal}
+      data-sort-reset={resetTotal}
+      data-sort-conferencia={conferenciaTotal}
       onClick={onClick}
       className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
         hasBacklog ? "bg-red-50/50" : ""
@@ -1842,16 +2071,6 @@ function DiscipleRow({
         </div>
       </td>
       <td className="py-3 px-4 text-center">
-        {isActiveInSchool ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            <HiAcademicCap className="h-3 w-3" />
-            Activo
-          </span>
-        ) : (
-          <span className="text-xs text-gray-500">Inactivo</span>
-        )}
-      </td>
-      <td className="py-3 px-4 text-center">
         <span className="text-sm font-medium text-gray-900">{courseCount}</span>
       </td>
       <td className="py-3 px-4 text-center">
@@ -1864,23 +2083,24 @@ function DiscipleRow({
         )}
       </td>
       <td className="py-3 px-4 text-center">
-        {hasBacklog ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-            <HiExclamationCircle className="h-3 w-3" />
-            Atrasado
-          </span>
-        ) : courseCount > 0 ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            <HiCheckCircle className="h-3 w-3" />
-            Al día
-          </span>
-        ) : (
-          <span className="text-xs text-gray-500">Sin cursos</span>
-        )}
+        <span className="text-sm font-medium text-gray-900">
+          {report === undefined ? "-" : nuevosAsistentesTotal}
+        </span>
+      </td>
+      <td className="py-3 px-4 text-center">
+        <span className="text-sm font-medium text-gray-900">
+          {report === undefined ? "-" : resetTotal}
+        </span>
+      </td>
+      <td className="py-3 px-4 text-center">
+        <span className="text-sm font-medium text-gray-900">
+          {report === undefined ? "-" : conferenciaTotal}
+        </span>
       </td>
     </tr>
   );
 }
+
 
 // Componente de card para mobile
 function DiscipleCard({
@@ -1891,10 +2111,19 @@ function DiscipleCard({
   onClick: () => void;
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
+  const currentYear = new Date().getFullYear();
+  const discipleReport = useQuery(
+    api.attendance.getGroupAttendanceReport,
+    { year: currentYear, discipleId: disciple._id }
+  );
   
   const courseCount = courses?.length || 0;
-  const isActiveInSchool = disciple.isActiveInSchool || false;
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
+
+  // Obtener totales de reportes del discípulo
+  const nuevosAsistentesTotal = discipleReport?.groupReport?.nuevos_asistentes?.disciplesTotal || 0;
+  const resetTotal = discipleReport?.groupReport?.reset?.disciplesTotal || 0;
+  const conferenciaTotal = discipleReport?.groupReport?.conferencia?.disciplesTotal || 0;
 
   return (
     <div
@@ -1920,15 +2149,7 @@ function DiscipleCard({
         {disciple.email && (
           <p className="text-xs text-gray-600 truncate mb-2">{disciple.email}</p>
         )}
-        <div className="flex items-center gap-3 text-xs">
-          {isActiveInSchool ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-              <HiAcademicCap className="h-3 w-3" />
-              Escuela
-            </span>
-          ) : (
-            <span className="text-gray-500">Sin escuela</span>
-          )}
+        <div className="flex items-center gap-3 text-xs flex-wrap">
           <span className="text-gray-600">
             {courseCount} curso{courseCount !== 1 ? "s" : ""}
           </span>
@@ -1939,6 +2160,20 @@ function DiscipleCard({
           ) : (
             <span className="text-gray-500">Sin servicio</span>
           )}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">
+              <HiUsers className="h-3 w-3 inline mr-1 text-blue-500" />
+              {discipleReport === undefined ? "-" : nuevosAsistentesTotal}
+            </span>
+            <span className="text-gray-600">
+              <HiAcademicCap className="h-3 w-3 inline mr-1 text-purple-500" />
+              {discipleReport === undefined ? "-" : resetTotal}
+            </span>
+            <span className="text-gray-600">
+              <HiCalendar className="h-3 w-3 inline mr-1 text-green-500" />
+              {discipleReport === undefined ? "-" : conferenciaTotal}
+            </span>
+          </div>
           {hasBacklog ? (
             <span className="text-red-600 font-medium">Atrasado</span>
           ) : courseCount > 0 ? (
@@ -1966,6 +2201,12 @@ function DiscipleDetailsModal({
 }) {
   const toggleDiscipleWeek = useMutation(api.courses.toggleDiscipleWeekCompletion);
   const toggleDiscipleWorkAndExam = useMutation(api.courses.toggleDiscipleWorkAndExam);
+  
+  // Obtener registros de asistencia del discípulo
+  const attendanceRecords = useQuery(
+    api.attendance.getAttendanceRecordsByUserId,
+    isLeader && disciple?._id ? { userId: disciple._id } : "skip"
+  );
   if (courses === undefined) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title={`Detalles - ${disciple.name || "Discípulo"}`} maxWidth="2xl">
@@ -2167,6 +2408,142 @@ function DiscipleDetailsModal({
             ))}
           </div>
         )}
+
+        {/* Sección de Reportes */}
+        <div className="border-t border-gray-200 pt-6">
+          <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+            Reportes
+          </h4>
+          {attendanceRecords === undefined ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+            </div>
+          ) : attendanceRecords.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <HiCalendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm">No hay registros de asistencia</p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+              {/* Tabla para desktop */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-white">
+                      <th className="text-left py-2 px-4 text-xs font-semibold text-gray-700">Fecha</th>
+                      <th className="text-center py-2 px-4 text-xs font-semibold text-gray-700">Tipo</th>
+                      <th className="text-center py-2 px-4 text-xs font-semibold text-gray-700">Cantidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceRecords.slice(0, 10).map((record: any) => (
+                      <tr
+                        key={record._id}
+                        className="border-b border-gray-100 hover:bg-white transition-colors"
+                      >
+                        <td className="py-2 px-4">
+                          <div className="flex items-center gap-2">
+                            <HiCalendar className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs text-gray-900">
+                              {new Date(record.date).toLocaleDateString("es-PE", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-4 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            record.type === "nuevos_asistentes"
+                              ? "bg-blue-100 text-blue-700"
+                              : record.type === "reset"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-green-100 text-green-700"
+                          }`}>
+                            {record.type === "nuevos_asistentes" && <HiUsers className="h-3 w-3" />}
+                            {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
+                            {record.type === "conferencia" && <HiCalendar className="h-3 w-3" />}
+                            {record.type === "nuevos_asistentes"
+                              ? "Nuevos Asistentes"
+                              : record.type === "reset"
+                              ? "RESET"
+                              : "Conferencia"}
+                          </span>
+                        </td>
+                        <td className="py-2 px-4 text-center">
+                          <span className="text-xs font-medium text-gray-900">
+                            {record.count} {record.count === 1 ? "persona" : "personas"}
+                          </span>
+                          {record.type === "nuevos_asistentes" && record.attended && (
+                            <span className="ml-1 text-xs text-gray-500">(+ él/ella)</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Cards para mobile */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {attendanceRecords.slice(0, 10).map((record: any) => (
+                  <div
+                    key={record._id}
+                    className="p-3 hover:bg-white transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <HiCalendar className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs font-medium text-gray-900">
+                            {new Date(record.date).toLocaleDateString("es-PE", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            record.type === "nuevos_asistentes"
+                              ? "bg-blue-100 text-blue-700"
+                              : record.type === "reset"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-green-100 text-green-700"
+                          }`}>
+                            {record.type === "nuevos_asistentes" && <HiUsers className="h-3 w-3" />}
+                            {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
+                            {record.type === "conferencia" && <HiCalendar className="h-3 w-3" />}
+                            {record.type === "nuevos_asistentes"
+                              ? "Nuevos Asistentes"
+                              : record.type === "reset"
+                              ? "RESET"
+                              : "Conferencia"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <span className="font-medium">{record.count}</span> {record.count === 1 ? "persona" : "personas"}
+                          {record.type === "nuevos_asistentes" && record.attended && (
+                            <span className="ml-1">(+ él/ella)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {attendanceRecords.length > 10 && (
+                <div className="px-4 py-2 bg-white border-t border-gray-200 text-center">
+                  <p className="text-xs text-gray-500">
+                    Mostrando los últimos 10 registros de {attendanceRecords.length} total
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );
