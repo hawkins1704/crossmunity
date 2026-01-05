@@ -4,14 +4,6 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
 
 /**
- * Helper: Verifica si una fecha (timestamp) es domingo
- */
-function isSunday(timestamp: number): boolean {
-  const date = new Date(timestamp);
-  return date.getDay() === 0; // 0 = domingo
-}
-
-/**
  * Helper: Obtiene el inicio del mes (timestamp) para una fecha dada
  */
 function getMonthStart(timestamp: number): number {
@@ -56,19 +48,86 @@ function normalizeDate(timestamp: number): number {
 }
 
 /**
- * Mutation: Registra asistencia o contador
- * Valida que nuevos_asistentes solo se pueda registrar los domingos
+ * Query: Obtiene los colíderes del sexo opuesto del usuario actual
+ * Retorna los colíderes de todos los grupos donde el usuario es líder
+ */
+export const getCoLeaders = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    // Obtener todos los grupos donde el usuario es líder
+    const allGroups = await ctx.db.query("groups").collect();
+    const userGroups = allGroups.filter((group) =>
+      group.leaders.includes(userId)
+    );
+
+    // Obtener colíderes del sexo opuesto
+    const coLeaders: Array<{
+      _id: Id<"users">;
+      name?: string;
+      email?: string;
+      gender: "Male" | "Female";
+    }> = [];
+
+    for (const group of userGroups) {
+      if (group.leaders.length === 2) {
+        // Hay un colíder, encontrar cuál no es el usuario actual
+        const coLeaderId = group.leaders.find((id) => id !== userId);
+        if (coLeaderId) {
+          const coLeader = await ctx.db.get(coLeaderId);
+          if (coLeader && coLeader.gender !== user.gender) {
+            // Solo agregar si no está ya en la lista
+            if (!coLeaders.find((c) => c._id === coLeader._id)) {
+              coLeaders.push({
+                _id: coLeader._id,
+                name: coLeader.name,
+                email: coLeader.email,
+                gender: coLeader.gender,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return coLeaders;
+  },
+});
+
+/**
+ * Mutation: Registra nuevos asistentes, asistencias, RESET o conferencia
+ * Maneja la creación de registros separados para colíderes cuando hay personas del sexo opuesto
  */
 export const recordAttendance = mutation({
   args: {
     date: v.number(), // Timestamp de la fecha
     type: v.union(
-      v.literal("nuevos_asistentes"),
+      v.literal("nuevos"),
+      v.literal("asistencias"),
       v.literal("reset"),
       v.literal("conferencia")
     ),
-    attended: v.optional(v.boolean()), // Solo para nuevos_asistentes y conferencia
-    count: v.number(), // Cantidad de personas
+    service: v.optional(
+      v.union(
+        v.literal("saturday-1"),
+        v.literal("saturday-2"),
+        v.literal("sunday-1"),
+        v.literal("sunday-2")
+      )
+    ), // Solo para nuevos y asistencias
+    attended: v.optional(v.boolean()), // Solo para asistencias y conferencia
+    maleCount: v.number(), // Cantidad de hombres
+    femaleCount: v.number(), // Cantidad de mujeres
+    coLeaderId: v.optional(v.id("users")), // ID del colíder para asignar registros del sexo opuesto
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -76,34 +135,134 @@ export const recordAttendance = mutation({
       throw new Error("Usuario no autenticado");
     }
 
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
     // Normalizar fecha (solo fecha, sin hora)
     const normalizedDate = normalizeDate(args.date);
 
-    // Validar que nuevos_asistentes solo se pueda registrar los domingos
-    if (args.type === "nuevos_asistentes" && !isSunday(normalizedDate)) {
-      throw new Error("Los nuevos asistentes solo se pueden registrar los domingos");
+    // Validar que service esté presente solo para nuevos y asistencias
+    if (
+      (args.type === "nuevos" || args.type === "asistencias") &&
+      !args.service
+    ) {
+      throw new Error("Debes seleccionar un servicio");
     }
 
-    // Validar que attended esté presente solo para nuevos_asistentes
-    if (args.type === "nuevos_asistentes" && args.attended === undefined) {
+    // Validar que attended esté presente solo para asistencias y conferencia
+    if (
+      (args.type === "asistencias" || args.type === "conferencia") &&
+      args.attended === undefined
+    ) {
       throw new Error("Debes indicar si asististe o no");
     }
 
-    // Validar que count sea positivo
-    if (args.count < 0) {
-      throw new Error("La cantidad debe ser un número positivo");
+    // Validar que los conteos sean no negativos
+    if (args.maleCount < 0 || args.femaleCount < 0) {
+      throw new Error("Las cantidades deben ser números no negativos");
     }
 
-    // Crear registro
-    const recordId = await ctx.db.insert("attendanceRecords", {
-      userId,
-      date: normalizedDate,
-      type: args.type,
-      attended: args.attended,
-      count: args.count,
-    });
+    // Validar que al menos haya una persona registrada
+    if (args.maleCount === 0 && args.femaleCount === 0) {
+      throw new Error("Debes registrar al menos una persona");
+    }
 
-    return recordId;
+    const recordIds: Id<"attendanceRecords">[] = [];
+
+    // Determinar qué registros crear según el género del usuario y si hay colíder
+    const oppositeGenderCount =
+      user.gender === "Male" ? args.femaleCount : args.maleCount;
+    const sameGenderCount =
+      user.gender === "Male" ? args.maleCount : args.femaleCount;
+
+    // Si hay personas del sexo opuesto y se proporcionó un colíder
+    if (oppositeGenderCount > 0 && args.coLeaderId) {
+      // Validar que el colíder existe y es del sexo opuesto
+      const coLeader = await ctx.db.get(args.coLeaderId);
+      if (!coLeader) {
+        throw new Error("Colíder no encontrado");
+      }
+
+      // Verificar que el usuario tiene este colíder en sus grupos
+      const allGroups = await ctx.db.query("groups").collect();
+      const userGroups = allGroups.filter((group) =>
+        group.leaders.includes(userId)
+      );
+      const hasCoLeader = userGroups.some(
+        (group) =>
+          group.leaders.length === 2 &&
+          group.leaders.includes(args.coLeaderId!) &&
+          group.leaders.includes(userId)
+      );
+
+      if (!hasCoLeader) {
+        throw new Error("El colíder especificado no pertenece a tus grupos");
+      }
+
+      if (coLeader.gender === user.gender) {
+        throw new Error("El colíder debe ser del sexo opuesto");
+      }
+
+      // Crear registro para el colíder con personas del sexo opuesto
+      const coLeaderRecordId = await ctx.db.insert("attendanceRecords", {
+        userId: args.coLeaderId,
+        date: normalizedDate,
+        type: args.type,
+        service:
+          args.type === "nuevos" || args.type === "asistencias"
+            ? args.service
+            : undefined,
+        attended:
+          args.type === "asistencias" || args.type === "conferencia"
+            ? args.attended
+            : undefined,
+        maleCount: user.gender === "Male" ? 0 : oppositeGenderCount,
+        femaleCount: user.gender === "Female" ? 0 : oppositeGenderCount,
+      });
+      recordIds.push(coLeaderRecordId);
+
+      // Crear registro para el usuario con personas del mismo sexo (si hay)
+      if (sameGenderCount > 0) {
+        const userRecordId = await ctx.db.insert("attendanceRecords", {
+          userId,
+          date: normalizedDate,
+          type: args.type,
+          service:
+            args.type === "nuevos" || args.type === "asistencias"
+              ? args.service
+              : undefined,
+          attended:
+            args.type === "asistencias" || args.type === "conferencia"
+              ? args.attended
+              : undefined,
+          maleCount: user.gender === "Male" ? sameGenderCount : 0,
+          femaleCount: user.gender === "Female" ? sameGenderCount : 0,
+        });
+        recordIds.push(userRecordId);
+      }
+    } else {
+      // Crear registro normal para el usuario (sin colíder o sin personas del sexo opuesto)
+      const userRecordId = await ctx.db.insert("attendanceRecords", {
+        userId,
+        date: normalizedDate,
+        type: args.type,
+        service:
+          args.type === "nuevos" || args.type === "asistencias"
+            ? args.service
+            : undefined,
+        attended:
+          args.type === "asistencias" || args.type === "conferencia"
+            ? args.attended
+            : undefined,
+        maleCount: args.maleCount,
+        femaleCount: args.femaleCount,
+      });
+      recordIds.push(userRecordId);
+    }
+
+    return { recordIds };
   },
 });
 
@@ -116,12 +275,22 @@ export const updateAttendance = mutation({
     recordId: v.id("attendanceRecords"),
     date: v.number(), // Timestamp de la fecha
     type: v.union(
-      v.literal("nuevos_asistentes"),
+      v.literal("nuevos"),
+      v.literal("asistencias"),
       v.literal("reset"),
       v.literal("conferencia")
     ),
-    attended: v.optional(v.boolean()), // Solo para nuevos_asistentes y conferencia
-    count: v.number(), // Cantidad de personas
+    service: v.optional(
+      v.union(
+        v.literal("saturday-1"),
+        v.literal("saturday-2"),
+        v.literal("sunday-1"),
+        v.literal("sunday-2")
+      )
+    ), // Solo para nuevos y asistencias
+    attended: v.optional(v.boolean()), // Solo para asistencias y conferencia
+    maleCount: v.number(), // Cantidad de hombres
+    femaleCount: v.number(), // Cantidad de mujeres
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -142,27 +311,46 @@ export const updateAttendance = mutation({
     // Normalizar fecha (solo fecha, sin hora)
     const normalizedDate = normalizeDate(args.date);
 
-    // Validar que nuevos_asistentes solo se pueda registrar los domingos
-    if (args.type === "nuevos_asistentes" && !isSunday(normalizedDate)) {
-      throw new Error("Los nuevos asistentes solo se pueden registrar los domingos");
+    // Validar que service esté presente solo para nuevos y asistencias
+    if (
+      (args.type === "nuevos" || args.type === "asistencias") &&
+      !args.service
+    ) {
+      throw new Error("Debes seleccionar un servicio");
     }
 
-    // Validar que attended esté presente solo para nuevos_asistentes
-    if (args.type === "nuevos_asistentes" && args.attended === undefined) {
+    // Validar que attended esté presente solo para asistencias y conferencia
+    if (
+      (args.type === "asistencias" || args.type === "conferencia") &&
+      args.attended === undefined
+    ) {
       throw new Error("Debes indicar si asististe o no");
     }
 
-    // Validar que count sea positivo
-    if (args.count < 0) {
-      throw new Error("La cantidad debe ser un número positivo");
+    // Validar que los conteos sean no negativos
+    if (args.maleCount < 0 || args.femaleCount < 0) {
+      throw new Error("Las cantidades deben ser números no negativos");
+    }
+
+    // Validar que al menos haya una persona registrada
+    if (args.maleCount === 0 && args.femaleCount === 0) {
+      throw new Error("Debes registrar al menos una persona");
     }
 
     // Actualizar registro
     await ctx.db.patch(args.recordId, {
       date: normalizedDate,
       type: args.type,
-      attended: args.attended,
-      count: args.count,
+      service:
+        args.type === "nuevos" || args.type === "asistencias"
+          ? args.service
+          : undefined,
+      attended:
+        args.type === "asistencias" || args.type === "conferencia"
+          ? args.attended
+          : undefined,
+      maleCount: args.maleCount,
+      femaleCount: args.femaleCount,
     });
 
     return { success: true };
@@ -208,7 +396,8 @@ export const getMyAttendanceRecords = query({
   args: {
     type: v.optional(
       v.union(
-        v.literal("nuevos_asistentes"),
+        v.literal("nuevos"),
+        v.literal("asistencias"),
         v.literal("reset"),
         v.literal("conferencia")
       )
@@ -343,42 +532,32 @@ export const getMyMonthlyReport = query({
       (r) => r.date >= periodStart && r.date <= periodEnd
     );
 
-    // Obtener información del usuario para conocer su género
-    const user = await ctx.db.get(userId);
-    if (!user) {
-      throw new Error("Usuario no encontrado");
-    }
-
     // Helper para calcular total de personas en un registro (incluyendo al usuario si asistió)
     const getRecordTotal = (record: typeof periodRecords[0]): number => {
-      // Para reset y conferencia, count representa el total de personas
-      if (record.type === "reset" || record.type === "conferencia") {
-        return record.count;
+      // Para asistencias y conferencia, incluir al usuario si asistió
+      if (
+        (record.type === "asistencias" || record.type === "conferencia") &&
+        record.attended
+      ) {
+        return 1 + record.maleCount + record.femaleCount;
       }
-      // Para nuevos_asistentes, solo cuenta el usuario si asistió
-      if (record.type === "nuevos_asistentes") {
-        return (record.attended ? 1 : 0) + record.count;
-      }
-      return record.count;
-    };
-
-    // Helper para calcular hombres/mujeres en un registro
-    const getGenderCount = (record: typeof periodRecords[0]): { male: number; female: number } => {
-      const total = getRecordTotal(record);
-      if (user.gender === "Male") {
-        return { male: total, female: 0 };
-      } else {
-        return { male: 0, female: total };
-      }
+      // Para nuevos y reset, solo contar las personas registradas
+      return record.maleCount + record.femaleCount;
     };
 
     // Calcular totales por tipo
     const report = {
-      nuevos_asistentes: {
+      nuevos: {
         total: 0,
         male: 0,
         female: 0,
-        records: periodRecords.filter((r) => r.type === "nuevos_asistentes"),
+        records: periodRecords.filter((r) => r.type === "nuevos"),
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        records: periodRecords.filter((r) => r.type === "asistencias"),
       },
       reset: {
         total: 0,
@@ -394,29 +573,64 @@ export const getMyMonthlyReport = query({
       },
     };
 
-    // Sumar totales y género
-    report.nuevos_asistentes.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getGenderCount(r);
-      report.nuevos_asistentes.total += total;
-      report.nuevos_asistentes.male += gender.male;
-      report.nuevos_asistentes.female += gender.female;
+    // Obtener información del usuario para conocer su género
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    // Sumar totales y género para nuevos
+    report.nuevos.records.forEach((r) => {
+      const total = r.maleCount + r.femaleCount;
+      report.nuevos.total += total;
+      report.nuevos.male += r.maleCount;
+      report.nuevos.female += r.femaleCount;
     });
 
+    // Sumar totales y género para asistencias
+    report.asistencias.records.forEach((r) => {
+      const total = getRecordTotal(r);
+      report.asistencias.total += total;
+      // Para asistencias, si el usuario asistió, contar según su género
+      if (r.attended) {
+        if (user.gender === "Male") {
+          report.asistencias.male += 1 + r.maleCount;
+          report.asistencias.female += r.femaleCount;
+        } else {
+          report.asistencias.male += r.maleCount;
+          report.asistencias.female += 1 + r.femaleCount;
+        }
+      } else {
+        report.asistencias.male += r.maleCount;
+        report.asistencias.female += r.femaleCount;
+      }
+    });
+
+    // Sumar totales y género para reset
     report.reset.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getGenderCount(r);
+      const total = r.maleCount + r.femaleCount;
       report.reset.total += total;
-      report.reset.male += gender.male;
-      report.reset.female += gender.female;
+      report.reset.male += r.maleCount;
+      report.reset.female += r.femaleCount;
     });
 
+    // Sumar totales y género para conferencia
     report.conferencia.records.forEach((r) => {
       const total = getRecordTotal(r);
-      const gender = getGenderCount(r);
       report.conferencia.total += total;
-      report.conferencia.male += gender.male;
-      report.conferencia.female += gender.female;
+      // Para conferencia, si el usuario asistió, contar según su género
+      if (r.attended) {
+        if (user.gender === "Male") {
+          report.conferencia.male += 1 + r.maleCount;
+          report.conferencia.female += r.femaleCount;
+        } else {
+          report.conferencia.male += r.maleCount;
+          report.conferencia.female += 1 + r.femaleCount;
+        }
+      } else {
+        report.conferencia.male += r.maleCount;
+        report.conferencia.female += r.femaleCount;
+      }
     });
 
     return report;
@@ -433,6 +647,7 @@ export const getGroupAttendanceReport = query({
     month: v.optional(v.number()), // Mes (1-12), opcional. Si no se proporciona, filtra por año completo
     year: v.number(), // Año (ej: 2024)
     discipleId: v.optional(v.id("users")), // ID del discípulo para filtrar, opcional. Si no se proporciona, muestra todos los discípulos
+    groupId: v.optional(v.id("groups")), // ID del grupo para filtrar, opcional. Si no se proporciona, muestra todos los grupos
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -472,7 +687,6 @@ export const getGroupAttendanceReport = query({
 
     if (userGroups.length === 0) {
       // Si no es líder, retornar solo su reporte personal
-
       const allRecords = await ctx.db
         .query("attendanceRecords")
         .withIndex("userId", (q) => q.eq("userId", userId))
@@ -484,32 +698,27 @@ export const getGroupAttendanceReport = query({
 
       // Helper para calcular total de personas en un registro
       const getRecordTotal = (record: typeof periodRecords[0]): number => {
-        // Para reset y conferencia, count representa el total de personas
-        if (record.type === "reset" || record.type === "conferencia") {
-          return record.count;
+        if (
+          (record.type === "asistencias" || record.type === "conferencia") &&
+          record.attended
+        ) {
+          return 1 + record.maleCount + record.femaleCount;
         }
-        if (record.type === "nuevos_asistentes") {
-          return (record.attended ? 1 : 0) + record.count;
-        }
-        return record.count;
-      };
-
-      // Helper para calcular hombres/mujeres en un registro
-      const getGenderCount = (record: typeof periodRecords[0]): { male: number; female: number } => {
-        const total = getRecordTotal(record);
-        if (user.gender === "Male") {
-          return { male: total, female: 0 };
-        } else {
-          return { male: 0, female: total };
-        }
+        return record.maleCount + record.femaleCount;
       };
 
       const myReport = {
-        nuevos_asistentes: {
+        nuevos: {
           total: 0,
           male: 0,
           female: 0,
-          records: periodRecords.filter((r) => r.type === "nuevos_asistentes"),
+          records: periodRecords.filter((r) => r.type === "nuevos"),
+        },
+        asistencias: {
+          total: 0,
+          male: 0,
+          female: 0,
+          records: periodRecords.filter((r) => r.type === "asistencias"),
         },
         reset: {
           total: 0,
@@ -525,28 +734,54 @@ export const getGroupAttendanceReport = query({
         },
       };
 
-      myReport.nuevos_asistentes.records.forEach((r) => {
-        const total = getRecordTotal(r);
-        const gender = getGenderCount(r);
-        myReport.nuevos_asistentes.total += total;
-        myReport.nuevos_asistentes.male += gender.male;
-        myReport.nuevos_asistentes.female += gender.female;
+      // Sumar totales para nuevos
+      myReport.nuevos.records.forEach((r) => {
+        myReport.nuevos.total += r.maleCount + r.femaleCount;
+        myReport.nuevos.male += r.maleCount;
+        myReport.nuevos.female += r.femaleCount;
       });
 
+      // Sumar totales para asistencias
+      myReport.asistencias.records.forEach((r) => {
+        const total = getRecordTotal(r);
+        myReport.asistencias.total += total;
+        if (r.attended) {
+          if (user.gender === "Male") {
+            myReport.asistencias.male += 1 + r.maleCount;
+            myReport.asistencias.female += r.femaleCount;
+          } else {
+            myReport.asistencias.male += r.maleCount;
+            myReport.asistencias.female += 1 + r.femaleCount;
+          }
+        } else {
+          myReport.asistencias.male += r.maleCount;
+          myReport.asistencias.female += r.femaleCount;
+        }
+      });
+
+      // Sumar totales para reset
       myReport.reset.records.forEach((r) => {
-        const total = getRecordTotal(r);
-        const gender = getGenderCount(r);
-        myReport.reset.total += total;
-        myReport.reset.male += gender.male;
-        myReport.reset.female += gender.female;
+        myReport.reset.total += r.maleCount + r.femaleCount;
+        myReport.reset.male += r.maleCount;
+        myReport.reset.female += r.femaleCount;
       });
 
+      // Sumar totales para conferencia
       myReport.conferencia.records.forEach((r) => {
         const total = getRecordTotal(r);
-        const gender = getGenderCount(r);
         myReport.conferencia.total += total;
-        myReport.conferencia.male += gender.male;
-        myReport.conferencia.female += gender.female;
+        if (r.attended) {
+          if (user.gender === "Male") {
+            myReport.conferencia.male += 1 + r.maleCount;
+            myReport.conferencia.female += r.femaleCount;
+          } else {
+            myReport.conferencia.male += r.maleCount;
+            myReport.conferencia.female += 1 + r.femaleCount;
+          }
+        } else {
+          myReport.conferencia.male += r.maleCount;
+          myReport.conferencia.female += r.femaleCount;
+        }
       });
 
       return {
@@ -561,6 +796,19 @@ export const getGroupAttendanceReport = query({
       .query("users")
       .withIndex("leader", (q) => q.eq("leader", userId))
       .collect();
+
+    // Si se especifica un grupo, filtrar discípulos de ese grupo
+    if (args.groupId !== undefined) {
+      // Verificar que el grupo pertenezca al usuario
+      const selectedGroup = userGroups.find((g) => g._id === args.groupId);
+      if (!selectedGroup) {
+        throw new Error("El grupo especificado no pertenece a tus grupos");
+      }
+      // Filtrar discípulos que pertenecen a este grupo específico
+      allDisciples = allDisciples.filter((disciple) =>
+        selectedGroup.disciples.includes(disciple._id)
+      );
+    }
 
     // Si se especifica un discípulo, filtrar solo ese
     if (args.discipleId !== undefined) {
@@ -606,44 +854,39 @@ export const getGroupAttendanceReport = query({
 
     // Helper para calcular total de personas en un registro
     const getRecordTotal = (record: typeof myPeriodRecords[0]): number => {
-      // Para reset y conferencia, count representa el total de personas
-      if (record.type === "reset" || record.type === "conferencia") {
-        return record.count;
+      if (
+        (record.type === "asistencias" || record.type === "conferencia") &&
+        record.attended
+      ) {
+        return 1 + record.maleCount + record.femaleCount;
       }
-      if (record.type === "nuevos_asistentes") {
-        return (record.attended ? 1 : 0) + record.count;
-      }
-      return record.count;
+      return record.maleCount + record.femaleCount;
     };
 
-    // Helper para calcular género de un registro propio
-    const getMyGenderCount = (record: typeof myPeriodRecords[0]): { male: number; female: number } => {
-      const total = getRecordTotal(record);
-      if (user.gender === "Male") {
-        return { male: total, female: 0 };
-      } else {
-        return { male: 0, female: total };
+    // Helper para calcular total de personas en un registro de discípulo
+    const getDiscipleRecordTotal = (record: typeof disciplePeriodRecords[0]): number => {
+      if (
+        (record.type === "asistencias" || record.type === "conferencia") &&
+        record.attended
+      ) {
+        return 1 + record.maleCount + record.femaleCount;
       }
-    };
-
-    // Helper para calcular género de un registro de discípulo
-    const getDiscipleGenderCount = (record: typeof disciplePeriodRecords[0]): { male: number; female: number } => {
-      const total = getRecordTotal(record);
-      const discipleGender = discipleGenderMap.get(record.userId);
-      if (discipleGender === "Male") {
-        return { male: total, female: 0 };
-      } else {
-        return { male: 0, female: total };
-      }
+      return record.maleCount + record.femaleCount;
     };
 
     // Calcular reporte propio
     const myReport = {
-      nuevos_asistentes: {
+      nuevos: {
         total: 0,
         male: 0,
         female: 0,
-        records: myPeriodRecords.filter((r) => r.type === "nuevos_asistentes"),
+        records: myPeriodRecords.filter((r) => r.type === "nuevos"),
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        records: myPeriodRecords.filter((r) => r.type === "asistencias"),
       },
       reset: {
         total: 0,
@@ -659,38 +902,70 @@ export const getGroupAttendanceReport = query({
       },
     };
 
-    myReport.nuevos_asistentes.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getMyGenderCount(r);
-      myReport.nuevos_asistentes.total += total;
-      myReport.nuevos_asistentes.male += gender.male;
-      myReport.nuevos_asistentes.female += gender.female;
+    // Sumar totales para nuevos propios
+    myReport.nuevos.records.forEach((r) => {
+      myReport.nuevos.total += r.maleCount + r.femaleCount;
+      myReport.nuevos.male += r.maleCount;
+      myReport.nuevos.female += r.femaleCount;
     });
 
+    // Sumar totales para asistencias propias
+    myReport.asistencias.records.forEach((r) => {
+      const total = getRecordTotal(r);
+      myReport.asistencias.total += total;
+      if (r.attended) {
+        if (user.gender === "Male") {
+          myReport.asistencias.male += 1 + r.maleCount;
+          myReport.asistencias.female += r.femaleCount;
+        } else {
+          myReport.asistencias.male += r.maleCount;
+          myReport.asistencias.female += 1 + r.femaleCount;
+        }
+      } else {
+        myReport.asistencias.male += r.maleCount;
+        myReport.asistencias.female += r.femaleCount;
+      }
+    });
+
+    // Sumar totales para reset propios
     myReport.reset.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getMyGenderCount(r);
-      myReport.reset.total += total;
-      myReport.reset.male += gender.male;
-      myReport.reset.female += gender.female;
+      myReport.reset.total += r.maleCount + r.femaleCount;
+      myReport.reset.male += r.maleCount;
+      myReport.reset.female += r.femaleCount;
     });
 
+    // Sumar totales para conferencia propias
     myReport.conferencia.records.forEach((r) => {
       const total = getRecordTotal(r);
-      const gender = getMyGenderCount(r);
       myReport.conferencia.total += total;
-      myReport.conferencia.male += gender.male;
-      myReport.conferencia.female += gender.female;
+      if (r.attended) {
+        if (user.gender === "Male") {
+          myReport.conferencia.male += 1 + r.maleCount;
+          myReport.conferencia.female += r.femaleCount;
+        } else {
+          myReport.conferencia.male += r.maleCount;
+          myReport.conferencia.female += 1 + r.femaleCount;
+        }
+      } else {
+        myReport.conferencia.male += r.maleCount;
+        myReport.conferencia.female += r.femaleCount;
+      }
     });
 
     // Calcular reporte de discípulos
     const disciplesReport = {
-      nuevos_asistentes: {
+      nuevos: {
+        total: 0,
+        male: 0,
+        female: 0,
+        records: disciplePeriodRecords.filter((r) => r.type === "nuevos"),
+      },
+      asistencias: {
         total: 0,
         male: 0,
         female: 0,
         records: disciplePeriodRecords.filter(
-          (r) => r.type === "nuevos_asistentes"
+          (r) => r.type === "asistencias"
         ),
       },
       reset: {
@@ -703,47 +978,88 @@ export const getGroupAttendanceReport = query({
         total: 0,
         male: 0,
         female: 0,
-        records: disciplePeriodRecords.filter((r) => r.type === "conferencia"),
+        records: disciplePeriodRecords.filter(
+          (r) => r.type === "conferencia"
+        ),
       },
     };
 
-    disciplesReport.nuevos_asistentes.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getDiscipleGenderCount(r);
-      disciplesReport.nuevos_asistentes.total += total;
-      disciplesReport.nuevos_asistentes.male += gender.male;
-      disciplesReport.nuevos_asistentes.female += gender.female;
+    // Sumar totales para nuevos de discípulos
+    disciplesReport.nuevos.records.forEach((r) => {
+      disciplesReport.nuevos.total += r.maleCount + r.femaleCount;
+      disciplesReport.nuevos.male += r.maleCount;
+      disciplesReport.nuevos.female += r.femaleCount;
     });
 
+    // Sumar totales para asistencias de discípulos
+    disciplesReport.asistencias.records.forEach((r) => {
+      const total = getDiscipleRecordTotal(r);
+      disciplesReport.asistencias.total += total;
+      const discipleGender = discipleGenderMap.get(r.userId);
+      if (r.attended) {
+        if (discipleGender === "Male") {
+          disciplesReport.asistencias.male += 1 + r.maleCount;
+          disciplesReport.asistencias.female += r.femaleCount;
+        } else {
+          disciplesReport.asistencias.male += r.maleCount;
+          disciplesReport.asistencias.female += 1 + r.femaleCount;
+        }
+      } else {
+        disciplesReport.asistencias.male += r.maleCount;
+        disciplesReport.asistencias.female += r.femaleCount;
+      }
+    });
+
+    // Sumar totales para reset de discípulos
     disciplesReport.reset.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getDiscipleGenderCount(r);
-      disciplesReport.reset.total += total;
-      disciplesReport.reset.male += gender.male;
-      disciplesReport.reset.female += gender.female;
+      disciplesReport.reset.total += r.maleCount + r.femaleCount;
+      disciplesReport.reset.male += r.maleCount;
+      disciplesReport.reset.female += r.femaleCount;
     });
 
+    // Sumar totales para conferencia de discípulos
     disciplesReport.conferencia.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      const gender = getDiscipleGenderCount(r);
+      const total = getDiscipleRecordTotal(r);
       disciplesReport.conferencia.total += total;
-      disciplesReport.conferencia.male += gender.male;
-      disciplesReport.conferencia.female += gender.female;
+      const discipleGender = discipleGenderMap.get(r.userId);
+      if (r.attended) {
+        if (discipleGender === "Male") {
+          disciplesReport.conferencia.male += 1 + r.maleCount;
+          disciplesReport.conferencia.female += r.femaleCount;
+        } else {
+          disciplesReport.conferencia.male += r.maleCount;
+          disciplesReport.conferencia.female += 1 + r.femaleCount;
+        }
+      } else {
+        disciplesReport.conferencia.male += r.maleCount;
+        disciplesReport.conferencia.female += r.femaleCount;
+      }
     });
 
     // Calcular totales combinados
     // El total solo incluye los discípulos filtrados, SIN incluir los registros del líder
     const groupReport = {
-      nuevos_asistentes: {
-        total: disciplesReport.nuevos_asistentes.total, // Solo discípulos filtrados
-        myTotal: myReport.nuevos_asistentes.total,
-        disciplesTotal: disciplesReport.nuevos_asistentes.total,
-        male: disciplesReport.nuevos_asistentes.male, // Solo discípulos filtrados
-        female: disciplesReport.nuevos_asistentes.female, // Solo discípulos filtrados
-        myMale: myReport.nuevos_asistentes.male,
-        myFemale: myReport.nuevos_asistentes.female,
-        disciplesMale: disciplesReport.nuevos_asistentes.male,
-        disciplesFemale: disciplesReport.nuevos_asistentes.female,
+      nuevos: {
+        total: disciplesReport.nuevos.total, // Solo discípulos filtrados
+        myTotal: myReport.nuevos.total,
+        disciplesTotal: disciplesReport.nuevos.total,
+        male: disciplesReport.nuevos.male, // Solo discípulos filtrados
+        female: disciplesReport.nuevos.female, // Solo discípulos filtrados
+        myMale: myReport.nuevos.male,
+        myFemale: myReport.nuevos.female,
+        disciplesMale: disciplesReport.nuevos.male,
+        disciplesFemale: disciplesReport.nuevos.female,
+      },
+      asistencias: {
+        total: disciplesReport.asistencias.total, // Solo discípulos filtrados
+        myTotal: myReport.asistencias.total,
+        disciplesTotal: disciplesReport.asistencias.total,
+        male: disciplesReport.asistencias.male, // Solo discípulos filtrados
+        female: disciplesReport.asistencias.female, // Solo discípulos filtrados
+        myMale: myReport.asistencias.male,
+        myFemale: myReport.asistencias.female,
+        disciplesMale: disciplesReport.asistencias.male,
+        disciplesFemale: disciplesReport.asistencias.female,
       },
       reset: {
         total: disciplesReport.reset.total, // Solo discípulos filtrados

@@ -15,12 +15,14 @@ import {
   HiAcademicCap,
   HiBookOpen,
   HiClipboardList,
+  HiCalendar,
 } from "react-icons/hi";
 
 const baseNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: HiHome },
   { name: "Mi Grupo", href: "/my-group", icon: HiUser },
   { name: "Mis Grupos", href: "/groups", icon: HiUsers },
+  { name: "Actividades", href: "/activities", icon: HiCalendar },
   { name: "Escuela", href: "/school", icon: HiAcademicCap },
   { name: "Registros", href: "/records", icon: HiClipboardList },
 ];

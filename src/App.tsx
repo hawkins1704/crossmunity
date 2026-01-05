@@ -11,6 +11,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import MyGroup from "./pages/MyGroup";
 import Groups from "./pages/Groups";
+import Activities from "./pages/Activities";
 import School from "./pages/School";
 import Profile from "./pages/Profile";
 import Grid from "./pages/Grid";
@@ -47,6 +48,7 @@ function App() {
                                 path="/groups/:groupId"
                                 element={<GroupDetail />}
                             />
+                            <Route path="/activities" element={<Activities />} />
                             <Route path="/school" element={<School />} />
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/records" element={<Records />} />

@@ -113,12 +113,20 @@ export default defineSchema({
     userId: v.id("users"), // Usuario que registra
     date: v.number(), // Fecha del registro (timestamp, solo fecha, sin hora)
     type: v.union(
-      v.literal("nuevos_asistentes"), // Nuevos asistentes (solo domingos)
+      v.literal("nuevos"), // Registro de nuevos asistentes
+      v.literal("asistencias"), // Registro de asistencias
       v.literal("reset"), // Personas enviadas a RESET
       v.literal("conferencia") // Asistencia a conferencia
     ),
-    attended: v.optional(v.boolean()), // Si asistió (solo para nuevos_asistentes y conferencia)
-    count: v.number(), // Cantidad de personas nuevas/enviadas
+    service: v.optional(v.union(
+      v.literal("saturday-1"), // Sábado NEXT 5PM
+      v.literal("saturday-2"), // Sábado NEXT 7PM
+      v.literal("sunday-1"), // Domingo 9AM
+      v.literal("sunday-2") // Domingo 11:30AM
+    )), // Solo para nuevos y asistencias
+    attended: v.optional(v.boolean()), // Si asistió (solo para asistencias y conferencia)
+    maleCount: v.number(), // Cantidad de hombres
+    femaleCount: v.number(), // Cantidad de mujeres
   })
     .index("userId", ["userId"]) // Para buscar registros de un usuario
     .index("userId_date", ["userId", "date"]) // Para buscar registros por usuario y fecha
