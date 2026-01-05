@@ -20,6 +20,7 @@ export default function Records() {
   const [formData, setFormData] = useState({
     date: "",
     type: "nuevos" as "nuevos" | "asistencias" | "reset" | "conferencia",
+    service: null as "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2" | null,
     attended: false,
     maleCount: 0,
     femaleCount: 0,
@@ -33,6 +34,7 @@ export default function Records() {
     _id: Id<"attendanceRecords">;
     date: number;
     type: "nuevos" | "asistencias" | "reset" | "conferencia";
+    service?: "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2";
     attended?: boolean;
     maleCount: number;
     femaleCount: number;
@@ -40,6 +42,8 @@ export default function Records() {
     setEditingRecord(record._id);
     
     // Convertir timestamp a formato de fecha (YYYY-MM-DD)
+    // El timestamp ya está normalizado a medianoche local por el backend
+    // Usar getFullYear, getMonth, getDate que trabajan en hora local
     const dateObj = new Date(record.date);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -65,6 +69,7 @@ export default function Records() {
     setFormData({
       date: dateStr,
       type: record.type,
+      service: record.service || null,
       attended: record.attended ?? false,
       maleCount: record.maleCount,
       femaleCount: record.femaleCount,
@@ -81,6 +86,7 @@ export default function Records() {
     setFormData({
       date: "",
       type: "nuevos",
+      service: null,
       attended: false,
       maleCount: 0,
       femaleCount: 0,
@@ -115,20 +121,20 @@ export default function Records() {
       return;
     }
 
-    // Convertir fecha a timestamp
+    // Validar servicio solo para nuevos y asistencias
+    if (
+      (formData.type === "nuevos" || formData.type === "asistencias") &&
+      !formData.service
+    ) {
+      setErrors({ service: "Debes seleccionar un servicio" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Convertir fecha a timestamp (usando hora local para evitar problemas de zona horaria)
     const [year, month, day] = formData.date.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
     const timestamp = dateObj.getTime();
-
-    // Validar que nuevos solo se pueda registrar los domingos
-    if (formData.type === "nuevos") {
-      const date = new Date(timestamp);
-      if (date.getDay() !== 0) {
-        setErrors({ date: "Los nuevos asistentes solo se pueden registrar los domingos" });
-        setIsSubmitting(false);
-        return;
-      }
-    }
 
     if (formData.maleCount < 0 || formData.femaleCount < 0) {
       setErrors({ count: "Las cantidades deben ser números no negativos" });
@@ -147,7 +153,7 @@ export default function Records() {
         recordId: editingRecord,
         date: timestamp,
         type: formData.type,
-        service: undefined, // No se edita el servicio en esta vista
+        service: (formData.type === "nuevos" || formData.type === "asistencias") ? formData.service || undefined : undefined,
         attended: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.attended : undefined,
         maleCount: formData.maleCount,
         femaleCount: formData.femaleCount,
@@ -413,6 +419,39 @@ export default function Records() {
               <option value="conferencia">Conferencia</option>
             </select>
           </div>
+
+          {/* Servicio (solo para nuevos y asistencias) */}
+          {(formData.type === "nuevos" || formData.type === "asistencias") && (
+            <div>
+              <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-2">
+                Servicio *
+              </label>
+              <select
+                id="service"
+                value={formData.service || ""}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    service: e.target.value ? (e.target.value as "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2") : null,
+                  });
+                  setErrors({ ...errors, service: "" });
+                }}
+                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                  errors.service
+                    ? "border-red-300 focus:ring-red-200"
+                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                }`}
+                required
+              >
+                <option value="">Selecciona un servicio</option>
+                <option value="saturday-1">Sábado NEXT 5PM</option>
+                <option value="saturday-2">Sábado NEXT 7PM</option>
+                <option value="sunday-1">Domingo 9AM</option>
+                <option value="sunday-2">Domingo 11:30AM</option>
+              </select>
+              {errors.service && <p className="mt-1 text-sm text-red-500">{errors.service}</p>}
+            </div>
+          )}
 
           {(formData.type === "asistencias" || formData.type === "conferencia") && (
             <>

@@ -621,13 +621,18 @@ export const getAttendanceRecordsByUserId = query({
       throw new Error("Solo los líderes pueden ver los registros de sus discípulos");
     }
 
-    // Verificar que el usuario solicitado sea discípulo del líder
+    // Verificar que el usuario solicitado sea discípulo en alguno de los grupos del líder
     const disciple = await ctx.db.get(args.userId);
     if (!disciple) {
       throw new Error("Usuario no encontrado");
     }
 
-    if (disciple.leader !== currentUserId) {
+    // Verificar si el discípulo pertenece a alguno de los grupos del usuario actual
+    const isDiscipleInUserGroups = userGroups.some((group) =>
+      group.disciples.includes(args.userId)
+    );
+
+    if (!isDiscipleInUserGroups) {
       throw new Error("Solo puedes ver los registros de tus discípulos");
     }
 

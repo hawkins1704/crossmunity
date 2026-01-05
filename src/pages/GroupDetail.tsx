@@ -2467,28 +2467,45 @@ function DiscipleDetailsModal({
                         </td>
                         <td className="py-2 px-4 text-center">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            record.type === "nuevos_asistentes"
+                            record.type === "nuevos"
                               ? "bg-blue-100 text-blue-700"
                               : record.type === "reset"
                               ? "bg-purple-100 text-purple-700"
-                              : "bg-green-100 text-green-700"
+                              : record.type === "asistencias"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
                           }`}>
-                            {record.type === "nuevos_asistentes" && <HiUsers className="h-3 w-3" />}
+                            {record.type === "nuevos" && <HiUsers className="h-3 w-3" />}
                             {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
+                            {record.type === "asistencias" && <HiCalendar className="h-3 w-3" />}
                             {record.type === "conferencia" && <HiCalendar className="h-3 w-3" />}
-                            {record.type === "nuevos_asistentes"
+                            {record.type === "nuevos"
                               ? "Nuevos Asistentes"
                               : record.type === "reset"
                               ? "RESET"
+                              : record.type === "asistencias"
+                              ? "Asistencias"
                               : "Conferencia"}
                           </span>
                         </td>
                         <td className="py-2 px-4 text-center">
                           <span className="text-xs font-medium text-gray-900">
-                            {record.count} {record.count === 1 ? "persona" : "personas"}
+                            {(() => {
+                              const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
+                              const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
+                                ? baseCount + 1
+                                : baseCount;
+                              return total;
+                            })()} {(() => {
+                              const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
+                              const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
+                                ? baseCount + 1
+                                : baseCount;
+                              return total === 1 ? "persona" : "personas";
+                            })()}
                           </span>
-                          {record.type === "nuevos_asistentes" && record.attended && (
-                            <span className="ml-1 text-xs text-gray-500">(+ él/ella)</span>
+                          {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
+                            <span className="ml-1 text-xs text-gray-500">(él/ella incluido(a))</span>
                           )}
                         </td>
                       </tr>
@@ -2518,25 +2535,44 @@ function DiscipleDetailsModal({
                         </div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            record.type === "nuevos_asistentes"
+                            record.type === "nuevos"
                               ? "bg-blue-100 text-blue-700"
                               : record.type === "reset"
                               ? "bg-purple-100 text-purple-700"
-                              : "bg-green-100 text-green-700"
+                              : record.type === "asistencias"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
                           }`}>
-                            {record.type === "nuevos_asistentes" && <HiUsers className="h-3 w-3" />}
+                            {record.type === "nuevos" && <HiUsers className="h-3 w-3" />}
                             {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
+                            {record.type === "asistencias" && <HiCalendar className="h-3 w-3" />}
                             {record.type === "conferencia" && <HiCalendar className="h-3 w-3" />}
-                            {record.type === "nuevos_asistentes"
+                            {record.type === "nuevos"
                               ? "Nuevos Asistentes"
                               : record.type === "reset"
                               ? "RESET"
+                              : record.type === "asistencias"
+                              ? "Asistencias"
                               : "Conferencia"}
                           </span>
                         </div>
                         <div className="text-xs text-gray-600">
-                          <span className="font-medium">{record.count}</span> {record.count === 1 ? "persona" : "personas"}
-                          {record.type === "nuevos_asistentes" && record.attended && (
+                          <span className="font-medium">
+                            {(() => {
+                              const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
+                              const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
+                                ? baseCount + 1
+                                : baseCount;
+                              return total;
+                            })()}
+                          </span> {(() => {
+                            const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
+                            const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
+                              ? baseCount + 1
+                              : baseCount;
+                            return total === 1 ? "persona" : "personas";
+                          })()}
+                          {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                             <span className="ml-1">(+ él/ella)</span>
                           )}
                         </div>

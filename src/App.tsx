@@ -18,12 +18,13 @@ import Grid from "./pages/Grid";
 import CoursesAdmin from "./pages/CoursesAdmin";
 import GroupDetail from "./pages/GroupDetail";
 import Records from "./pages/Records";
+import LoadingBanner from "./components/LoadingBanner";
 
 function App() {
     return (
         <>
             <AuthLoading>
-                <h1>Loading...</h1>
+                <LoadingBanner />
             </AuthLoading>
             <Unauthenticated>
                 <Router>
