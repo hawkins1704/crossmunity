@@ -42,12 +42,12 @@ export default function Records() {
     setEditingRecord(record._id);
     
     // Convertir timestamp a formato de fecha (YYYY-MM-DD)
-    // El timestamp ya está normalizado a medianoche local por el backend
-    // Usar getFullYear, getMonth, getDate que trabajan en hora local
+    // El timestamp está guardado como medianoche UTC para la fecha calendario
+    // Usar getUTCFullYear, getUTCMonth, getUTCDate para extraer los componentes UTC
     const dateObj = new Date(record.date);
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
+    const year = dateObj.getUTCFullYear();
+    const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getUTCDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
 
     // Buscar registro relacionado del colíder (misma fecha y tipo)
@@ -131,10 +131,11 @@ export default function Records() {
       return;
     }
 
-    // Convertir fecha a timestamp (usando hora local para evitar problemas de zona horaria)
+    // Convertir fecha a timestamp (usando UTC para preservar la fecha calendario)
     const [year, month, day] = formData.date.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
-    const timestamp = dateObj.getTime();
+    // Crear fecha en UTC a medianoche para la fecha seleccionada
+    // Esto representa la fecha calendario sin considerar zona horaria
+    const timestamp = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
 
     if (formData.maleCount < 0 || formData.femaleCount < 0) {
       setErrors({ count: "Las cantidades deben ser números no negativos" });
@@ -215,11 +216,20 @@ export default function Records() {
   };
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("es-PE", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    // El timestamp está guardado como UTC medianoche para la fecha calendario
+    // Usar métodos UTC para extraer los componentes y evitar problemas de zona horaria
+    const date = new Date(timestamp);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const day = date.getUTCDate();
+    
+    // Formatear manualmente para evitar conversión de zona horaria
+    const monthNames = [
+      "enero", "febrero", "marzo", "abril", "mayo", "junio",
+      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+    
+    return `${day} de ${monthNames[month]} de ${year}`;
   };
 
   if (records === undefined) {

@@ -39,12 +39,18 @@ function getYearEnd(year: number): number {
 
 /**
  * Helper: Normaliza un timestamp para que solo contenga la fecha (sin hora)
- * Establece la hora a medianoche en la zona horaria local
+ * El timestamp recibido del frontend representa medianoche UTC para la fecha calendario seleccionada.
+ * Extraemos los componentes UTC y creamos una nueva fecha UTC a medianoche.
+ * Esto asegura que la fecha se guarde correctamente independientemente de la zona horaria.
  */
 function normalizeDate(timestamp: number): number {
   const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+  // Usar getUTCFullYear, getUTCMonth, getUTCDate ya que el timestamp es UTC
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  // Crear nueva fecha en UTC a medianoche
+  return Date.UTC(year, month, day, 0, 0, 0, 0);
 }
 
 /**

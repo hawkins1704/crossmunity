@@ -189,10 +189,17 @@ export default function Home() {
     };
 
     // Helper para convertir formato de fecha (YYYY-MM-DD) a timestamp
+    // El input de tipo "date" siempre devuelve la fecha en formato YYYY-MM-DD
+    // que representa una fecha calendario, no una fecha/hora específica.
+    // Para preservar la fecha exacta que el usuario seleccionó, creamos
+    // un timestamp UTC que representa medianoche UTC de esa fecha.
+    // Esto asegura que la fecha se guarde correctamente independientemente
+    // de la zona horaria del cliente o servidor.
     const dateStringToTimestamp = (dateString: string): number => {
         const [year, month, day] = dateString.split("-").map(Number);
-        const date = new Date(year, month - 1, day, 0, 0, 0, 0);
-        return date.getTime();
+        // Crear fecha en UTC a medianoche para la fecha seleccionada
+        // Esto representa la fecha calendario sin considerar zona horaria
+        return Date.UTC(year, month - 1, day, 0, 0, 0, 0);
     };
 
     // Abrir modal de registro
