@@ -128,6 +128,7 @@ export const recordAttendance = mutation({
     maleCount: v.number(), // Cantidad de hombres
     femaleCount: v.number(), // Cantidad de mujeres
     coLeaderId: v.optional(v.id("users")), // ID del colíder para asignar registros del sexo opuesto
+    coLeaderAttended: v.optional(v.boolean()), // Si el colíder asistió (solo para asistencias y conferencia)
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -206,6 +207,15 @@ export const recordAttendance = mutation({
       }
 
       // Crear registro para el colíder con personas del sexo opuesto
+      // Para asistencias y conferencia, usar coLeaderAttended si está disponible, sino usar attended
+      const coLeaderAttendedValue =
+        (args.type === "asistencias" || args.type === "conferencia") &&
+        args.coLeaderAttended !== undefined
+          ? args.coLeaderAttended
+          : args.type === "asistencias" || args.type === "conferencia"
+            ? args.attended
+            : undefined;
+
       const coLeaderRecordId = await ctx.db.insert("attendanceRecords", {
         userId: args.coLeaderId,
         date: normalizedDate,
@@ -214,10 +224,7 @@ export const recordAttendance = mutation({
           args.type === "nuevos" || args.type === "asistencias"
             ? args.service
             : undefined,
-        attended:
-          args.type === "asistencias" || args.type === "conferencia"
-            ? args.attended
-            : undefined,
+        attended: coLeaderAttendedValue,
         maleCount: user.gender === "Male" ? 0 : oppositeGenderCount,
         femaleCount: user.gender === "Female" ? 0 : oppositeGenderCount,
       });
@@ -260,6 +267,58 @@ export const recordAttendance = mutation({
         femaleCount: args.femaleCount,
       });
       recordIds.push(userRecordId);
+
+      // Si hay un colíder y se proporciona coLeaderAttended (para asistencias/conferencia),
+      // crear un registro para el colíder aunque no haya personas del sexo opuesto
+      if (
+        args.coLeaderId &&
+        (args.type === "asistencias" || args.type === "conferencia") &&
+        args.coLeaderAttended !== undefined
+      ) {
+        const user = await ctx.db.get(userId);
+        if (!user) {
+          throw new Error("Usuario no encontrado");
+        }
+
+        // Validar que el colíder existe y es del sexo opuesto
+        const coLeader = await ctx.db.get(args.coLeaderId);
+        if (!coLeader) {
+          throw new Error("Colíder no encontrado");
+        }
+
+        // Verificar que el usuario tiene este colíder en sus grupos
+        const allGroups = await ctx.db.query("groups").collect();
+        const userGroups = allGroups.filter((group) =>
+          group.leaders.includes(userId)
+        );
+        const hasCoLeader = userGroups.some(
+          (group) =>
+            group.leaders.length === 2 &&
+            group.leaders.includes(args.coLeaderId!) &&
+            group.leaders.includes(userId)
+        );
+
+        if (!hasCoLeader) {
+          throw new Error("El colíder especificado no pertenece a tus grupos");
+        }
+
+        if (coLeader.gender === user.gender) {
+          throw new Error("El colíder debe ser del sexo opuesto");
+        }
+
+        // Crear registro para el colíder sin personas (solo para registrar asistencia)
+        const coLeaderRecordId = await ctx.db.insert("attendanceRecords", {
+          userId: args.coLeaderId,
+          date: normalizedDate,
+          type: args.type,
+          service:
+            args.type === "asistencias" ? args.service : undefined,
+          attended: args.coLeaderAttended,
+          maleCount: 0,
+          femaleCount: 0,
+        });
+        recordIds.push(coLeaderRecordId);
+      }
     }
 
     return { recordIds };
@@ -291,6 +350,8 @@ export const updateAttendance = mutation({
     attended: v.optional(v.boolean()), // Solo para asistencias y conferencia
     maleCount: v.number(), // Cantidad de hombres
     femaleCount: v.number(), // Cantidad de mujeres
+    coLeaderId: v.optional(v.id("users")), // ID del colíder (opcional)
+    coLeaderAttended: v.optional(v.boolean()), // Si el colíder asistió (solo para asistencias y conferencia)
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -352,6 +413,80 @@ export const updateAttendance = mutation({
       maleCount: args.maleCount,
       femaleCount: args.femaleCount,
     });
+
+    // Si se proporciona información del colíder para asistencias o conferencia
+    if (
+      args.coLeaderId &&
+      args.coLeaderAttended !== undefined &&
+      (args.type === "asistencias" || args.type === "conferencia")
+    ) {
+      const user = await ctx.db.get(userId);
+      if (!user) {
+        throw new Error("Usuario no encontrado");
+      }
+
+      // Validar que el colíder existe y es del sexo opuesto
+      const coLeader = await ctx.db.get(args.coLeaderId);
+      if (!coLeader) {
+        throw new Error("Colíder no encontrado");
+      }
+
+      // Verificar que el usuario tiene este colíder en sus grupos
+      const allGroups = await ctx.db.query("groups").collect();
+      const userGroups = allGroups.filter((group) =>
+        group.leaders.includes(userId)
+      );
+      const hasCoLeader = userGroups.some(
+        (group) =>
+          group.leaders.length === 2 &&
+          group.leaders.includes(args.coLeaderId!) &&
+          group.leaders.includes(userId)
+      );
+
+      if (!hasCoLeader) {
+        throw new Error("El colíder especificado no pertenece a tus grupos");
+      }
+
+      if (coLeader.gender === user.gender) {
+        throw new Error("El colíder debe ser del sexo opuesto");
+      }
+
+      // Determinar qué personas van al colíder (personas del género opuesto)
+      const oppositeGenderCount =
+        user.gender === "Male" ? args.femaleCount : args.maleCount;
+
+      // Buscar registro del colíder para la misma fecha y tipo
+      const coLeaderRecords = await ctx.db
+        .query("attendanceRecords")
+        .withIndex("userId", (q) => q.eq("userId", args.coLeaderId!))
+        .collect();
+
+      const coLeaderRecord = coLeaderRecords.find(
+        (r) =>
+          normalizeDate(r.date) === normalizedDate && r.type === args.type
+      );
+
+      if (coLeaderRecord) {
+        // Actualizar registro existente del colíder
+        await ctx.db.patch(coLeaderRecord._id, {
+          attended: args.coLeaderAttended,
+          // Mantener las cantidades existentes (solo actualizamos attended)
+        });
+      } else if (oppositeGenderCount > 0) {
+        // Crear nuevo registro para el colíder si hay personas del género opuesto
+        // Solo para asistencias y conferencia (ya estamos dentro de ese bloque if)
+        const service = args.type === "asistencias" ? args.service : undefined;
+        await ctx.db.insert("attendanceRecords", {
+          userId: args.coLeaderId!,
+          date: normalizedDate,
+          type: args.type,
+          service,
+          attended: args.coLeaderAttended,
+          maleCount: user.gender === "Male" ? 0 : oppositeGenderCount,
+          femaleCount: user.gender === "Female" ? 0 : oppositeGenderCount,
+        });
+      }
+    }
 
     return { success: true };
   },

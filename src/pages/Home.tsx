@@ -12,6 +12,74 @@ import {
 import Modal from "../components/Modal";
 import type { Id } from "../../convex/_generated/dataModel";
 import { MdMan, MdWoman } from "react-icons/md";
+import type { IconType } from "react-icons";
+
+// Componente reutilizable para las cards de registro
+function RegistrationCard({
+    title,
+    description,
+    icon: Icon,
+    iconBgColor,
+    iconColor,
+    total,
+    maleCount,
+    femaleCount,
+    buttonColorClass,
+    onRegister,
+}: {
+    title: string;
+    description: string;
+    icon: IconType;
+    iconBgColor: string;
+    iconColor: string;
+    total: number;
+    maleCount: number;
+    femaleCount: number;
+    buttonColorClass: string;
+    onRegister: () => void;
+}) {
+    return (
+        <div className="flex flex-col justify-between bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-3 ${iconBgColor} rounded-xl`}>
+                            <Icon className={`h-6 w-6 ${iconColor}`} />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900">
+                                {title}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                {description}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="mb-4">
+                    <div className="text-3xl font-bold text-gray-900 mb-1">
+                        {total}
+                    </div>
+                    <div className="text-sm text-gray-600 flex gap-4">
+                        <div className="text-gray-700">
+                            <MdMan className="inline h-4 w-4" /> {maleCount}
+                        </div>
+                        <div className="text-rose-700">
+                            <MdWoman className="inline h-4 w-4" /> {femaleCount}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button
+                onClick={onRegister}
+                className={`w-full py-2 px-4 bg-gradient-to-r ${buttonColorClass} text-white rounded-full font-medium transition-all flex items-center justify-center gap-2`}
+            >
+                <HiPlus className="h-5 w-5" />
+                Registrar
+            </button>
+        </div>
+    );
+}
 
 export default function Home() {
     const dashboard = useQuery(api.users.getDashboard);
@@ -22,8 +90,9 @@ export default function Home() {
         getCurrentMonth()
     );
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedGroupId, setSelectedGroupId] =
-        useState<Id<"groups"> | null>(null);
+    const [selectedGroupId, setSelectedGroupId] = useState<Id<"groups"> | null>(
+        null
+    );
     const [selectedDiscipleId, setSelectedDiscipleId] =
         useState<Id<"users"> | null>(null);
     const [modalType, setModalType] = useState<
@@ -40,6 +109,7 @@ export default function Home() {
         maleCount: number;
         femaleCount: number;
         coLeaderId: Id<"users"> | null;
+        coLeaderAttended: boolean | undefined;
     }>({
         date: "",
         service: "sunday-1",
@@ -47,6 +117,7 @@ export default function Home() {
         maleCount: 0,
         femaleCount: 0,
         coLeaderId: null,
+        coLeaderAttended: undefined,
     });
 
     // Obtener grupos del usuario actual (si es líder)
@@ -58,14 +129,19 @@ export default function Home() {
         api.users.getDisciplesByLeader,
         dashboard?.user._id ? { leaderId: dashboard.user._id } : "skip"
     );
-    
+
     // Filtrar discípulos por grupo si hay uno seleccionado
-    const disciples = selectedGroupId && userGroups
-        ? allDisciples?.filter((disciple) => {
-            const group = userGroups.find((g) => g._id === selectedGroupId);
-            return group?.disciples.some((d) => d && d._id === disciple._id);
-        })
-        : allDisciples;
+    const disciples =
+        selectedGroupId && userGroups
+            ? allDisciples?.filter((disciple) => {
+                  const group = userGroups.find(
+                      (g) => g._id === selectedGroupId
+                  );
+                  return group?.disciples.some(
+                      (d) => d && d._id === disciple._id
+                  );
+              })
+            : allDisciples;
 
     // Obtener colíderes del usuario actual
     const coLeaders = useQuery(api.attendance.getCoLeaders);
@@ -124,9 +200,13 @@ export default function Home() {
         type: "nuevos" | "asistencias" | "reset" | "conferencia"
     ) => {
         setModalType(type);
-        // Si solo hay un colíder, seleccionarlo por defecto
+        // Si solo hay un colíder y es para asistencias o conferencia, seleccionarlo por defecto
         const defaultCoLeaderId =
-            coLeaders && coLeaders.length === 1 ? coLeaders[0]._id : null;
+            (type === "asistencias" || type === "conferencia") &&
+            coLeaders &&
+            coLeaders.length === 1
+                ? coLeaders[0]._id
+                : null;
         setFormData({
             date: timestampToDateString(Date.now()),
             service:
@@ -141,6 +221,7 @@ export default function Home() {
             maleCount: 0,
             femaleCount: 0,
             coLeaderId: defaultCoLeaderId,
+            coLeaderAttended: undefined,
         });
         setErrors({});
     };
@@ -157,6 +238,7 @@ export default function Home() {
             maleCount: 0,
             femaleCount: 0,
             coLeaderId: defaultCoLeaderId,
+            coLeaderAttended: undefined,
         });
         setErrors({});
     };
@@ -234,6 +316,12 @@ export default function Home() {
                 maleCount: formData.maleCount,
                 femaleCount: formData.femaleCount,
                 coLeaderId: formData.coLeaderId || undefined,
+                coLeaderAttended:
+                    (modalType === "asistencias" ||
+                        modalType === "conferencia") &&
+                    formData.coLeaderId
+                        ? formData.coLeaderAttended
+                        : undefined,
             });
 
             handleCloseModal();
@@ -333,7 +421,7 @@ export default function Home() {
                     <h1 className="text-3xl font-bold text-gray-900">
                         Dashboard
                     </h1>
-                    
+
                     {/* Filtro de periodo en la parte superior derecha */}
                     <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3">
                         {/* Selector de modo Mes/Año */}
@@ -388,7 +476,8 @@ export default function Home() {
                                     className={`h-5 w-5 ${
                                         viewMode === "month" &&
                                         selectedMonth === getCurrentMonth() &&
-                                        selectedYear === new Date().getFullYear()
+                                        selectedYear ===
+                                            new Date().getFullYear()
                                             ? "text-gray-300"
                                             : "text-gray-600"
                                     }`}
@@ -407,170 +496,58 @@ export default function Home() {
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        {/* Registro de Nuevos */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-blue-100 rounded-xl">
-                                        <HiUsers className="h-6 w-6 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">
-                                            Registro de Nuevos
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Nuevos asistentes
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <div className="text-3xl font-bold text-gray-900 mb-1">
-                                    {currentReport?.nuevos.total || 0}
-                                </div>
-                                <div className="text-sm text-gray-600 flex gap-4">
-                                    <div>
-                                        <MdMan className="inline h-4 w-4" />{" "}
-                                        {currentReport?.nuevos.male || 0}
-                                    </div>
-                                    <div>
-                                        <MdWoman className="inline h-4 w-4" />{" "}
-                                        {currentReport?.nuevos.female || 0}
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handleOpenModal("nuevos")}
-                                className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full font-medium hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <HiPlus className="h-5 w-5" />
-                                Registrar
-                            </button>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <RegistrationCard
+                            title="Nuevos"
+                            description="Nuevos asistentes"
+                            icon={HiUsers}
+                            iconBgColor="bg-blue-100"
+                            iconColor="text-blue-600"
+                            total={currentReport?.nuevos.total || 0}
+                            maleCount={currentReport?.nuevos.male || 0}
+                            femaleCount={currentReport?.nuevos.female || 0}
+                            buttonColorClass="from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                            onRegister={() => handleOpenModal("nuevos")}
+                        />
 
-                        {/* Registro de Asistencias */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-green-100 rounded-xl">
-                                        <HiCalendar className="h-6 w-6 text-green-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">
-                                            Registro de Asistencias
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Asistencia y nuevos
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <div className="text-3xl font-bold text-gray-900 mb-1">
-                                    {currentReport?.asistencias.total || 0}
-                                </div>
-                                <div className="text-sm text-gray-600 flex gap-4">
-                                    <div>
-                                        <MdMan className="inline h-4 w-4" />{" "}
-                                        {currentReport?.asistencias.male || 0}
-                                    </div>
-                                    <div>
-                                        <MdWoman className="inline h-4 w-4" />{" "}
-                                        {currentReport?.asistencias.female || 0}
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handleOpenModal("asistencias")}
-                                className="w-full py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-medium hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <HiPlus className="h-5 w-5" />
-                                Registrar
-                            </button>
-                        </div>
+                        <RegistrationCard
+                            title="Asistencias"
+                            description="Asistencia y nuevos"
+                            icon={HiCalendar}
+                            iconBgColor="bg-green-100"
+                            iconColor="text-green-600"
+                            total={currentReport?.asistencias.total || 0}
+                            maleCount={currentReport?.asistencias.male || 0}
+                            femaleCount={currentReport?.asistencias.female || 0}
+                            buttonColorClass="from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                            onRegister={() => handleOpenModal("asistencias")}
+                        />
 
-                        {/* RESET */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-purple-100 rounded-xl">
-                                        <HiUsers className="h-6 w-6 text-purple-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">
-                                            RESET
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Personas enviadas
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <div className="text-3xl font-bold text-gray-900 mb-1">
-                                    {currentReport?.reset.total || 0}
-                                </div>
-                                <div className="text-sm text-gray-600 flex gap-4">
-                                    <div>
-                                        <MdMan className="inline h-4 w-4" />{" "}
-                                        {currentReport?.reset.male || 0}
-                                    </div>
-                                    <div>
-                                        <MdWoman className="inline h-4 w-4" />{" "}
-                                        {currentReport?.reset.female || 0}
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handleOpenModal("reset")}
-                                className="w-full py-2 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full font-medium hover:from-purple-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <HiPlus className="h-5 w-5" />
-                                Registrar
-                            </button>
-                        </div>
+                        <RegistrationCard
+                            title="RESET"
+                            description="Personas enviadas"
+                            icon={HiUsers}
+                            iconBgColor="bg-purple-100"
+                            iconColor="text-purple-600"
+                            total={currentReport?.reset.total || 0}
+                            maleCount={currentReport?.reset.male || 0}
+                            femaleCount={currentReport?.reset.female || 0}
+                            buttonColorClass="from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                            onRegister={() => handleOpenModal("reset")}
+                        />
 
-                        {/* Conferencia */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-orange-100 rounded-xl">
-                                        <HiCalendar className="h-6 w-6 text-orange-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">
-                                            Conferencia
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Asistencia y nuevos
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <div className="text-3xl font-bold text-gray-900 mb-1">
-                                    {currentReport?.conferencia.total || 0}
-                                </div>
-                                <div className="text-sm text-gray-600 flex gap-4">
-                                    <div>
-                                        <MdMan className="inline h-4 w-4" />{" "}
-                                        {currentReport?.conferencia.male || 0}
-                                    </div>
-                                    <div>
-                                        <MdWoman className="inline h-4 w-4" />{" "}
-                                        {currentReport?.conferencia.female || 0}
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handleOpenModal("conferencia")}
-                                className="w-full py-2 px-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-medium hover:from-orange-600 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <HiPlus className="h-5 w-5" />
-                                Registrar
-                            </button>
-                        </div>
+                        <RegistrationCard
+                            title="Conferencia"
+                            description="Asistencia y nuevos"
+                            icon={HiCalendar}
+                            iconBgColor="bg-orange-100"
+                            iconColor="text-orange-600"
+                            total={currentReport?.conferencia.total || 0}
+                            maleCount={currentReport?.conferencia.male || 0}
+                            femaleCount={currentReport?.conferencia.female || 0}
+                            buttonColorClass="from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                            onRegister={() => handleOpenModal("conferencia")}
+                        />
                     </div>
                 </div>
 
@@ -580,7 +557,7 @@ export default function Home() {
                         <h2 className="text-xl font-semibold text-gray-900 mb-4">
                             Reportes seccionados
                         </h2>
-                        
+
                         {/* Dropdowns de filtro */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
                             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -596,7 +573,8 @@ export default function Home() {
                                                 onChange={(e) =>
                                                     handleGroupChange(
                                                         e.target.value
-                                                            ? (e.target.value as Id<"groups">)
+                                                            ? (e.target
+                                                                  .value as Id<"groups">)
                                                             : null
                                                     )
                                                 }
@@ -631,7 +609,8 @@ export default function Home() {
                                                 onChange={(e) =>
                                                     handleDiscipleChange(
                                                         e.target.value
-                                                            ? (e.target.value as Id<"users">)
+                                                            ? (e.target
+                                                                  .value as Id<"users">)
                                                             : null
                                                     )
                                                 }
@@ -768,13 +747,15 @@ export default function Home() {
                                             <div className="text-gray-700 flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.conferencia.male || 0}{" "}
+                                                    ?.conferencia.male ||
+                                                    0}{" "}
                                                 hombres
                                             </div>
                                             <div className="text-rose-700 flex items-center">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.conferencia.female || 0}{" "}
+                                                    ?.conferencia.female ||
+                                                    0}{" "}
                                                 mujeres
                                             </div>
                                         </div>
@@ -784,7 +765,6 @@ export default function Home() {
                         </div>
                     </div>
                 )}
-
 
                 {/* Modales de Registro */}
                 {modalType && (
@@ -878,56 +858,172 @@ export default function Home() {
                             {/* Asistencia (solo para asistencias y conferencia) */}
                             {(modalType === "asistencias" ||
                                 modalType === "conferencia") && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        ¿Asististe?
-                                    </label>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="attended"
-                                                checked={
-                                                    formData.attended === true
-                                                }
-                                                onChange={() =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        attended: true,
-                                                    })
-                                                }
-                                                className="w-4 h-4 text-blue-600"
-                                            />
-                                            <span className="text-gray-700">
-                                                Sí
-                                            </span>
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            ¿Asististe?
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="attended"
-                                                checked={
-                                                    formData.attended === false
-                                                }
-                                                onChange={() =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        attended: false,
-                                                    })
-                                                }
-                                                className="w-4 h-4 text-blue-600"
-                                            />
-                                            <span className="text-gray-700">
-                                                No
-                                            </span>
-                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="attended"
+                                                    checked={
+                                                        formData.attended ===
+                                                        true
+                                                    }
+                                                    onChange={() =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            attended: true,
+                                                        })
+                                                    }
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className="text-gray-700">
+                                                    Sí
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="attended"
+                                                    checked={
+                                                        formData.attended ===
+                                                        false
+                                                    }
+                                                    onChange={() =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            attended: false,
+                                                        })
+                                                    }
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className="text-gray-700">
+                                                    No
+                                                </span>
+                                            </label>
+                                        </div>
+                                        {errors.attended && (
+                                            <p className="mt-1 text-sm text-red-600">
+                                                {errors.attended}
+                                            </p>
+                                        )}
                                     </div>
-                                    {errors.attended && (
-                                        <p className="mt-1 text-sm text-red-600">
-                                            {errors.attended}
-                                        </p>
+
+                                    {/* Sección del colíder para asistencias y conferencia */}
+                                    {coLeaders && coLeaders.length > 0 && (
+                                        <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                            <div className="text-sm font-medium text-gray-700">
+                                                Colíder
+                                            </div>
+
+                                            {/* Selector de colíder si hay más de uno */}
+                                            {coLeaders.length > 1 && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Seleccionar colíder
+                                                    </label>
+                                                    <select
+                                                        value={
+                                                            formData.coLeaderId ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                coLeaderId: e
+                                                                    .target
+                                                                    .value
+                                                                    ? (e.target
+                                                                          .value as Id<"users">)
+                                                                    : null,
+                                                                coLeaderAttended:
+                                                                    undefined, // Reset cuando cambia el colíder
+                                                            })
+                                                        }
+                                                        className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    >
+                                                        <option value="">
+                                                            Ninguno
+                                                        </option>
+                                                        {coLeaders.map(
+                                                            (coLeader) => (
+                                                                <option
+                                                                    key={
+                                                                        coLeader._id
+                                                                    }
+                                                                    value={
+                                                                        coLeader._id
+                                                                    }
+                                                                >
+                                                                    {coLeader.name ||
+                                                                        coLeader.email}
+                                                                </option>
+                                                            )
+                                                        )}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {/* Radio buttons para asistencia del colíder */}
+                                            {formData.coLeaderId && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        ¿El colíder asistió?
+                                                    </label>
+                                                    <div className="flex gap-4">
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="coLeaderAttended"
+                                                                checked={
+                                                                    formData.coLeaderAttended ===
+                                                                    true
+                                                                }
+                                                                onChange={() =>
+                                                                    setFormData(
+                                                                        {
+                                                                            ...formData,
+                                                                            coLeaderAttended: true,
+                                                                        }
+                                                                    )
+                                                                }
+                                                                className="w-4 h-4 text-blue-600"
+                                                            />
+                                                            <span className="text-gray-700">
+                                                                Sí
+                                                            </span>
+                                                        </label>
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="coLeaderAttended"
+                                                                checked={
+                                                                    formData.coLeaderAttended ===
+                                                                    false
+                                                                }
+                                                                onChange={() =>
+                                                                    setFormData(
+                                                                        {
+                                                                            ...formData,
+                                                                            coLeaderAttended: false,
+                                                                        }
+                                                                    )
+                                                                }
+                                                                className="w-4 h-4 text-blue-600"
+                                                            />
+                                                            <span className="text-gray-700">
+                                                                No
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
-                                </div>
+                                </>
                             )}
 
                             {/* Cantidad de Hombres */}

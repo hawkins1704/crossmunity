@@ -11,6 +11,7 @@ export default function Records() {
   const records = useQuery(api.attendance.getMyAttendanceRecords, {});
   const updateAttendance = useMutation(api.attendance.updateAttendance);
   const deleteAttendance = useMutation(api.attendance.deleteAttendance);
+  const coLeaders = useQuery(api.attendance.getCoLeaders);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Id<"attendanceRecords"> | null>(null);
@@ -18,9 +19,12 @@ export default function Records() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     date: "",
-    type: "nuevos_asistentes" as "nuevos_asistentes" | "reset" | "conferencia",
+    type: "nuevos" as "nuevos" | "asistencias" | "reset" | "conferencia",
     attended: false,
-    count: 0,
+    maleCount: 0,
+    femaleCount: 0,
+    coLeaderId: null as Id<"users"> | null,
+    coLeaderAttended: undefined as boolean | undefined,
   });
 
 
@@ -28,9 +32,10 @@ export default function Records() {
   const handleOpenEditModal = (record: {
     _id: Id<"attendanceRecords">;
     date: number;
-    type: "nuevos_asistentes" | "reset" | "conferencia";
+    type: "nuevos" | "asistencias" | "reset" | "conferencia";
     attended?: boolean;
-    count: number;
+    maleCount: number;
+    femaleCount: number;
   }) => {
     setEditingRecord(record._id);
     
@@ -41,11 +46,30 @@ export default function Records() {
     const day = String(dateObj.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
 
+    // Buscar registro relacionado del colíder (misma fecha y tipo)
+    let coLeaderId: Id<"users"> | null = null;
+    // coLeaderAttended se inicializa como undefined y puede ser establecido por el usuario
+    const coLeaderAttended: boolean | undefined = undefined;
+    
+    if (coLeaders && coLeaders.length > 0 && (record.type === "asistencias" || record.type === "conferencia")) {
+      // Si hay un solo colíder, usarlo por defecto
+      if (coLeaders.length === 1) {
+        coLeaderId = coLeaders[0]._id;
+      }
+      
+      // Buscar si hay un registro del colíder para la misma fecha y tipo
+      // Nota: Esto solo busca en los registros visibles del usuario actual
+      // El backend manejará la búsqueda real del registro del colíder
+    }
+
     setFormData({
       date: dateStr,
       type: record.type,
       attended: record.attended ?? false,
-      count: record.count,
+      maleCount: record.maleCount,
+      femaleCount: record.femaleCount,
+      coLeaderId,
+      coLeaderAttended,
     });
     setErrors({});
     setIsModalOpen(true);
@@ -56,9 +80,12 @@ export default function Records() {
     setEditingRecord(null);
     setFormData({
       date: "",
-      type: "nuevos_asistentes",
+      type: "nuevos",
       attended: false,
-      count: 0,
+      maleCount: 0,
+      femaleCount: 0,
+      coLeaderId: null,
+      coLeaderAttended: undefined,
     });
     setErrors({});
   };
@@ -93,8 +120,8 @@ export default function Records() {
     const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
     const timestamp = dateObj.getTime();
 
-    // Validar que nuevos_asistentes solo se pueda registrar los domingos
-    if (formData.type === "nuevos_asistentes") {
+    // Validar que nuevos solo se pueda registrar los domingos
+    if (formData.type === "nuevos") {
       const date = new Date(timestamp);
       if (date.getDay() !== 0) {
         setErrors({ date: "Los nuevos asistentes solo se pueden registrar los domingos" });
@@ -103,8 +130,14 @@ export default function Records() {
       }
     }
 
-    if (formData.count < 0) {
-      setErrors({ count: "La cantidad debe ser un número positivo" });
+    if (formData.maleCount < 0 || formData.femaleCount < 0) {
+      setErrors({ count: "Las cantidades deben ser números no negativos" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (formData.maleCount === 0 && formData.femaleCount === 0) {
+      setErrors({ count: "Debes registrar al menos una persona" });
       setIsSubmitting(false);
       return;
     }
@@ -114,8 +147,12 @@ export default function Records() {
         recordId: editingRecord,
         date: timestamp,
         type: formData.type,
-        attended: formData.type === "nuevos_asistentes" ? formData.attended : undefined,
-        count: formData.count,
+        service: undefined, // No se edita el servicio en esta vista
+        attended: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.attended : undefined,
+        maleCount: formData.maleCount,
+        femaleCount: formData.femaleCount,
+        coLeaderId: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.coLeaderId || undefined : undefined,
+        coLeaderAttended: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.coLeaderAttended : undefined,
       });
       handleCloseModal();
     } catch (error) {
@@ -128,8 +165,10 @@ export default function Records() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "nuevos_asistentes":
+      case "nuevos":
         return "Nuevos Asistentes";
+      case "asistencias":
+        return "Asistencias";
       case "reset":
         return "RESET";
       case "conferencia":
@@ -141,12 +180,14 @@ export default function Records() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "nuevos_asistentes":
+      case "nuevos":
         return "bg-blue-100 text-blue-700";
+      case "asistencias":
+        return "bg-green-100 text-green-700";
       case "reset":
         return "bg-purple-100 text-purple-700";
       case "conferencia":
-        return "bg-green-100 text-green-700";
+        return "bg-orange-100 text-orange-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -154,8 +195,10 @@ export default function Records() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case "nuevos_asistentes":
+      case "nuevos":
         return <HiUsers className="h-4 w-4" />;
+      case "asistencias":
+        return <HiCalendar className="h-4 w-4" />;
       case "reset":
         return <HiAcademicCap className="h-4 w-4" />;
       case "conferencia":
@@ -235,9 +278,9 @@ export default function Records() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="text-sm font-medium text-gray-900">
-                        {record.count} {record.count === 1 ? "persona" : "personas"}
+                        {record.maleCount + record.femaleCount} {(record.maleCount + record.femaleCount) === 1 ? "persona" : "personas"}
                       </span>
-                      {record.type === "nuevos_asistentes" && record.attended && (
+                      {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                         <span className="ml-2 text-xs text-gray-500">(+ tú)</span>
                       )}
                     </td>
@@ -287,8 +330,8 @@ export default function Records() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      <span className="font-medium">{record.count}</span> {record.count === 1 ? "persona" : "personas"}
-                      {record.type === "nuevos_asistentes" && record.attended && (
+                      <span className="font-medium">{record.maleCount + record.femaleCount}</span> {(record.maleCount + record.femaleCount) === 1 ? "persona" : "personas"}
+                      {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                         <span className="ml-1 text-xs">(+ tú)</span>
                       )}
                     </div>
@@ -356,45 +399,140 @@ export default function Records() {
               onChange={(e) => {
                 setFormData({
                   ...formData,
-                  type: e.target.value as "nuevos_asistentes" | "reset" | "conferencia",
-                  attended: e.target.value === "nuevos_asistentes" ? formData.attended : false,
+                  type: e.target.value as "nuevos" | "asistencias" | "reset" | "conferencia",
+                  attended: (e.target.value === "asistencias" || e.target.value === "conferencia") ? formData.attended : false,
                 });
                 setErrors({ ...errors, type: "" });
               }}
               className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
               required
             >
-              <option value="nuevos_asistentes">Nuevos Asistentes</option>
+              <option value="nuevos">Nuevos Asistentes</option>
+              <option value="asistencias">Asistencias</option>
               <option value="reset">RESET</option>
               <option value="conferencia">Conferencia</option>
             </select>
           </div>
 
-          {formData.type === "nuevos_asistentes" && (
-            <div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.attended}
-                  onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Asistí ese día</span>
-              </label>
-            </div>
+          {(formData.type === "asistencias" || formData.type === "conferencia") && (
+            <>
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.attended}
+                    onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Asistí ese día</span>
+                </label>
+              </div>
+
+              {/* Sección del colíder */}
+              {coLeaders && coLeaders.length > 0 && (
+                <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="text-sm font-medium text-gray-700">
+                    Colíder
+                  </div>
+                  
+                  {/* Selector de colíder si hay más de uno */}
+                  {coLeaders.length > 1 && (
+                    <div>
+                      <label htmlFor="coLeader" className="block text-sm font-medium text-gray-700 mb-2">
+                        Seleccionar colíder
+                      </label>
+                      <select
+                        id="coLeader"
+                        value={formData.coLeaderId || ""}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            coLeaderId: e.target.value ? (e.target.value as Id<"users">) : null,
+                            coLeaderAttended: undefined, // Reset cuando cambia el colíder
+                          });
+                        }}
+                        className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+                      >
+                        <option value="">Ninguno</option>
+                        {coLeaders.map((coLeader) => (
+                          <option key={coLeader._id} value={coLeader._id}>
+                            {coLeader.name || coLeader.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Radio buttons para asistencia del colíder */}
+                  {formData.coLeaderId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ¿El colíder asistió?
+                      </label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="coLeaderAttended"
+                            checked={formData.coLeaderAttended === true}
+                            onChange={() => setFormData({ ...formData, coLeaderAttended: true })}
+                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">Sí</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="coLeaderAttended"
+                            checked={formData.coLeaderAttended === false}
+                            onChange={() => setFormData({ ...formData, coLeaderAttended: false })}
+                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">No</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Si solo hay un colíder, ya está seleccionado automáticamente */}
+                </div>
+              )}
+            </>
           )}
 
           <div>
-            <label htmlFor="count" className="block text-sm font-medium text-gray-700 mb-2">
-              Cantidad de personas *
+            <label htmlFor="maleCount" className="block text-sm font-medium text-gray-700 mb-2">
+              Cantidad de hombres *
             </label>
             <input
-              id="count"
+              id="maleCount"
               type="number"
               min="0"
-              value={formData.count}
+              value={formData.maleCount}
               onChange={(e) => {
-                setFormData({ ...formData, count: parseInt(e.target.value) || 0 });
+                setFormData({ ...formData, maleCount: parseInt(e.target.value) || 0 });
+                setErrors({ ...errors, count: "" });
+              }}
+              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                errors.count
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+              }`}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="femaleCount" className="block text-sm font-medium text-gray-700 mb-2">
+              Cantidad de mujeres *
+            </label>
+            <input
+              id="femaleCount"
+              type="number"
+              min="0"
+              value={formData.femaleCount}
+              onChange={(e) => {
+                setFormData({ ...formData, femaleCount: parseInt(e.target.value) || 0 });
                 setErrors({ ...errors, count: "" });
               }}
               className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
@@ -405,9 +543,9 @@ export default function Records() {
               required
             />
             {errors.count && <p className="mt-1 text-sm text-red-500">{errors.count}</p>}
-            {formData.type === "nuevos_asistentes" && formData.attended && (
+            {(formData.type === "asistencias" || formData.type === "conferencia") && formData.attended && (
               <p className="mt-1 text-xs text-gray-500">
-                El total será: {formData.count + 1} personas (incluyéndote)
+                El total será: {formData.maleCount + formData.femaleCount + 1} personas (incluyéndote)
               </p>
             )}
           </div>

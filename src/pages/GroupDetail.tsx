@@ -2037,7 +2037,7 @@ function SortableDiscipleRow({
 
   const courseCount = courses?.length || 0;
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
-  const nuevosAsistentesTotal = report?.groupReport?.nuevos_asistentes?.disciplesTotal || 0;
+  const nuevosAsistentesTotal = report?.groupReport?.nuevos?.disciplesTotal || 0;
   const resetTotal = report?.groupReport?.reset?.disciplesTotal || 0;
   const conferenciaTotal = report?.groupReport?.conferencia?.disciplesTotal || 0;
 
@@ -2121,10 +2121,13 @@ function DiscipleCard({
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
 
   // Obtener totales de reportes del discípulo
-  const nuevosAsistentesTotal = discipleReport?.groupReport?.nuevos_asistentes?.disciplesTotal || 0;
+  const nuevosAsistentesTotal = discipleReport?.groupReport?.nuevos?.disciplesTotal || 0;
   const resetTotal = discipleReport?.groupReport?.reset?.disciplesTotal || 0;
   const conferenciaTotal = discipleReport?.groupReport?.conferencia?.disciplesTotal || 0;
 
+  console.log(nuevosAsistentesTotal);
+  console.log(resetTotal);
+  console.log(conferenciaTotal);
   return (
     <div
       onClick={onClick}
