@@ -33,6 +33,7 @@ function App() {
                             element={<Navigate to="/login" replace />}
                         />
                         <Route path="/login" element={<SignIn />} />
+                        <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
                 </Router>
             </Unauthenticated>
@@ -54,6 +55,7 @@ function App() {
                             <Route path="/records" element={<Records />} />
                             <Route path="/courses-admin" element={<CoursesAdmin />} />
                             <Route path="/grid" element={<Grid />} />
+                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
                         </Route>
                     </Routes>
                 </Router>
