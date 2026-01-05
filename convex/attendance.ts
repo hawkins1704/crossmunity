@@ -165,8 +165,18 @@ export const recordAttendance = mutation({
       throw new Error("Las cantidades deben ser números no negativos");
     }
 
-    // Validar que al menos haya una persona registrada
-    if (args.maleCount === 0 && args.femaleCount === 0) {
+    // Permitir 0 personas solo si es asistencias o conferencia y el usuario o colíder asistió
+    const canHaveZeroCount =
+      (args.type === "asistencias" || args.type === "conferencia") &&
+      (args.attended === true ||
+        (args.coLeaderId && args.coLeaderAttended === true));
+
+    // Validar que al menos haya una persona registrada (excepto cuando se permite 0)
+    if (
+      args.maleCount === 0 &&
+      args.femaleCount === 0 &&
+      !canHaveZeroCount
+    ) {
       throw new Error("Debes registrar al menos una persona");
     }
 
@@ -393,8 +403,18 @@ export const updateAttendance = mutation({
       throw new Error("Las cantidades deben ser números no negativos");
     }
 
-    // Validar que al menos haya una persona registrada
-    if (args.maleCount === 0 && args.femaleCount === 0) {
+    // Permitir 0 personas solo si es asistencias o conferencia y el usuario o colíder asistió
+    const canHaveZeroCount =
+      (args.type === "asistencias" || args.type === "conferencia") &&
+      (args.attended === true ||
+        (args.coLeaderId && args.coLeaderAttended === true));
+
+    // Validar que al menos haya una persona registrada (excepto cuando se permite 0)
+    if (
+      args.maleCount === 0 &&
+      args.femaleCount === 0 &&
+      !canHaveZeroCount
+    ) {
       throw new Error("Debes registrar al menos una persona");
     }
 

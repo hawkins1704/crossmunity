@@ -645,7 +645,7 @@ export default function MyGroup() {
                 Aún no hay otros discípulos en este grupo
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {group.disciples
                   .filter((disciple): disciple is NonNullable<typeof disciple> => disciple !== null)
                   .map((disciple) => (

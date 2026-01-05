@@ -283,7 +283,17 @@ export default function Home() {
             return;
         }
 
-        if (formData.maleCount === 0 && formData.femaleCount === 0) {
+        // Permitir 0 personas solo si es asistencias o conferencia y el usuario o colíder asistió
+        const canHaveZeroCount =
+            (modalType === "asistencias" || modalType === "conferencia") &&
+            (formData.attended === true ||
+                (formData.coLeaderId && formData.coLeaderAttended === true));
+
+        if (
+            formData.maleCount === 0 &&
+            formData.femaleCount === 0 &&
+            !canHaveZeroCount
+        ) {
             setErrors({
                 count: "Debes registrar al menos una persona",
             });
