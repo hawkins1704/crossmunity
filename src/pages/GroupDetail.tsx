@@ -918,7 +918,7 @@ export default function GroupDetail() {
       </div>
 
       {/* Lista de discípulos */}
-      <DisciplesSection disciples={group.disciples} isLeader={isLeader} />
+      <DisciplesSection disciples={group.disciples} isLeader={isLeader} groupId={isLeader ? (groupId as Id<"groups">) : undefined} />
 
       {/* Lista de líderes (discípulos que tienen su propio grupo) */}
       <LeadersSection disciples={group.disciples} />
@@ -1732,7 +1732,7 @@ export default function GroupDetail() {
 }
 
 // Componente para la sección de discípulos
-function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLeader: boolean }) {
+function DisciplesSection({ disciples, isLeader, groupId }: { disciples: Array<any>; isLeader: boolean; groupId?: Id<"groups"> }) {
   const [selectedDiscipleId, setSelectedDiscipleId] = useState<Id<"users"> | null>(null);
   const [sortColumn, setSortColumn] = useState<"name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -1774,6 +1774,7 @@ function DisciplesSection({ disciples, isLeader }: { disciples: Array<any>; isLe
           sortColumn={sortColumn}
           sortDirection={sortDirection}
           onSort={handleSort}
+          groupId={groupId}
         />
       )}
 
@@ -1798,12 +1799,14 @@ function SortableDiscipleTable({
   sortColumn,
   sortDirection,
   onSort,
+  groupId,
 }: {
   disciples: Array<any>;
   onDiscipleClick: (id: Id<"users">) => void;
   sortColumn: "name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia" | null;
   sortDirection: "asc" | "desc";
   onSort: (column: "name" | "courses" | "service" | "nuevos_asistentes" | "reset" | "conferencia") => void;
+  groupId?: Id<"groups">;
 }) {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
   const [sortData, setSortData] = useState<Map<Id<"users">, Record<string, any>>>(new Map());
@@ -2000,6 +2003,7 @@ function SortableDiscipleTable({
                 key={disciple._id}
                 disciple={disciple}
                 onClick={() => onDiscipleClick(disciple._id)}
+                groupId={groupId}
               />
             ))}
           </tbody>
@@ -2013,6 +2017,7 @@ function SortableDiscipleTable({
             key={disciple._id}
             disciple={disciple}
             onClick={() => onDiscipleClick(disciple._id)}
+            groupId={groupId}
           />
         ))}
       </div>
@@ -2024,15 +2029,19 @@ function SortableDiscipleTable({
 function SortableDiscipleRow({
   disciple,
   onClick,
+  groupId,
 }: {
   disciple: any;
   onClick: () => void;
+  groupId?: Id<"groups">;
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
   const currentYear = new Date().getFullYear();
   const report = useQuery(
     api.attendance.getGroupAttendanceReport,
-    { year: currentYear, discipleId: disciple._id }
+    groupId 
+      ? { year: currentYear, discipleId: disciple._id, groupId }
+      : { year: currentYear, discipleId: disciple._id }
   );
 
   const courseCount = courses?.length || 0;
@@ -2106,15 +2115,19 @@ function SortableDiscipleRow({
 function DiscipleCard({
   disciple,
   onClick,
+  groupId,
 }: {
   disciple: any;
   onClick: () => void;
+  groupId?: Id<"groups">;
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
   const currentYear = new Date().getFullYear();
   const discipleReport = useQuery(
     api.attendance.getGroupAttendanceReport,
-    { year: currentYear, discipleId: disciple._id }
+    groupId
+      ? { year: currentYear, discipleId: disciple._id, groupId }
+      : { year: currentYear, discipleId: disciple._id }
   );
   
   const courseCount = courses?.length || 0;
@@ -2124,10 +2137,6 @@ function DiscipleCard({
   const nuevosAsistentesTotal = discipleReport?.groupReport?.nuevos?.disciplesTotal || 0;
   const resetTotal = discipleReport?.groupReport?.reset?.disciplesTotal || 0;
   const conferenciaTotal = discipleReport?.groupReport?.conferencia?.disciplesTotal || 0;
-
-  console.log(nuevosAsistentesTotal);
-  console.log(resetTotal);
-  console.log(conferenciaTotal);
   return (
     <div
       onClick={onClick}

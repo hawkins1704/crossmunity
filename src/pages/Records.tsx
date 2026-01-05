@@ -416,17 +416,17 @@ export default function Records() {
 
           {(formData.type === "asistencias" || formData.type === "conferencia") && (
             <>
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.attended}
-                    onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Asistí ese día</span>
-                </label>
-              </div>
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.attended}
+                  onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Asistí ese día</span>
+              </label>
+            </div>
 
               {/* Sección del colíder */}
               {coLeaders && coLeaders.length > 0 && (

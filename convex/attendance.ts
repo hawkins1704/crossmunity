@@ -927,22 +927,34 @@ export const getGroupAttendanceReport = query({
     }
 
     // Obtener todos los discípulos de los grupos del usuario
-    let allDisciples = await ctx.db
-      .query("users")
-      .withIndex("leader", (q) => q.eq("leader", userId))
-      .collect();
+    let allDisciples: Array<{
+      _id: Id<"users">;
+      name?: string;
+      email?: string;
+      gender: "Male" | "Female";
+      leader?: Id<"users">;
+    }>;
 
-    // Si se especifica un grupo, filtrar discípulos de ese grupo
+    // Si se especifica un grupo, obtener discípulos directamente del grupo
     if (args.groupId !== undefined) {
       // Verificar que el grupo pertenezca al usuario
       const selectedGroup = userGroups.find((g) => g._id === args.groupId);
       if (!selectedGroup) {
         throw new Error("El grupo especificado no pertenece a tus grupos");
       }
-      // Filtrar discípulos que pertenecen a este grupo específico
-      allDisciples = allDisciples.filter((disciple) =>
-        selectedGroup.disciples.includes(disciple._id)
+      // Obtener los discípulos directamente del grupo
+      const groupDisciples = await Promise.all(
+        selectedGroup.disciples.map((discipleId) => ctx.db.get(discipleId))
       );
+      allDisciples = groupDisciples.filter(
+        (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
+      );
+    } else {
+      // Si no se especifica grupo, obtener todos los discípulos del usuario
+      allDisciples = await ctx.db
+        .query("users")
+        .withIndex("leader", (q) => q.eq("leader", userId))
+        .collect();
     }
 
     // Si se especifica un discípulo, filtrar solo ese
