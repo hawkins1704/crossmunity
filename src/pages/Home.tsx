@@ -440,12 +440,12 @@ export default function Home() {
                     </h1>
 
                     {/* Filtro de periodo en la parte superior derecha */}
-                    <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+                    <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3">
                         {/* Selector de modo Mes/Año */}
-                        <div className="flex items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 p-1">
+                        <div className="flex flex-1 items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 p-1">
                             <button
                                 onClick={() => handleViewModeChange("month")}
-                                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                                     viewMode === "month"
                                         ? "bg-blue-500 text-white shadow-sm"
                                         : "text-gray-700 hover:bg-gray-100"
@@ -455,7 +455,7 @@ export default function Home() {
                             </button>
                             <button
                                 onClick={() => handleViewModeChange("year")}
-                                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                                     viewMode === "year"
                                         ? "bg-blue-500 text-white shadow-sm"
                                         : "text-gray-700 hover:bg-gray-100"
@@ -466,22 +466,22 @@ export default function Home() {
                         </div>
 
                         {/* Navegación de período */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-1 items-center gap-2">
                             <button
                                 onClick={handlePreviousPeriod}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                className="flex-1 flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                                 title="Período anterior"
                             >
                                 <HiChevronLeft className="h-5 w-5 text-gray-600" />
                             </button>
-                            <span className="text-sm font-medium text-gray-900 min-w-[140px] text-center px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="flex-3 text-sm font-medium text-gray-900 min-w-[140px] text-center px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                                 {viewMode === "month" && selectedMonth
                                     ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
                                     : `${selectedYear}`}
                             </span>
                             <button
                                 onClick={handleNextPeriod}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={
                                     viewMode === "month" &&
                                     selectedMonth === getCurrentMonth() &&
