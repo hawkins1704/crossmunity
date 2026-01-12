@@ -144,7 +144,7 @@ export function SignIn() {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-200 to-blue-200 rounded-2xl mb-4 shadow-lg">
-            <HiSparkles className="h-8 w-8 text-blue-600" />
+            <HiSparkles className="h-8 w-8 text-blue-800" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Crossmunity</h1>
           <p className="text-gray-600">
@@ -506,19 +506,19 @@ export function SignIn() {
                 setSelectedGrid(null);
                 setShowGridResults(false);
               }}
-              className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+              className="text-sm text-gray-600 ç∂ transition-colors"
             >
               {step === "signIn" ? (
                 <>
                   ¿No tienes cuenta?{" "}
-                  <span className="font-semibold text-blue-600">
+                  <span className="font-semibold text-blue-800 hover:text-blue-900 transition-colors hover:underline">
                     Regístrate aquí
                   </span>
                 </>
               ) : (
                 <>
                   ¿Ya tienes cuenta?{" "}
-                  <span className="font-semibold text-blue-600">
+                  <span className="font-semibold text-blue-800 hover:text-blue-900 transition-colors hover:underline">
                     Inicia sesión aquí
                   </span>
                 </>

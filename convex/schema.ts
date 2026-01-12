@@ -124,9 +124,23 @@ export default defineSchema({
       v.literal("sunday-1"), // Domingo 9AM
       v.literal("sunday-2") // Domingo 11:30AM
     )), // Solo para nuevos y asistencias
+    sede: v.optional(v.union(
+      v.literal("CENTRAL"),
+      v.literal("LINCE"),
+      v.literal("LOS OLIVOS"),
+      v.literal("SJM"),
+      v.literal("VMT"),
+      v.literal("PACHACAMAC"),
+      v.literal("SJL"),
+      v.literal("CHORRILLOS"),
+      v.literal("SURCO"),
+      v.literal("MIRAFLORES"),
+      v.literal("VES")
+    )), // Sede donde se realizó el registro
     attended: v.optional(v.boolean()), // Si asistió (solo para asistencias y conferencia)
     maleCount: v.number(), // Cantidad de hombres
     femaleCount: v.number(), // Cantidad de mujeres
+    kidsCount: v.optional(v.number()), // Cantidad de niños
   })
     .index("userId", ["userId"]) // Para buscar registros de un usuario
     .index("userId_date", ["userId", "date"]) // Para buscar registros por usuario y fecha

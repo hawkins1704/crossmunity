@@ -154,7 +154,7 @@ function ActivitiesCalendarView({
                 </div>
                 <button
                     onClick={goToToday}
-                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                     Hoy
                 </button>

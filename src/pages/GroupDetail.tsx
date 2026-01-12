@@ -17,7 +17,6 @@ import {
   HiExclamationCircle,
   HiPencil,
   HiViewList,
-  HiViewGrid,
   HiChevronLeft,
   HiChevronRight,
   HiTrash,
@@ -26,6 +25,7 @@ import {
   HiArrowUp,
   HiArrowDown,
 } from "react-icons/hi";
+import { IoIosCalendar } from "react-icons/io";
 import Modal from "../components/Modal";
 import RichTextEditor from "../components/RichTextEditor";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -226,7 +226,7 @@ function ActivitiesCalendarView({
         </div>
         <button
           onClick={goToToday}
-          className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
         >
           Hoy
         </button>
@@ -884,7 +884,7 @@ export default function GroupDetail() {
           {group.minAge && group.maxAge && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <HiUsers className="h-5 w-5 text-blue-600" />
+                <HiUsers className="h-5 w-5 text-blue-800" />
               </div>
               <div>
                 <p className="text-xs text-gray-500">Rango de Edad</p>
@@ -897,7 +897,7 @@ export default function GroupDetail() {
 
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
             <div className="p-2 bg-purple-100 rounded-lg">
-              <HiCalendar className="h-5 w-5 text-purple-600" />
+              <HiCalendar className="h-5 w-5 text-purple-800" />
             </div>
             <div>
               <p className="text-xs text-gray-500">Día de Reunión</p>
@@ -907,7 +907,7 @@ export default function GroupDetail() {
 
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
             <div className="p-2 bg-orange-100 rounded-lg">
-              <HiClock className="h-5 w-5 text-orange-600" />
+              <HiClock className="h-5 w-5 text-orange-800" />
             </div>
             <div>
               <p className="text-xs text-gray-500">Hora</p>
@@ -925,36 +925,36 @@ export default function GroupDetail() {
 
       {/* Actividades */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="flex flex-col gap-2 md:flex-row items-start md:items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 w-full md:w-auto">
             Actividades ({activities.length})
           </h3>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 w-full md:w-auto">
             {/* Toggle de vista */}
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActivitiesView("list")}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
                   activitiesView === "list"
-                    ? "bg-white text-blue-600 shadow-sm"
+                    ? "bg-white text-blue-800 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
                 title="Vista de lista"
               >
                 <HiViewList className="h-4 w-4" />
-                <span className="text-sm font-medium">Lista</span>
+                <span className="hidden md:block text-sm font-medium">Lista</span>
               </button>
               <button
                 onClick={() => setActivitiesView("calendar")}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
                   activitiesView === "calendar"
-                    ? "bg-white text-blue-600 shadow-sm"
+                    ? "bg-white text-blue-800 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
                 title="Vista de calendario"
               >
-                <HiViewGrid className="h-4 w-4" />
-                <span className="text-sm font-medium">Calendario</span>
+                <IoIosCalendar className="h-4 w-4" />
+                <span className="hidden md:block text-sm font-medium">Calendario</span>
               </button>
             </div>
             {isLeader && (

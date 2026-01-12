@@ -13,6 +13,7 @@ import Modal from "../components/Modal";
 import type { Id } from "../../convex/_generated/dataModel";
 import { MdMan, MdWoman } from "react-icons/md";
 import type { IconType } from "react-icons";
+import { LuBaby } from "react-icons/lu";
 
 // Componente reutilizable para las cards de registro
 function RegistrationCard({
@@ -24,6 +25,7 @@ function RegistrationCard({
     total,
     maleCount,
     femaleCount,
+    kidsCount,
     buttonColorClass,
     onRegister,
 }: {
@@ -35,6 +37,7 @@ function RegistrationCard({
     total: number;
     maleCount: number;
     femaleCount: number;
+    kidsCount?: number;
     buttonColorClass: string;
     onRegister: () => void;
 }) {
@@ -60,12 +63,17 @@ function RegistrationCard({
                     <div className="text-3xl font-bold text-gray-900 mb-1">
                         {total}
                     </div>
-                    <div className="text-sm text-gray-600 flex gap-4">
+                    <div className="text-sm text-gray-600 flex gap-4 flex-wrap">
                         <div className="text-gray-700">
                             <MdMan className="inline h-4 w-4" /> {maleCount}
                         </div>
                         <div className="text-rose-700">
                             <MdWoman className="inline h-4 w-4" /> {femaleCount}
+                        </div>
+
+                        <div className="text-yellow-500">
+                            <LuBaby className="inline h-4 w-4" />{" "}
+                            {kidsCount}
                         </div>
                     </div>
                 </div>
@@ -105,17 +113,33 @@ export default function Home() {
     const [formData, setFormData] = useState<{
         date: string;
         service: "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2" | null;
+        sede:
+            | "CENTRAL"
+            | "LINCE"
+            | "LOS OLIVOS"
+            | "SJM"
+            | "VMT"
+            | "PACHACAMAC"
+            | "SJL"
+            | "CHORRILLOS"
+            | "SURCO"
+            | "MIRAFLORES"
+            | "VES"
+            | null;
         attended: boolean;
         maleCount: number;
         femaleCount: number;
+        kidsCount: number;
         coLeaderId: Id<"users"> | null;
         coLeaderAttended: boolean | undefined;
     }>({
         date: "",
         service: "sunday-1",
+        sede: null,
         attended: false,
         maleCount: 0,
         femaleCount: 0,
+        kidsCount: 0,
         coLeaderId: null,
         coLeaderAttended: undefined,
     });
@@ -224,9 +248,11 @@ export default function Home() {
                           | "sunday-1"
                           | "sunday-2")
                     : (null as null),
+            sede: null,
             attended: false,
             maleCount: 0,
             femaleCount: 0,
+            kidsCount: 0,
             coLeaderId: defaultCoLeaderId,
             coLeaderAttended: undefined,
         });
@@ -241,9 +267,11 @@ export default function Home() {
         setFormData({
             date: timestampToDateString(Date.now()),
             service: null as null,
+            sede: null,
             attended: false,
             maleCount: 0,
             femaleCount: 0,
+            kidsCount: 0,
             coLeaderId: defaultCoLeaderId,
             coLeaderAttended: undefined,
         });
@@ -282,7 +310,11 @@ export default function Home() {
             return;
         }
 
-        if (formData.maleCount < 0 || formData.femaleCount < 0) {
+        if (
+            formData.maleCount < 0 ||
+            formData.femaleCount < 0 ||
+            formData.kidsCount < 0
+        ) {
             setErrors({
                 count: "Las cantidades deben ser números no negativos",
             });
@@ -299,6 +331,7 @@ export default function Home() {
         if (
             formData.maleCount === 0 &&
             formData.femaleCount === 0 &&
+            formData.kidsCount === 0 &&
             !canHaveZeroCount
         ) {
             setErrors({
@@ -308,11 +341,17 @@ export default function Home() {
             return;
         }
 
-        // Validar colíder si hay personas del sexo opuesto
+        // Validar colíder si hay personas del sexo opuesto SOLO si hay colíderes disponibles
+        // Si no hay colíderes disponibles, se permite registrar personas del sexo opuesto sin colíder
         const userGender = dashboard?.user.gender;
         const oppositeGenderCount =
             userGender === "Male" ? formData.femaleCount : formData.maleCount;
-        if (oppositeGenderCount > 0 && !formData.coLeaderId) {
+        if (
+            oppositeGenderCount > 0 &&
+            !formData.coLeaderId &&
+            coLeaders &&
+            coLeaders.length > 0
+        ) {
             setErrors({
                 coLeader:
                     "Debes seleccionar un colíder para registrar personas del sexo opuesto",
@@ -326,12 +365,14 @@ export default function Home() {
                 date: dateStringToTimestamp(formData.date),
                 type: modalType!,
                 service: formData.service || undefined,
+                sede: formData.sede || undefined,
                 attended:
                     modalType === "asistencias" || modalType === "conferencia"
                         ? formData.attended
                         : undefined,
                 maleCount: formData.maleCount,
                 femaleCount: formData.femaleCount,
+                kidsCount: formData.kidsCount,
                 coLeaderId: formData.coLeaderId || undefined,
                 coLeaderAttended:
                     (modalType === "asistencias" ||
@@ -519,10 +560,11 @@ export default function Home() {
                             description="Nuevos asistentes"
                             icon={HiUsers}
                             iconBgColor="bg-blue-100"
-                            iconColor="text-blue-600"
+                            iconColor="text-blue-800"
                             total={currentReport?.nuevos.total || 0}
                             maleCount={currentReport?.nuevos.male || 0}
                             femaleCount={currentReport?.nuevos.female || 0}
+                            kidsCount={currentReport?.nuevos.kids}
                             buttonColorClass="from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
                             onRegister={() => handleOpenModal("nuevos")}
                         />
@@ -536,6 +578,7 @@ export default function Home() {
                             total={currentReport?.asistencias.total || 0}
                             maleCount={currentReport?.asistencias.male || 0}
                             femaleCount={currentReport?.asistencias.female || 0}
+                            kidsCount={currentReport?.asistencias.kids}
                             buttonColorClass="from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                             onRegister={() => handleOpenModal("asistencias")}
                         />
@@ -549,6 +592,7 @@ export default function Home() {
                             total={currentReport?.reset.total || 0}
                             maleCount={currentReport?.reset.male || 0}
                             femaleCount={currentReport?.reset.female || 0}
+                            kidsCount={currentReport?.reset.kids}
                             buttonColorClass="from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                             onRegister={() => handleOpenModal("reset")}
                         />
@@ -562,6 +606,7 @@ export default function Home() {
                             total={currentReport?.conferencia.total || 0}
                             maleCount={currentReport?.conferencia.male || 0}
                             femaleCount={currentReport?.conferencia.female || 0}
+                            kidsCount={currentReport?.conferencia.kids}
                             buttonColorClass="from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
                             onRegister={() => handleOpenModal("conferencia")}
                         />
@@ -658,7 +703,7 @@ export default function Home() {
                                 {/* Nuevos - Grupo */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <HiUsers className="h-5 w-5 text-blue-600" />
+                                        <HiUsers className="h-5 w-5 text-blue-800" />
                                         <h3 className="font-semibold text-gray-900">
                                             Registro de Nuevos
                                         </h3>
@@ -668,7 +713,7 @@ export default function Home() {
                                             .total || 0}
                                     </div>
                                     <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium">
+                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
                                             <div className="text-gray-700 flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
@@ -681,6 +726,16 @@ export default function Home() {
                                                     ?.nuevos.female || 0}{" "}
                                                 mujeres
                                             </div>
+                                            {((currentGroupReport.groupReport
+                                                ?.nuevos as { kids?: number })?.kids || 0) > 0 && (
+                                                <div className="text-amber-700 flex items-center">
+                                                    👶{" "}
+                                                    {(currentGroupReport
+                                                        .groupReport?.nuevos as { kids?: number })
+                                                        ?.kids || 0}{" "}
+                                                    niños
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -698,7 +753,7 @@ export default function Home() {
                                             ?.asistencias.total || 0}
                                     </div>
                                     <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium">
+                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
                                             <div className="text-gray-700 flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
@@ -713,6 +768,19 @@ export default function Home() {
                                                     0}{" "}
                                                 mujeres
                                             </div>
+                                            {((currentGroupReport.groupReport
+                                                ?.asistencias as { kids?: number })?.kids || 0) >
+                                                0 && (
+                                                <div className="text-amber-700 flex items-center">
+                                                    👶{" "}
+                                                    {(currentGroupReport
+                                                        .groupReport
+                                                        ?.asistencias as { kids?: number })
+                                                        ?.kids ||
+                                                        0}{" "}
+                                                    niños
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -730,7 +798,7 @@ export default function Home() {
                                             .total || 0}
                                     </div>
                                     <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium">
+                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
                                             <div className="text-gray-700 flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
@@ -743,6 +811,16 @@ export default function Home() {
                                                     ?.reset.female || 0}{" "}
                                                 mujeres
                                             </div>
+                                            {((currentGroupReport.groupReport
+                                                ?.reset as { kids?: number })?.kids || 0) > 0 && (
+                                                <div className="text-amber-700 flex items-center">
+                                                    👶{" "}
+                                                    {(currentGroupReport
+                                                        .groupReport?.reset as { kids?: number })
+                                                        ?.kids || 0}{" "}
+                                                    niños
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -760,7 +838,7 @@ export default function Home() {
                                             ?.conferencia.total || 0}
                                     </div>
                                     <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium">
+                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
                                             <div className="text-gray-700 flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
@@ -775,6 +853,19 @@ export default function Home() {
                                                     0}{" "}
                                                 mujeres
                                             </div>
+                                            {((currentGroupReport.groupReport
+                                                ?.conferencia as { kids?: number })?.kids || 0) >
+                                                0 && (
+                                                <div className="text-amber-700 flex items-center">
+                                                    👶{" "}
+                                                    {(currentGroupReport
+                                                        .groupReport
+                                                        ?.conferencia as { kids?: number })
+                                                        ?.kids ||
+                                                        0}{" "}
+                                                    niños
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -872,6 +963,58 @@ export default function Home() {
                                 </div>
                             )}
 
+                            {/* Sede */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Sede
+                                </label>
+                                <select
+                                    value={formData.sede || ""}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            sede: e.target.value
+                                                ? (e.target
+                                                      .value as typeof formData.sede)
+                                                : null,
+                                        })
+                                    }
+                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                        errors.sede
+                                            ? "border-red-300 focus:ring-red-500"
+                                            : "border-gray-300 focus:ring-blue-500"
+                                    }`}
+                                >
+                                    <option value="">
+                                        Selecciona una sede
+                                    </option>
+                                    <option value="CENTRAL">CENTRAL</option>
+                                    <option value="LINCE">LINCE</option>
+                                    <option value="LOS OLIVOS">
+                                        LOS OLIVOS
+                                    </option>
+                                    <option value="SJM">SJM</option>
+                                    <option value="VMT">VMT</option>
+                                    <option value="PACHACAMAC">
+                                        PACHACAMAC
+                                    </option>
+                                    <option value="SJL">SJL</option>
+                                    <option value="CHORRILLOS">
+                                        CHORRILLOS
+                                    </option>
+                                    <option value="SURCO">SURCO</option>
+                                    <option value="MIRAFLORES">
+                                        MIRAFLORES
+                                    </option>
+                                    <option value="VES">VES</option>
+                                </select>
+                                {errors.sede && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.sede}
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Asistencia (solo para asistencias y conferencia) */}
                             {(modalType === "asistencias" ||
                                 modalType === "conferencia") && (
@@ -895,7 +1038,7 @@ export default function Home() {
                                                             attended: true,
                                                         })
                                                     }
-                                                    className="w-4 h-4 text-blue-600"
+                                                    className="w-4 h-4 text-blue-800"
                                                 />
                                                 <span className="text-gray-700">
                                                     Sí
@@ -915,7 +1058,7 @@ export default function Home() {
                                                             attended: false,
                                                         })
                                                     }
-                                                    className="w-4 h-4 text-blue-600"
+                                                    className="w-4 h-4 text-blue-800"
                                                 />
                                                 <span className="text-gray-700">
                                                     No
@@ -1007,7 +1150,7 @@ export default function Home() {
                                                                         }
                                                                     )
                                                                 }
-                                                                className="w-4 h-4 text-blue-600"
+                                                                className="w-4 h-4 text-blue-800"
                                                             />
                                                             <span className="text-gray-700">
                                                                 Sí
@@ -1029,7 +1172,7 @@ export default function Home() {
                                                                         }
                                                                     )
                                                                 }
-                                                                className="w-4 h-4 text-blue-600"
+                                                                className="w-4 h-4 text-blue-800"
                                                             />
                                                             <span className="text-gray-700">
                                                                 No
@@ -1096,6 +1239,31 @@ export default function Home() {
                                         {errors.count}
                                     </p>
                                 )}
+                            </div>
+
+                            {/* Cantidad de Niños */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Cantidad de Niños
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={formData.kidsCount}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            kidsCount:
+                                                parseInt(e.target.value) || 0,
+                                        })
+                                    }
+                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                        errors.count
+                                            ? "border-red-300 focus:ring-red-500"
+                                            : "border-gray-300 focus:ring-blue-500"
+                                    }`}
+                                    required
+                                />
                             </div>
 
                             {/* Dropdown de Colíder (solo si hay personas del sexo opuesto) */}

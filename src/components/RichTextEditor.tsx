@@ -41,7 +41,7 @@ export default function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-blue-600 underline",
+          class: "text-blue-800 underline",
         },
       }),
       Table.configure({

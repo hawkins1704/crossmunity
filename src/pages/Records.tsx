@@ -21,9 +21,11 @@ export default function Records() {
     date: "",
     type: "nuevos" as "nuevos" | "asistencias" | "reset" | "conferencia",
     service: null as "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2" | null,
+    sede: null as "CENTRAL" | "LINCE" | "LOS OLIVOS" | "SJM" | "VMT" | "PACHACAMAC" | "SJL" | "CHORRILLOS" | "SURCO" | "MIRAFLORES" | "VES" | null,
     attended: false,
     maleCount: 0,
     femaleCount: 0,
+    kidsCount: 0,
     coLeaderId: null as Id<"users"> | null,
     coLeaderAttended: undefined as boolean | undefined,
   });
@@ -35,9 +37,11 @@ export default function Records() {
     date: number;
     type: "nuevos" | "asistencias" | "reset" | "conferencia";
     service?: "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2";
+    sede?: "CENTRAL" | "LINCE" | "LOS OLIVOS" | "SJM" | "VMT" | "PACHACAMAC" | "SJL" | "CHORRILLOS" | "SURCO" | "MIRAFLORES" | "VES";
     attended?: boolean;
     maleCount: number;
     femaleCount: number;
+    kidsCount?: number;
   }) => {
     setEditingRecord(record._id);
     
@@ -70,9 +74,11 @@ export default function Records() {
       date: dateStr,
       type: record.type,
       service: record.service || null,
+      sede: record.sede || null,
       attended: record.attended ?? false,
       maleCount: record.maleCount,
       femaleCount: record.femaleCount,
+      kidsCount: record.kidsCount || 0,
       coLeaderId,
       coLeaderAttended,
     });
@@ -87,9 +93,11 @@ export default function Records() {
       date: "",
       type: "nuevos",
       service: null,
+      sede: null,
       attended: false,
       maleCount: 0,
       femaleCount: 0,
+      kidsCount: 0,
       coLeaderId: null,
       coLeaderAttended: undefined,
     });
@@ -137,13 +145,13 @@ export default function Records() {
     // Esto representa la fecha calendario sin considerar zona horaria
     const timestamp = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
 
-    if (formData.maleCount < 0 || formData.femaleCount < 0) {
+    if (formData.maleCount < 0 || formData.femaleCount < 0 || formData.kidsCount < 0) {
       setErrors({ count: "Las cantidades deben ser números no negativos" });
       setIsSubmitting(false);
       return;
     }
 
-    if (formData.maleCount === 0 && formData.femaleCount === 0) {
+    if (formData.maleCount === 0 && formData.femaleCount === 0 && formData.kidsCount === 0) {
       setErrors({ count: "Debes registrar al menos una persona" });
       setIsSubmitting(false);
       return;
@@ -155,9 +163,11 @@ export default function Records() {
         date: timestamp,
         type: formData.type,
         service: (formData.type === "nuevos" || formData.type === "asistencias") ? formData.service || undefined : undefined,
+        sede: formData.sede || undefined,
         attended: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.attended : undefined,
         maleCount: formData.maleCount,
         femaleCount: formData.femaleCount,
+        kidsCount: formData.kidsCount,
         coLeaderId: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.coLeaderId || undefined : undefined,
         coLeaderAttended: (formData.type === "asistencias" || formData.type === "conferencia") ? formData.coLeaderAttended : undefined,
       });
@@ -294,7 +304,7 @@ export default function Records() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="text-sm font-medium text-gray-900">
-                        {record.maleCount + record.femaleCount} {(record.maleCount + record.femaleCount) === 1 ? "persona" : "personas"}
+                        {record.maleCount + record.femaleCount + (record.kidsCount || 0)} {(record.maleCount + record.femaleCount + (record.kidsCount || 0)) === 1 ? "persona" : "personas"}
                       </span>
                       {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                         <span className="ml-2 text-xs text-gray-500">(+ tú)</span>
@@ -304,7 +314,7 @@ export default function Records() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleOpenEditModal(record)}
-                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
                           title="Editar registro"
                         >
                           <HiPencil className="h-4 w-4" />
@@ -346,7 +356,7 @@ export default function Records() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      <span className="font-medium">{record.maleCount + record.femaleCount}</span> {(record.maleCount + record.femaleCount) === 1 ? "persona" : "personas"}
+                      <span className="font-medium">{record.maleCount + record.femaleCount + (record.kidsCount || 0)}</span> {(record.maleCount + record.femaleCount + (record.kidsCount || 0)) === 1 ? "persona" : "personas"}
                       {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                         <span className="ml-1 text-xs">(+ tú)</span>
                       )}
@@ -355,7 +365,7 @@ export default function Records() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEditModal(record)}
-                      className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
                       title="Editar registro"
                     >
                       <HiPencil className="h-4 w-4" />
@@ -463,6 +473,38 @@ export default function Records() {
             </div>
           )}
 
+          {/* Sede */}
+          <div>
+            <label htmlFor="sede" className="block text-sm font-medium text-gray-700 mb-2">
+              Sede
+            </label>
+            <select
+              id="sede"
+              value={formData.sede || ""}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  sede: e.target.value ? (e.target.value as typeof formData.sede) : null,
+                });
+                setErrors({ ...errors, sede: "" });
+              }}
+              className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+            >
+              <option value="">Selecciona una sede</option>
+              <option value="CENTRAL">CENTRAL</option>
+              <option value="LINCE">LINCE</option>
+              <option value="LOS OLIVOS">LOS OLIVOS</option>
+              <option value="SJM">SJM</option>
+              <option value="VMT">VMT</option>
+              <option value="PACHACAMAC">PACHACAMAC</option>
+              <option value="SJL">SJL</option>
+              <option value="CHORRILLOS">CHORRILLOS</option>
+              <option value="SURCO">SURCO</option>
+              <option value="MIRAFLORES">MIRAFLORES</option>
+              <option value="VES">VES</option>
+            </select>
+          </div>
+
           {(formData.type === "asistencias" || formData.type === "conferencia") && (
             <>
             <div>
@@ -471,7 +513,7 @@ export default function Records() {
                   type="checkbox"
                   checked={formData.attended}
                   onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-800 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">Asistí ese día</span>
               </label>
@@ -525,7 +567,7 @@ export default function Records() {
                             name="coLeaderAttended"
                             checked={formData.coLeaderAttended === true}
                             onChange={() => setFormData({ ...formData, coLeaderAttended: true })}
-                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            className="w-4 h-4 text-blue-800 border-gray-300 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700">Sí</span>
                         </label>
@@ -535,7 +577,7 @@ export default function Records() {
                             name="coLeaderAttended"
                             checked={formData.coLeaderAttended === false}
                             onChange={() => setFormData({ ...formData, coLeaderAttended: false })}
-                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            className="w-4 h-4 text-blue-800 border-gray-300 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700">No</span>
                         </label>
@@ -594,9 +636,31 @@ export default function Records() {
             {errors.count && <p className="mt-1 text-sm text-red-500">{errors.count}</p>}
             {(formData.type === "asistencias" || formData.type === "conferencia") && formData.attended && (
               <p className="mt-1 text-xs text-gray-500">
-                El total será: {formData.maleCount + formData.femaleCount + 1} personas (incluyéndote)
+                El total será: {formData.maleCount + formData.femaleCount + formData.kidsCount + 1} personas (incluyéndote)
               </p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="kidsCount" className="block text-sm font-medium text-gray-700 mb-2">
+              Cantidad de niños *
+            </label>
+            <input
+              id="kidsCount"
+              type="number"
+              min="0"
+              value={formData.kidsCount}
+              onChange={(e) => {
+                setFormData({ ...formData, kidsCount: parseInt(e.target.value) || 0 });
+                setErrors({ ...errors, count: "" });
+              }}
+              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                errors.count
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+              }`}
+              required
+            />
           </div>
 
           {errors.submit && (

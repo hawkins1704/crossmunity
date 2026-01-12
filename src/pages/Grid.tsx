@@ -602,7 +602,7 @@ function PastorGridView() {
           <div className="flex gap-3">
             <button
               onClick={handleOpenEditModal}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
             >
               <HiPencil className="h-4 w-4" />
               Editar Red
@@ -861,7 +861,7 @@ function GridCard({
           {onEdit && (
             <button
               onClick={onEdit}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
             >
               <HiPencil className="h-4 w-4" />
               Editar
@@ -870,7 +870,7 @@ function GridCard({
           {onAddMember && (
             <button
               onClick={onAddMember}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
             >
               <HiPlus className="h-4 w-4" />
               Agregar
@@ -890,7 +890,7 @@ function GridCard({
 
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+        className="w-full mt-4 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
       >
         {isExpanded ? "Ocultar detalles" : "Ver detalles"}
       </button>

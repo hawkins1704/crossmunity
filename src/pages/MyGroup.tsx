@@ -11,12 +11,12 @@ import {
   HiCheckCircle,
   HiXCircle,
   HiViewList,
-  HiViewGrid,
   HiChevronLeft,
   HiChevronRight,
 } from "react-icons/hi";
 import Modal from "../components/Modal";
 import type { Id } from "../../convex/_generated/dataModel";
+import { IoIosCalendar } from "react-icons/io";
 
 const HiPending = HiClock;
 
@@ -159,7 +159,7 @@ function ActivitiesCalendarView({
         </div>
         <button
           onClick={goToToday}
-          className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
         >
           Hoy
         </button>
@@ -382,6 +382,7 @@ export default function MyGroup() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [activitiesView, setActivitiesView] = useState<"list" | "calendar">("list");
+  const [visibleDisciples, setVisibleDisciples] = useState(5);
 
   const handleJoinGroup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -567,7 +568,7 @@ export default function MyGroup() {
             {group.minAge && group.maxAge && (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <HiUser className="h-5 w-5 text-blue-600" />
+                  <HiUser className="h-5 w-5 text-blue-800" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Rango de Edad</p>
@@ -606,7 +607,7 @@ export default function MyGroup() {
           {/* Líderes */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Líderes del Grupo
+              Mis líderes
             </h3>
             <div className="space-y-2">
               {group.leaders
@@ -635,58 +636,79 @@ export default function MyGroup() {
             </div>
           </div>
 
-          {/* Otros discípulos */}
+          {/* Mis consiervos */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Otros Discípulos ({group.disciples.length})
+              Mis consiervos ({group.disciples.length})
             </h3>
             {group.disciples.length === 0 ? (
               <p className="text-sm text-gray-500 italic">
-                Aún no hay otros discípulos en este grupo
+                Aún no hay consiervos en tu grupo
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {group.disciples
-                  .filter((disciple): disciple is NonNullable<typeof disciple> => disciple !== null)
-                  .map((disciple) => (
-                    <div
-                      key={disciple._id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {group.disciples
+                    .filter((disciple): disciple is NonNullable<typeof disciple> => disciple !== null)
+                    .slice(0, visibleDisciples)
+                    .map((disciple) => {
+                      const isMale = disciple.gender === "Male";
+      
+                      const avatarBg = isMale 
+                        ? "bg-blue-200 text-blue-800" 
+                        : "bg-red-200 text-red-800";
+                      
+                      return (
+                        <div
+                          key={disciple._id}
+                          className={`flex items-center gap-3 p-3 bg-gray-50 border-gray-200 rounded-xl border`}
+                        >
+                          <div className={`flex-shrink-0 w-8 h-8 ${avatarBg} rounded-full flex items-center justify-center text-xs font-semibold`}>
+                            {(disciple.name || disciple.email || "U")[0].toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {disciple.name || "Sin nombre"}
+                            </p>
+                            {disciple.email && (
+                              <p className="text-xs text-gray-600 truncate">
+                                {disciple.email}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                {group.disciples.filter((d): d is NonNullable<typeof d> => d !== null).length > visibleDisciples && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      onClick={() => setVisibleDisciples(prev => prev + 5)}
+                      className="px-6 py-2 text-sm font-medium rounded-lg text-blue-800 hover:text-blue-900  transition-colors"
                     >
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 text-xs font-semibold">
-                        {(disciple.name || disciple.email || "U")[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {disciple.name || "Sin nombre"}
-                        </p>
-                        {disciple.email && (
-                          <p className="text-xs text-gray-600 truncate">
-                            {disciple.email}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                      Ver más
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
 
         {/* Actividades */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="flex flex-col gap-2 md:flex-row items-start md:items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 w-full md:w-auto">
               Actividades ({activities?.length || 0})
             </h3>
             {/* Toggle de vista */}
             {activities && activities.length > 0 && (
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center justify-between gap-1 bg-gray-100 rounded-lg p-1 w-full md:w-auto">
                 <button
                   onClick={() => setActivitiesView("list")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
                     activitiesView === "list"
-                      ? "bg-white text-blue-600 shadow-sm"
+                      ? "bg-white text-blue-800 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                   title="Vista de lista"
@@ -696,14 +718,14 @@ export default function MyGroup() {
                 </button>
                 <button
                   onClick={() => setActivitiesView("calendar")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
                     activitiesView === "calendar"
-                      ? "bg-white text-blue-600 shadow-sm"
+                      ? "bg-white text-blue-800 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                   title="Vista de calendario"
                 >
-                  <HiViewGrid className="h-4 w-4" />
+                  <IoIosCalendar className="h-4 w-4" />
                   <span className="text-sm font-medium">Calendario</span>
                 </button>
               </div>

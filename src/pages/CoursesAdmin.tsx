@@ -320,7 +320,7 @@ export default function CoursesAdmin() {
               <div className="flex gap-2 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => handleOpenEditModal(course)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
                 >
                   <HiPencil className="h-4 w-4" />
                   Editar
