@@ -4,7 +4,6 @@ import { api } from "../../convex/_generated/api";
 import { HiPlus, HiBookOpen, HiCheck, HiCheckCircle } from "react-icons/hi";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function School() {
@@ -112,7 +111,7 @@ export default function School() {
   if (myCourses === undefined || allCourses === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -124,39 +123,39 @@ export default function School() {
         description="Cursos en los que estás inscrito"
         button={
           availableCourses.length > 0 ? (
-            <Button
+            <button
               onClick={handleModalOpen}
-              size="lg"
-              icon={<HiPlus className="h-5 w-5" />}
+              className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
             >
+              <HiPlus className="h-5 w-5" />
               Agregar Cursos
-            </Button>
+            </button>
           ) : undefined
         }
       />
 
       {/* Lista de cursos */}
       {myCourses.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiBookOpen className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiBookOpen className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No estás inscrito en ningún curso
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm font-normal text-[#666666] mb-8">
             {availableCourses.length > 0
               ? "Agrega cursos para comenzar tu formación."
               : "No hay cursos disponibles en este momento."}
           </p>
           {availableCourses.length > 0 && (
-            <Button
+            <button
               onClick={handleModalOpen}
-              size="lg"
-              icon={<HiPlus className="h-5 w-5" />}
+              className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
             >
+              <HiPlus className="h-5 w-5" />
               Agregar tu primer curso
-            </Button>
+            </button>
           )}
         </div>
       ) : (
@@ -166,20 +165,20 @@ export default function School() {
             return (
               <div
                 key={course?._id || ""}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                className="bg-white border border-[#e5e5e5] p-6 hover:border-black transition-colors"
               >
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl">
-                        <HiBookOpen className="h-5 w-5 text-blue-500" />
+                      <div className="flex items-center justify-center w-10 h-10 bg-blue-50">
+                        <HiBookOpen className="h-5 w-5 text-blue-700" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-xl font-normal text-black tracking-tight">
                         {course?.name || ""}
                       </h3>
                     </div>
                     {course?.description && (
-                      <p className="text-sm text-gray-600 mt-2">
+                      <p className="text-sm font-normal text-[#666666] mt-2">
                         {course?.description || ""}
                       </p>
                     )}
@@ -188,7 +187,7 @@ export default function School() {
 
                 {/* Progreso de semanas */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  <h4 className="text-sm font-normal text-black mb-3 uppercase tracking-wide">
                     Progreso Semanal
                   </h4>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -198,25 +197,25 @@ export default function School() {
                         if (status === "al-dia") {
                           return {
                             bg: "bg-green-50",
-                            border: "border-green-300",
-                            text: "text-green-700",
-                            chip: "bg-green-100 text-green-700",
+                            border: "border-green-200",
+                            text: "text-black",
+                            chip: "bg-green-50 border-green-200 text-black",
                             chipText: "AL DÍA",
                           };
                         } else if (status === "atrasado") {
                           return {
                             bg: "bg-red-50",
-                            border: "border-red-300",
-                            text: "text-red-700",
-                            chip: "bg-red-100 text-red-700",
+                            border: "border-red-200",
+                            text: "text-black",
+                            chip: "bg-red-50 border-red-200 text-black",
                             chipText: "ATRASADO",
                           };
                         } else {
                           return {
-                            bg: "bg-gray-50",
-                            border: "border-gray-200",
-                            text: "text-gray-600",
-                            chip: "bg-gray-100 text-gray-600",
+                            bg: "bg-[#fafafa]",
+                            border: "border-[#e5e5e5]",
+                            text: "text-black",
+                            chip: "bg-[#fafafa] border-[#e5e5e5] text-black",
                             chipText: "PENDIENTE",
                           };
                         }
@@ -228,19 +227,19 @@ export default function School() {
                         <button
                           key={week}
                           onClick={() => handleToggleWeek(course?._id || "" as Id<"courses">, week)}
-                          className={`relative p-3 rounded-xl border-2 transition-all hover:scale-105 ${styles.bg} ${styles.border} ${styles.text}`}
+                          className={`relative p-3 border transition-colors hover:bg-[#fafafa] ${styles.bg} ${styles.border} ${styles.text}`}
                         >
                           <div className="flex flex-col items-center gap-1">
                             {isCompleted ? (
                               <HiCheckCircle className="h-5 w-5" />
                             ) : (
-                              <div className="h-5 w-5 rounded-full border-2 border-current" />
+                              <div className="h-5 w-5 border-2 border-current" />
                             )}
-                            <span className="text-xs font-semibold">
+                            <span className="text-xs font-normal">
                               Semana {week}
                             </span>
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles.chip}`}
+                              className={`text-xs px-2 py-0.5 border font-normal ${styles.chip}`}
                             >
                               {styles.chipText}
                             </span>
@@ -253,15 +252,15 @@ export default function School() {
 
                 {/* Trabajo y Examen */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  <h4 className="text-sm font-normal text-black mb-3 uppercase tracking-wide">
                     Trabajo y Examen
                   </h4>
                   <button
                     onClick={() => handleToggleWorkAndExam(course?._id || "" as Id<"courses">)}
-                    className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                    className={`w-full p-4 border transition-colors hover:bg-[#fafafa] ${
                       course?.completedWorkAndExam
-                        ? "bg-green-50 border-green-300 text-green-700"
-                        : "bg-gray-50 border-gray-200 text-gray-600"
+                        ? "bg-green-50 border-green-200 text-black"
+                        : "bg-[#fafafa] border-[#e5e5e5] text-black"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -269,15 +268,15 @@ export default function School() {
                         {course?.completedWorkAndExam ? (
                           <HiCheckCircle className="h-6 w-6" />
                         ) : (
-                          <div className="h-6 w-6 rounded-full border-2 border-current" />
+                          <div className="h-6 w-6 border-2 border-current" />
                         )}
-                        <span className="font-semibold">Trabajo y Examen</span>
+                        <span className="font-normal text-sm">Trabajo y Examen</span>
                       </div>
                       <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
+                        className={`text-xs px-3 py-1 border font-normal ${
                           course?.completedWorkAndExam
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            ? "bg-green-50 border-green-200 text-black"
+                            : "bg-[#fafafa] border-[#e5e5e5] text-black"
                         }`}
                       >
                         {course?.completedWorkAndExam ? "COMPLETADO" : "PENDIENTE"}
@@ -287,10 +286,10 @@ export default function School() {
                 </div>
 
                 {/* Botón para desinscribirse */}
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-[#e5e5e5]">
                   <button
                     onClick={() => handleUnenroll(course?._id || "" as Id<"courses">)}
-                    className="w-full px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+                    className="w-full px-4 py-2 text-sm font-normal text-black border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
                   >
                     Desinscribirse
                   </button>
@@ -304,14 +303,13 @@ export default function School() {
       {/* Botón para agregar más cursos si ya tiene algunos */}
       {myCourses.length > 0 && availableCourses.length > 0 && (
         <div className="flex justify-center">
-          <Button
+          <button
             onClick={handleModalOpen}
-            variant="secondary"
-            size="lg"
-            icon={<HiPlus className="h-5 w-5" />}
+            className="inline-flex items-center gap-2 bg-white text-black py-3 px-6 border border-[#e5e5e5] font-normal text-sm hover:bg-[#fafafa] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Agregar Más Cursos
-          </Button>
+          </button>
         </div>
       )}
 
@@ -322,16 +320,16 @@ export default function School() {
         title="Agregar Cursos"
         maxWidth="lg"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {availableCourses.length === 0 ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-                <HiBookOpen className="h-8 w-8 text-blue-500" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+                <HiBookOpen className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
                 No hay cursos disponibles
               </h3>
-              <p className="text-gray-600">
+              <p className="text-sm font-normal text-[#666666]">
                 Ya estás inscrito en todos los cursos disponibles o no hay cursos
                 creados aún.
               </p>
@@ -339,7 +337,7 @@ export default function School() {
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-xs font-normal text-black mb-3 uppercase tracking-wide">
                   Selecciona los cursos a los que deseas inscribirte
                 </label>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -350,24 +348,28 @@ export default function School() {
                         key={course?._id || ""}
                         type="button"
                         onClick={() => handleToggleCourse(course?._id || "" as Id<"courses">)}
-                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                        className={`w-full text-left p-4 border transition-colors ${
                           isSelected
-                            ? "border-sky-500 bg-sky-50"
-                            : "border-gray-200 hover:border-sky-300 hover:bg-gray-50"
+                            ? "border-black bg-black text-white"
+                            : "border-[#e5e5e5] hover:bg-[#fafafa] text-black"
                         }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               {isSelected && (
-                                <HiCheck className="h-5 w-5 text-sky-500 flex-shrink-0" />
+                                <HiCheck className="h-5 w-5 text-white flex-shrink-0" />
                               )}
-                              <h4 className="font-semibold text-gray-900">
+                              <h4 className={`font-normal text-sm ${
+                                isSelected ? "text-white" : "text-black"
+                              }`}>
                                 {course?.name || ""}
                               </h4>
                             </div>
                             {course?.description && (
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className={`text-sm font-normal mt-1 ${
+                                isSelected ? "text-white" : "text-[#666666]"
+                              }`}>
                                 {course?.description || ""}
                               </p>
                             )}
@@ -378,36 +380,34 @@ export default function School() {
                   })}
                 </div>
                 {errors.courses && (
-                  <p className="mt-2 text-sm text-red-500">{errors.courses}</p>
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.courses}</p>
                 )}
               </div>
 
               {/* Error general */}
               {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                  <p className="text-sm text-red-600">{errors.submit}</p>
+                <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+                  <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
                 </div>
               )}
 
               {/* Botones */}
               <div className="flex gap-3 pt-4">
-                <Button
+                <button
                   type="button"
                   onClick={handleModalClose}
-                  variant="outline"
-                  rounded="xl"
-                  fullWidth
+                  className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+                  disabled={isSubmitting}
                 >
                   Cancelar
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
                   disabled={isSubmitting || selectedCourses.length === 0}
-                  rounded="xl"
-                  fullWidth
+                  className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
                 >
                   {isSubmitting ? "Inscribiendo..." : "Inscribirse"}
-                </Button>
+                </button>
               </div>
             </>
           )}

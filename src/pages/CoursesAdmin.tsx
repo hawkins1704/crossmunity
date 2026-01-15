@@ -4,7 +4,6 @@ import { api } from "../../convex/_generated/api";
 import { HiPlus, HiBookOpen, HiPencil, HiTrash } from "react-icons/hi";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function CoursesAdmin() {
@@ -30,7 +29,7 @@ export default function CoursesAdmin() {
   if (profile === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -38,11 +37,11 @@ export default function CoursesAdmin() {
   if (!profile.isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             Acceso Denegado
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm font-normal text-[#666666]">
             Solo los administradores pueden acceder a esta sección.
           </p>
         </div>
@@ -223,7 +222,7 @@ export default function CoursesAdmin() {
   if (courses === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -234,62 +233,62 @@ export default function CoursesAdmin() {
         title="Cursos"
         description="Gestiona los cursos disponibles"
         button={
-          <Button
+          <button
             onClick={handleOpenCreateModal}
-            size="lg"
-            icon={<HiPlus className="h-5 w-5" />}
+            className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Crear Curso
-          </Button>
+          </button>
         }
       />
 
       {/* Lista de cursos */}
       {courses.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiBookOpen className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiBookOpen className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No hay cursos creados
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm font-normal text-[#666666] mb-8">
             Crea tu primer curso para comenzar.
           </p>
-          <Button
+          <button
             onClick={handleOpenCreateModal}
-            size="lg"
-            icon={<HiPlus className="h-5 w-5" />}
+            className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Crear tu primer curso
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {courses.map((course) => (
             <div
               key={course._id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+              className="bg-white border border-[#e5e5e5] p-6 transition-colors"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl">
-                      <HiBookOpen className="h-5 w-5 text-blue-500" />
+                    <div className="flex items-center justify-center w-10 h-10 bg-blue-50">
+                      <HiBookOpen className="h-5 w-5 text-blue-700" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-normal text-black tracking-tight">
                       {course.name}
                     </h3>
                   </div>
                   {course.description && (
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm font-normal text-[#666666] mt-2">
                       {course.description}
                     </p>
                   )}
                   {course.startDate && course.endDate && (
-                    <div className="mt-3 space-y-1 text-sm text-gray-600">
+                    <div className="mt-3 space-y-1 text-sm font-normal text-[#666666]">
                       <p>
-                        <span className="font-medium">Inicio:</span>{" "}
+                        <span className="text-black">Inicio:</span>{" "}
                         {new Date(course.startDate).toLocaleDateString("es-PE", {
                           year: "numeric",
                           month: "long",
@@ -297,7 +296,7 @@ export default function CoursesAdmin() {
                         })}
                       </p>
                       <p>
-                        <span className="font-medium">Fin:</span>{" "}
+                        <span className="text-black">Fin:</span>{" "}
                         {new Date(course.endDate).toLocaleDateString("es-PE", {
                           year: "numeric",
                           month: "long",
@@ -306,7 +305,7 @@ export default function CoursesAdmin() {
                       </p>
                       {course.durationWeeks && (
                         <p>
-                          <span className="font-medium">Duración:</span>{" "}
+                          <span className="text-black">Duración:</span>{" "}
                           {course.durationWeeks} semana
                           {course.durationWeeks !== 1 ? "s" : ""}
                         </p>
@@ -317,17 +316,17 @@ export default function CoursesAdmin() {
               </div>
 
               {/* Acciones */}
-              <div className="flex gap-2 pt-4 border-t border-gray-200">
+              <div className="flex gap-2 pt-4 border-t border-[#e5e5e5]">
                 <button
                   onClick={() => handleOpenEditModal(course)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-black bg-white border border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
                 >
                   <HiPencil className="h-4 w-4" />
                   Editar
                 </button>
                 <button
                   onClick={() => handleDelete(course._id)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-black bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
                 >
                   <HiTrash className="h-4 w-4" />
                   Eliminar
@@ -345,12 +344,12 @@ export default function CoursesAdmin() {
         title={editingCourse ? "Editar Curso" : "Crear Nuevo Curso"}
         maxWidth="2xl"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Nombre */}
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Nombre del Curso *
             </label>
@@ -362,16 +361,16 @@ export default function CoursesAdmin() {
                 setFormData({ ...formData, name: e.target.value });
                 setErrors({ ...errors, name: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Fundamentos de la Fe"
               required
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>
             )}
           </div>
 
@@ -379,7 +378,7 @@ export default function CoursesAdmin() {
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Descripción
             </label>
@@ -390,7 +389,7 @@ export default function CoursesAdmin() {
                 setFormData({ ...formData, description: e.target.value });
               }}
               rows={3}
-              className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+              className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors"
               placeholder="Descripción del curso..."
             />
           </div>
@@ -400,7 +399,7 @@ export default function CoursesAdmin() {
             <div>
               <label
                 htmlFor="startDate"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Fecha de Inicio *
               </label>
@@ -430,10 +429,10 @@ export default function CoursesAdmin() {
                   });
                   setErrors({ ...errors, dates: "" });
                 }}
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.dates
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 required
               />
@@ -441,7 +440,7 @@ export default function CoursesAdmin() {
             <div>
               <label
                 htmlFor="endDate"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Fecha de Fin *
               </label>
@@ -471,24 +470,24 @@ export default function CoursesAdmin() {
                   });
                   setErrors({ ...errors, dates: "" });
                 }}
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.dates
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 required
               />
             </div>
           </div>
           {errors.dates && (
-            <p className="text-sm text-red-500 -mt-3">{errors.dates}</p>
+            <p className="text-xs text-[#d32f2f] -mt-3">{errors.dates}</p>
           )}
 
           {/* Duración en semanas */}
           <div>
             <label
               htmlFor="durationWeeks"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Duración en Semanas *
             </label>
@@ -499,36 +498,34 @@ export default function CoursesAdmin() {
               max="52"
               value={formData.durationWeeks}
               disabled
-              className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="block w-full px-4 py-3 border border-[#e5e5e5] bg-[#fafafa] text-[#666666] cursor-not-allowed"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-2 text-xs font-normal text-[#999999]">
               Se calcula automáticamente según las fechas de inicio y fin
             </p>
           </div>
 
           {/* Error general */}
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={handleCloseModal}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting
                 ? editingCourse
@@ -537,7 +534,7 @@ export default function CoursesAdmin() {
                 : editingCourse
                 ? "Guardar Cambios"
                 : "Crear Curso"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>

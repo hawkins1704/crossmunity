@@ -20,58 +20,90 @@ function RegistrationCard({
     title,
     description,
     icon: Icon,
-    iconBgColor,
-    iconColor,
     total,
     maleCount,
     femaleCount,
     kidsCount,
-    buttonColorClass,
     onRegister,
 }: {
     title: string;
     description: string;
     icon: IconType;
-    iconBgColor: string;
-    iconColor: string;
     total: number;
     maleCount: number;
     femaleCount: number;
     kidsCount?: number;
-    buttonColorClass: string;
     onRegister: () => void;
 }) {
+    // Determinar color basado en el título del card
+    let colors = {
+        iconBg: "bg-blue-50",
+        iconText: "text-blue-700",
+        hoverBg: "hover:bg-blue-50",
+        hoverText: "hover:text-black",
+    };
+
+    if (title === "Nuevos") {
+        colors = {
+            iconBg: "bg-blue-50",
+            iconText: "text-blue-700",
+            hoverBg: "hover:bg-blue-50",
+            hoverText: "hover:text-black",
+        };
+    } else if (title === "Asistencias") {
+        colors = {
+            iconBg: "bg-green-50",
+            iconText: "text-green-700",
+            hoverBg: "hover:bg-green-50",
+            hoverText: "hover:text-black",
+        };
+    } else if (title === "RESET") {
+        colors = {
+            iconBg: "bg-purple-50",
+            iconText: "text-purple-700",
+            hoverBg: "hover:bg-purple-50",
+            hoverText: "hover:text-black",
+        };
+    } else if (title === "Conferencia") {
+        colors = {
+            iconBg: "bg-orange-50",
+            iconText: "text-orange-700",
+            hoverBg: "hover:bg-orange-50",
+            hoverText: "hover:text-black",
+        };
+    }
+
     return (
-        <div className="flex flex-col justify-between bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col justify-between bg-white border border-[#e5e5e5] p-6">
             <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className={`p-3 ${iconBgColor} rounded-xl`}>
-                            <Icon className={`h-6 w-6 ${iconColor}`} />
+                        <div className={`p-3 ${colors.iconBg}`}>
+                            <Icon className={`h-6 w-6 ${colors.iconText}`} />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-normal text-black text-sm">
                                 {title}
                             </h3>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs text-[#666666]">
                                 {description}
                             </p>
                         </div>
                     </div>
                 </div>
                 <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
+                    <div className="text-3xl font-normal text-black mb-1">
                         {total}
                     </div>
-                    <div className="text-sm text-gray-600 flex gap-4 flex-wrap">
-                        <div className="text-gray-700">
+                    <div className="text-xs text-[#666666] flex gap-4 flex-wrap">
+                        <div className="text-black">
                             <MdMan className="inline h-4 w-4" /> {maleCount}
                         </div>
-                        <div className="text-rose-700">
+                        <div className="text-black">
                             <MdWoman className="inline h-4 w-4" /> {femaleCount}
                         </div>
 
-                        <div className="text-yellow-500">
+                        <div className="text-black">
                             <LuBaby className="inline h-4 w-4" />{" "}
                             {kidsCount}
                         </div>
@@ -80,9 +112,9 @@ function RegistrationCard({
             </div>
             <button
                 onClick={onRegister}
-                className={`w-full py-2 px-4 bg-gradient-to-r ${buttonColorClass} text-white rounded-full font-medium transition-all flex items-center justify-center gap-2`}
+                className={`w-full py-3 px-4 border border-black text-black font-normal text-sm transition-colors flex items-center justify-center gap-2 ${colors.hoverBg} ${colors.hoverText}`}
             >
-                <HiPlus className="h-5 w-5" />
+                <HiPlus className="h-4 w-4" />
                 Registrar
             </button>
         </div>
@@ -463,7 +495,7 @@ export default function Home() {
     if (dashboard === undefined || periodReport === undefined) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
             </div>
         );
     }
@@ -472,34 +504,34 @@ export default function Home() {
     const currentGroupReport = periodGroupReport;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 p-4 md:p-8">
+        <div className="min-h-screen bg-[#fafafa] p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header con filtro de periodo a la derecha */}
                 <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-2xl font-normal text-black tracking-tight">
                         Dashboard
                     </h1>
 
                     {/* Filtro de periodo en la parte superior derecha */}
-                    <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+                    <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
                         {/* Selector de modo Mes/Año */}
-                        <div className="flex flex-1 items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 p-1">
+                        <div className="flex flex-1 items-center border border-[#e5e5e5]">
                             <button
                                 onClick={() => handleViewModeChange("month")}
-                                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                                     viewMode === "month"
-                                        ? "bg-blue-500 text-white shadow-sm"
-                                        : "text-gray-700 hover:bg-gray-100"
+                                        ? "bg-black text-white"
+                                        : "bg-white text-black hover:bg-[#fafafa]"
                                 }`}
                             >
                                 Mes
                             </button>
                             <button
                                 onClick={() => handleViewModeChange("year")}
-                                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                                     viewMode === "year"
-                                        ? "bg-blue-500 text-white shadow-sm"
-                                        : "text-gray-700 hover:bg-gray-100"
+                                        ? "bg-black text-white"
+                                        : "bg-white text-black hover:bg-[#fafafa]"
                                 }`}
                             >
                                 Año
@@ -510,19 +542,19 @@ export default function Home() {
                         <div className="flex flex-1 items-center gap-2">
                             <button
                                 onClick={handlePreviousPeriod}
-                                className="flex-1 flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
                                 title="Período anterior"
                             >
-                                <HiChevronLeft className="h-5 w-5 text-gray-600" />
+                                <HiChevronLeft className="h-5 w-5 text-black" />
                             </button>
-                            <span className="flex-3 text-sm font-medium text-gray-900 min-w-[140px] text-center px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
                                 {viewMode === "month" && selectedMonth
                                     ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
                                     : `${selectedYear}`}
                             </span>
                             <button
                                 onClick={handleNextPeriod}
-                                className="flex-1 flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={
                                     viewMode === "month" &&
                                     selectedMonth === getCurrentMonth() &&
@@ -536,8 +568,8 @@ export default function Home() {
                                         selectedMonth === getCurrentMonth() &&
                                         selectedYear ===
                                             new Date().getFullYear()
-                                            ? "text-gray-300"
-                                            : "text-gray-600"
+                                            ? "text-[#999999]"
+                                            : "text-black"
                                     }`}
                                 />
                             </button>
@@ -547,7 +579,7 @@ export default function Home() {
                 {/* Contadores Personales */}
                 <div className="mb-8">
                     <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900">
+                        <h2 className="text-lg font-normal text-black">
                             {viewMode === "month"
                                 ? "Contadores del Mes"
                                 : "Contadores del Año"}
@@ -559,13 +591,10 @@ export default function Home() {
                             title="Nuevos"
                             description="Nuevos asistentes"
                             icon={HiUsers}
-                            iconBgColor="bg-blue-100"
-                            iconColor="text-blue-800"
                             total={currentReport?.nuevos.total || 0}
                             maleCount={currentReport?.nuevos.male || 0}
                             femaleCount={currentReport?.nuevos.female || 0}
                             kidsCount={currentReport?.nuevos.kids}
-                            buttonColorClass="from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
                             onRegister={() => handleOpenModal("nuevos")}
                         />
 
@@ -573,13 +602,10 @@ export default function Home() {
                             title="Asistencias"
                             description="Asistencia y nuevos"
                             icon={HiCalendar}
-                            iconBgColor="bg-green-100"
-                            iconColor="text-green-600"
                             total={currentReport?.asistencias.total || 0}
                             maleCount={currentReport?.asistencias.male || 0}
                             femaleCount={currentReport?.asistencias.female || 0}
                             kidsCount={currentReport?.asistencias.kids}
-                            buttonColorClass="from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                             onRegister={() => handleOpenModal("asistencias")}
                         />
 
@@ -587,13 +613,10 @@ export default function Home() {
                             title="RESET"
                             description="Personas enviadas"
                             icon={HiUsers}
-                            iconBgColor="bg-purple-100"
-                            iconColor="text-purple-600"
                             total={currentReport?.reset.total || 0}
                             maleCount={currentReport?.reset.male || 0}
                             femaleCount={currentReport?.reset.female || 0}
                             kidsCount={currentReport?.reset.kids}
-                            buttonColorClass="from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                             onRegister={() => handleOpenModal("reset")}
                         />
 
@@ -601,13 +624,10 @@ export default function Home() {
                             title="Conferencia"
                             description="Asistencia y nuevos"
                             icon={HiCalendar}
-                            iconBgColor="bg-orange-100"
-                            iconColor="text-orange-600"
                             total={currentReport?.conferencia.total || 0}
                             maleCount={currentReport?.conferencia.male || 0}
                             femaleCount={currentReport?.conferencia.female || 0}
                             kidsCount={currentReport?.conferencia.kids}
-                            buttonColorClass="from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
                             onRegister={() => handleOpenModal("conferencia")}
                         />
                     </div>
@@ -616,17 +636,17 @@ export default function Home() {
                 {/* Reportes seccionados (Solo para Líderes) */}
                 {currentGroupReport?.isLeader && (
                     <div className="mb-8">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        <h2 className="text-lg font-normal text-black mb-4">
                             Reportes seccionados
                         </h2>
 
                         {/* Dropdowns de filtro */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
+                        <div className="bg-white border border-[#e5e5e5] p-4 mb-4">
                             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                                 {/* Dropdown de grupos */}
                                 {userGroups && userGroups.length > 0 && (
                                     <div className="flex items-center gap-3 flex-1">
-                                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                        <label className="text-xs font-normal text-black uppercase tracking-wide whitespace-nowrap">
                                             Por Grupo:
                                         </label>
                                         <div className="relative flex-1">
@@ -640,7 +660,7 @@ export default function Home() {
                                                             : null
                                                     )
                                                 }
-                                                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer w-full"
+                                                className="appearance-none bg-white border border-[#e5e5e5] px-4 py-3 pr-10 text-sm font-normal text-black hover:border-black focus:outline-none focus:border-black transition-colors cursor-pointer w-full"
                                             >
                                                 <option value="">
                                                     Todos los grupos
@@ -654,7 +674,7 @@ export default function Home() {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#999999] pointer-events-none" />
                                         </div>
                                     </div>
                                 )}
@@ -662,7 +682,7 @@ export default function Home() {
                                 {/* Dropdown de discípulos */}
                                 {disciples && disciples.length > 0 && (
                                     <div className="flex items-center gap-3 flex-1">
-                                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                        <label className="text-xs font-normal text-black uppercase tracking-wide whitespace-nowrap">
                                             Por Discípulo:
                                         </label>
                                         <div className="relative flex-1">
@@ -676,7 +696,7 @@ export default function Home() {
                                                             : null
                                                     )
                                                 }
-                                                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer w-full"
+                                                className="appearance-none bg-white border border-[#e5e5e5] px-4 py-3 pr-10 text-sm font-normal text-black hover:border-black focus:outline-none focus:border-black transition-colors cursor-pointer w-full"
                                             >
                                                 <option value="">
                                                     Todos los discípulos
@@ -691,36 +711,38 @@ export default function Home() {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#999999] pointer-events-none" />
                                         </div>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white border border-[#e5e5e5] p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {/* Nuevos - Grupo */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <HiUsers className="h-5 w-5 text-blue-800" />
-                                        <h3 className="font-semibold text-gray-900">
+                                        <div className="p-2 bg-blue-50">
+                                            <HiUsers className="h-4 w-4 text-blue-700" />
+                                        </div>
+                                        <h3 className="font-normal text-black text-sm">
                                             Registro de Nuevos
                                         </h3>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900 mb-2">
+                                    <div className="text-2xl font-normal text-black mb-2">
                                         {currentGroupReport.groupReport?.nuevos
                                             .total || 0}
                                     </div>
-                                    <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
-                                            <div className="text-gray-700 flex items-center">
+                                    <div className="text-xs text-black">
+                                        <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
+                                            <div className="text-black flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.nuevos.male || 0}{" "}
                                                 hombres
                                             </div>
-                                            <div className="text-rose-700 flex items-center">
+                                            <div className="text-black flex items-center">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.nuevos.female || 0}{" "}
@@ -728,7 +750,7 @@ export default function Home() {
                                             </div>
                                             {((currentGroupReport.groupReport
                                                 ?.nuevos as { kids?: number })?.kids || 0) > 0 && (
-                                                <div className="text-amber-700 flex items-center">
+                                                <div className="text-black flex items-center">
                                                     👶{" "}
                                                     {(currentGroupReport
                                                         .groupReport?.nuevos as { kids?: number })
@@ -743,25 +765,27 @@ export default function Home() {
                                 {/* Asistencias - Grupo */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <HiCalendar className="h-5 w-5 text-green-600" />
-                                        <h3 className="font-semibold text-gray-900">
+                                        <div className="p-2 bg-green-50">
+                                            <HiCalendar className="h-4 w-4 text-green-700" />
+                                        </div>
+                                        <h3 className="font-normal text-black text-sm">
                                             Registro de Asistencias
                                         </h3>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900 mb-2">
+                                    <div className="text-2xl font-normal text-black mb-2">
                                         {currentGroupReport.groupReport
                                             ?.asistencias.total || 0}
                                     </div>
-                                    <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
-                                            <div className="text-gray-700 flex items-center">
+                                    <div className="text-xs text-[#666666]">
+                                        <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
+                                            <div className="text-black flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.asistencias.male ||
                                                     0}{" "}
                                                 hombres
                                             </div>
-                                            <div className="text-rose-700 flex items-center">
+                                            <div className="text-black flex items-center">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.asistencias.female ||
@@ -771,8 +795,8 @@ export default function Home() {
                                             {((currentGroupReport.groupReport
                                                 ?.asistencias as { kids?: number })?.kids || 0) >
                                                 0 && (
-                                                <div className="text-amber-700 flex items-center">
-                                                    👶{" "}
+                                                <div className="text-black flex items-center">
+                                                    <LuBaby className="h-4 w-4" />
                                                     {(currentGroupReport
                                                         .groupReport
                                                         ?.asistencias as { kids?: number })
@@ -788,24 +812,26 @@ export default function Home() {
                                 {/* RESET - Grupo */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <HiUsers className="h-5 w-5 text-purple-600" />
-                                        <h3 className="font-semibold text-gray-900">
+                                        <div className="p-2 bg-purple-50">
+                                            <HiUsers className="h-4 w-4 text-purple-700" />
+                                        </div>
+                                        <h3 className="font-normal text-black text-sm">
                                             RESET
                                         </h3>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900 mb-2">
+                                    <div className="text-2xl font-normal text-black mb-2">
                                         {currentGroupReport.groupReport?.reset
                                             .total || 0}
                                     </div>
-                                    <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
-                                            <div className="text-gray-700 flex items-center">
+                                    <div className="text-xs text-[#666666]">
+                                        <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
+                                            <div className="text-black flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.reset.male || 0}{" "}
                                                 hombres
                                             </div>
-                                            <div className="text-rose-700 flex items-center">
+                                            <div className="text-black flex items-center">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.reset.female || 0}{" "}
@@ -813,8 +839,8 @@ export default function Home() {
                                             </div>
                                             {((currentGroupReport.groupReport
                                                 ?.reset as { kids?: number })?.kids || 0) > 0 && (
-                                                <div className="text-amber-700 flex items-center">
-                                                    👶{" "}
+                                                <div className="text-black flex items-center">
+                                                    <LuBaby className="h-4 w-4" />
                                                     {(currentGroupReport
                                                         .groupReport?.reset as { kids?: number })
                                                         ?.kids || 0}{" "}
@@ -828,25 +854,27 @@ export default function Home() {
                                 {/* Conferencia - Grupo */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <HiCalendar className="h-5 w-5 text-orange-600" />
-                                        <h3 className="font-semibold text-gray-900">
+                                        <div className="p-2 bg-orange-50">
+                                            <HiCalendar className="h-4 w-4 text-orange-700" />
+                                        </div>
+                                        <h3 className="font-normal text-black text-sm">
                                             Conferencia
                                         </h3>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900 mb-2">
+                                    <div className="text-2xl font-normal text-black mb-2">
                                         {currentGroupReport.groupReport
                                             ?.conferencia.total || 0}
                                     </div>
-                                    <div className="text-sm text-gray-600">
-                                        <div className="flex gap-3 text-xs mt-2 font-medium flex-wrap">
-                                            <div className="text-gray-700 flex items-center">
+                                    <div className="text-xs text-[#666666]">
+                                        <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
+                                            <div className="text-black flex items-center">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.conferencia.male ||
                                                     0}{" "}
                                                 hombres
                                             </div>
-                                            <div className="text-rose-700 flex items-center">
+                                            <div className="text-black flex items-center">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.conferencia.female ||
@@ -856,8 +884,8 @@ export default function Home() {
                                             {((currentGroupReport.groupReport
                                                 ?.conferencia as { kids?: number })?.kids || 0) >
                                                 0 && (
-                                                <div className="text-amber-700 flex items-center">
-                                                    👶{" "}
+                                                <div className="text-black flex items-center">
+                                                    <LuBaby className="h-4 w-4" />
                                                     {(currentGroupReport
                                                         .groupReport
                                                         ?.conferencia as { kids?: number })
@@ -890,10 +918,10 @@ export default function Home() {
                         }
                         maxWidth="md"
                     >
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Fecha */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                     Fecha
                                 </label>
                                 <input
@@ -905,15 +933,15 @@ export default function Home() {
                                             date: e.target.value,
                                         })
                                     }
-                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                    className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                         errors.date
-                                            ? "border-red-300 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
+                                            ? "border-[#d32f2f]"
+                                            : "border-[#e5e5e5]"
                                     }`}
                                     required
                                 />
                                 {errors.date && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className="mt-2 text-xs text-[#d32f2f]">
                                         {errors.date}
                                     </p>
                                 )}
@@ -923,7 +951,7 @@ export default function Home() {
                             {(modalType === "nuevos" ||
                                 modalType === "asistencias") && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                         Servicio
                                     </label>
                                     <select
@@ -935,10 +963,10 @@ export default function Home() {
                                                     .value as typeof formData.service,
                                             })
                                         }
-                                        className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                        className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                             errors.service
-                                                ? "border-red-300 focus:ring-red-500"
-                                                : "border-gray-300 focus:ring-blue-500"
+                                                ? "border-[#d32f2f]"
+                                                : "border-[#e5e5e5]"
                                         }`}
                                         required
                                     >
@@ -956,7 +984,7 @@ export default function Home() {
                                         </option>
                                     </select>
                                     {errors.service && (
-                                        <p className="mt-1 text-sm text-red-600">
+                                        <p className="mt-2 text-xs text-[#d32f2f]">
                                             {errors.service}
                                         </p>
                                     )}
@@ -965,7 +993,7 @@ export default function Home() {
 
                             {/* Sede */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                     Sede
                                 </label>
                                 <select
@@ -979,10 +1007,10 @@ export default function Home() {
                                                 : null,
                                         })
                                     }
-                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                    className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                         errors.sede
-                                            ? "border-red-300 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
+                                            ? "border-[#d32f2f]"
+                                            : "border-[#e5e5e5]"
                                     }`}
                                 >
                                     <option value="">
@@ -1009,7 +1037,7 @@ export default function Home() {
                                     <option value="VES">VES</option>
                                 </select>
                                 {errors.sede && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className="mt-2 text-xs text-[#d32f2f]">
                                         {errors.sede}
                                     </p>
                                 )}
@@ -1020,7 +1048,7 @@ export default function Home() {
                                 modalType === "conferencia") && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                             ¿Asististe?
                                         </label>
                                         <div className="flex gap-4">
@@ -1038,9 +1066,9 @@ export default function Home() {
                                                             attended: true,
                                                         })
                                                     }
-                                                    className="w-4 h-4 text-blue-800"
+                                                    className="w-4 h-4 text-black"
                                                 />
-                                                <span className="text-gray-700">
+                                                <span className="text-sm font-normal text-black">
                                                     Sí
                                                 </span>
                                             </label>
@@ -1058,15 +1086,15 @@ export default function Home() {
                                                             attended: false,
                                                         })
                                                     }
-                                                    className="w-4 h-4 text-blue-800"
+                                                    className="w-4 h-4 text-black"
                                                 />
-                                                <span className="text-gray-700">
+                                                <span className="text-sm font-normal text-black">
                                                     No
                                                 </span>
                                             </label>
                                         </div>
                                         {errors.attended && (
-                                            <p className="mt-1 text-sm text-red-600">
+                                            <p className="mt-2 text-xs text-[#d32f2f]">
                                                 {errors.attended}
                                             </p>
                                         )}
@@ -1074,15 +1102,15 @@ export default function Home() {
 
                                     {/* Sección del colíder para asistencias y conferencia */}
                                     {coLeaders && coLeaders.length > 0 && (
-                                        <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                            <div className="text-sm font-medium text-gray-700">
+                                        <div className="space-y-3 p-4 bg-[#fafafa] border border-[#e5e5e5]">
+                                            <div className="text-xs font-normal text-black uppercase tracking-wide">
                                                 Colíder
                                             </div>
 
                                             {/* Selector de colíder si hay más de uno */}
                                             {coLeaders.length > 1 && (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                                         Seleccionar colíder
                                                     </label>
                                                     <select
@@ -1103,7 +1131,7 @@ export default function Home() {
                                                                     undefined, // Reset cuando cambia el colíder
                                                             })
                                                         }
-                                                        className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                        className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black focus:outline-none focus:border-black transition-colors"
                                                     >
                                                         <option value="">
                                                             Ninguno
@@ -1130,7 +1158,7 @@ export default function Home() {
                                             {/* Radio buttons para asistencia del colíder */}
                                             {formData.coLeaderId && (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                                         ¿El colíder asistió?
                                                     </label>
                                                     <div className="flex gap-4">
@@ -1150,9 +1178,9 @@ export default function Home() {
                                                                         }
                                                                     )
                                                                 }
-                                                                className="w-4 h-4 text-blue-800"
+                                                                className="w-4 h-4 text-black"
                                                             />
-                                                            <span className="text-gray-700">
+                                                            <span className="text-sm font-normal text-black">
                                                                 Sí
                                                             </span>
                                                         </label>
@@ -1172,9 +1200,9 @@ export default function Home() {
                                                                         }
                                                                     )
                                                                 }
-                                                                className="w-4 h-4 text-blue-800"
+                                                                className="w-4 h-4 text-black"
                                                             />
-                                                            <span className="text-gray-700">
+                                                            <span className="text-sm font-normal text-black">
                                                                 No
                                                             </span>
                                                         </label>
@@ -1188,7 +1216,7 @@ export default function Home() {
 
                             {/* Cantidad de Hombres */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                     Cantidad de Hombres
                                 </label>
                                 <input
@@ -1202,10 +1230,10 @@ export default function Home() {
                                                 parseInt(e.target.value) || 0,
                                         })
                                     }
-                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                    className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                         errors.count
-                                            ? "border-red-300 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
+                                            ? "border-[#d32f2f]"
+                                            : "border-[#e5e5e5]"
                                     }`}
                                     required
                                 />
@@ -1213,7 +1241,7 @@ export default function Home() {
 
                             {/* Cantidad de Mujeres */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                     Cantidad de Mujeres
                                 </label>
                                 <input
@@ -1227,15 +1255,15 @@ export default function Home() {
                                                 parseInt(e.target.value) || 0,
                                         })
                                     }
-                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                    className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                         errors.count
-                                            ? "border-red-300 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
+                                            ? "border-[#d32f2f]"
+                                            : "border-[#e5e5e5]"
                                     }`}
                                     required
                                 />
                                 {errors.count && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className="mt-2 text-xs text-[#d32f2f]">
                                         {errors.count}
                                     </p>
                                 )}
@@ -1243,7 +1271,7 @@ export default function Home() {
 
                             {/* Cantidad de Niños */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                     Cantidad de Niños
                                 </label>
                                 <input
@@ -1257,10 +1285,10 @@ export default function Home() {
                                                 parseInt(e.target.value) || 0,
                                         })
                                     }
-                                    className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                    className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                         errors.count
-                                            ? "border-red-300 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
+                                            ? "border-[#d32f2f]"
+                                            : "border-[#e5e5e5]"
                                     }`}
                                     required
                                 />
@@ -1275,9 +1303,9 @@ export default function Home() {
                                 coLeaders &&
                                 coLeaders.length > 0 && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                                             Colíder
-                                            <span className="text-red-500 ml-1">
+                                            <span className="text-[#d32f2f] ml-1">
                                                 *
                                             </span>
                                         </label>
@@ -1292,10 +1320,10 @@ export default function Home() {
                                                         : null,
                                                 })
                                             }
-                                            className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                                            className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                                                 errors.coLeader
-                                                    ? "border-red-300 focus:ring-red-500"
-                                                    : "border-gray-300 focus:ring-blue-500"
+                                                    ? "border-[#d32f2f]"
+                                                    : "border-[#e5e5e5]"
                                             }`}
                                             required
                                         >
@@ -1313,7 +1341,7 @@ export default function Home() {
                                             ))}
                                         </select>
                                         {errors.coLeader && (
-                                            <p className="mt-1 text-sm text-red-600">
+                                            <p className="mt-2 text-xs text-[#d32f2f]">
                                                 {errors.coLeader}
                                             </p>
                                         )}
@@ -1322,8 +1350,8 @@ export default function Home() {
 
                             {/* Error general */}
                             {errors.submit && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                    <p className="text-sm text-red-600">
+                                <div className="p-3 bg-[#ffebee] border border-[#ffcdd2]">
+                                    <p className="text-xs text-[#d32f2f]">
                                         {errors.submit}
                                     </p>
                                 </div>
@@ -1334,14 +1362,14 @@ export default function Home() {
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-full font-medium hover:bg-gray-50 transition-colors"
+                                    className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
                                     disabled={isSubmitting}
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full font-medium hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting

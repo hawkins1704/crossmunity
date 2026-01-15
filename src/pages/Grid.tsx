@@ -4,7 +4,6 @@ import { api } from "../../convex/_generated/api";
 import { HiGlobeAlt, HiUsers, HiAcademicCap, HiUserGroup, HiPlus, HiPencil, HiTrash, HiX, HiSearch } from "react-icons/hi";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 const Grid = () => {
@@ -14,7 +13,7 @@ const Grid = () => {
   if (profile === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -32,11 +31,11 @@ const Grid = () => {
   // Si no es admin ni pastor, mostrar mensaje de acceso denegado
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+        <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
           Acceso Denegado
         </h3>
-        <p className="text-gray-600">
+        <p className="text-sm font-normal text-[#666666]">
           Solo los administradores y pastores pueden acceder a esta sección.
         </p>
       </div>
@@ -210,7 +209,7 @@ function AdminGridView() {
   if (grids === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -221,24 +220,25 @@ function AdminGridView() {
         title="Redes"
         description="Gestiona todas las redes de la plataforma"
         button={
-          <Button
+          <button
             onClick={handleOpenCreateModal}
-            icon={<HiPlus className="h-4 w-4" />}
+            className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Crear Red
-          </Button>
+          </button>
         }
       />
 
       {grids.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiGlobeAlt className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiGlobeAlt className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No hay redes creadas
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm font-normal text-[#666666]">
             Las redes serán creadas por los pastores.
           </p>
         </div>
@@ -265,9 +265,9 @@ function AdminGridView() {
         title={isCreateModal ? "Crear Red" : "Editar Red"}
         maxWidth="xl"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="name" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Nombre de la Red *
             </label>
             <input
@@ -278,20 +278,20 @@ function AdminGridView() {
                 setFormData({ ...formData, name: e.target.value });
                 setErrors({ ...errors, name: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Red Norte"
               required
             />
-            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+            {errors.name && <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>}
           </div>
 
           {isCreateModal && (
             <div>
-              <label htmlFor="pastorId" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="pastorId" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                 Asignar a Pastor *
               </label>
               <select
@@ -301,10 +301,10 @@ function AdminGridView() {
                   setFormData({ ...formData, pastorId: e.target.value as Id<"users"> | "" });
                   setErrors({ ...errors, pastorId: "" });
                 }}
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.pastorId
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 required={isCreateModal}
               >
@@ -315,37 +315,35 @@ function AdminGridView() {
                   </option>
                 ))}
               </select>
-              {errors.pastorId && <p className="mt-1 text-sm text-red-500">{errors.pastorId}</p>}
+              {errors.pastorId && <p className="mt-2 text-xs text-[#d32f2f]">{errors.pastorId}</p>}
               {pastors?.length === 0 && (
-                <p className="mt-1 text-sm text-gray-500">No hay pastores disponibles</p>
+                <p className="mt-2 text-xs font-normal text-[#666666]">No hay pastores disponibles</p>
               )}
             </div>
           )}
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={handleCloseModal}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? (isCreateModal ? "Creando..." : "Guardando...") : (isCreateModal ? "Crear Red" : "Guardar Cambios")}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>
@@ -362,12 +360,15 @@ function AdminGridView() {
         title="Agregar Miembro a la Red"
         maxWidth="xl"
       >
-        <form onSubmit={handleAddMember} className="p-6 space-y-5">
+        <form onSubmit={handleAddMember} className="space-y-6">
           <div className="relative" ref={searchRef}>
-            <label htmlFor="memberEmail" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="memberEmail" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Email del Usuario *
             </label>
             <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiSearch className="h-4 w-4 text-[#999999]" />
+              </div>
               <input
                 id="memberEmail"
                 type="text"
@@ -378,21 +379,20 @@ function AdminGridView() {
                   setShowSearchResults(true);
                   setErrors({ ...errors, email: "" });
                 }}
-                className={`block w-full px-4 py-3 pl-10 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.email
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Buscar por email..."
                 required
               />
-              <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+            {errors.email && <p className="mt-2 text-xs text-[#d32f2f]">{errors.email}</p>}
             
             {/* Resultados de búsqueda */}
             {showSearchResults && searchResults && searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] max-h-60 overflow-y-auto">
                 {searchResults.map((user) => (
                   <button
                     key={user._id}
@@ -402,10 +402,10 @@ function AdminGridView() {
                       setMemberSearch(user.email || "");
                       setShowSearchResults(false);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    className="w-full px-4 py-3 text-left hover:bg-[#fafafa] transition-colors border-b border-[#e5e5e5] last:border-b-0"
                   >
-                    <p className="font-medium text-gray-900">{user.name || "Sin nombre"}</p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className="text-sm font-normal text-black">{user.name || "Sin nombre"}</p>
+                    <p className="text-xs font-normal text-[#666666]">{user.email}</p>
                   </button>
                 ))}
               </div>
@@ -413,13 +413,13 @@ function AdminGridView() {
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={() => {
                 setShowAddMemberModal(false);
@@ -427,20 +427,18 @@ function AdminGridView() {
                 setMemberSearch("");
                 setErrors({});
               }}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Agregando..." : "Agregar Miembro"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>
@@ -563,7 +561,7 @@ function PastorGridView() {
   if (myGrid === undefined || members === undefined || stats === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -577,14 +575,14 @@ function PastorGridView() {
           description="Gestiona tu red y sus miembros"
         />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiGlobeAlt className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiGlobeAlt className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No tienes una red asignada
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm font-normal text-[#666666]">
             Contacta a un administrador para que te asigne una red.
           </p>
         </div>
@@ -602,18 +600,18 @@ function PastorGridView() {
           <div className="flex gap-3">
             <button
               onClick={handleOpenEditModal}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-normal text-black bg-white border border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
             >
               <HiPencil className="h-4 w-4" />
               Editar Red
             </button>
-            <Button
+            <button
               onClick={() => setShowAddMemberModal(true)}
-              icon={<HiPlus className="h-4 w-4" />}
-              size="lg"
+              className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
             >
-                Agregar Miembro
-            </Button>
+              <HiPlus className="h-5 w-5" />
+              Agregar Miembro
+            </button>
           </div>
         }
       />
@@ -633,9 +631,9 @@ function PastorGridView() {
         title="Editar Mi Red"
         maxWidth="xl"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="name" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Nombre de la Red *
             </label>
             <input
@@ -646,41 +644,39 @@ function PastorGridView() {
                 setFormData({ ...formData, name: e.target.value });
                 setErrors({ ...errors, name: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Red Norte"
               required
             />
-            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+            {errors.name && <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>}
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={handleCloseModal}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>
@@ -697,12 +693,15 @@ function PastorGridView() {
         title="Agregar Miembro a Mi Red"
         maxWidth="xl"
       >
-        <form onSubmit={handleAddMember} className="p-6 space-y-5">
+        <form onSubmit={handleAddMember} className="space-y-6">
           <div className="relative" ref={searchRef}>
-            <label htmlFor="memberEmail" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="memberEmail" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Email del Usuario *
             </label>
             <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiSearch className="h-4 w-4 text-[#999999]" />
+              </div>
               <input
                 id="memberEmail"
                 type="text"
@@ -713,21 +712,20 @@ function PastorGridView() {
                   setShowSearchResults(true);
                   setErrors({ ...errors, email: "" });
                 }}
-                className={`block w-full px-4 py-3 pl-10 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.email
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Buscar por email..."
                 required
               />
-              <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+            {errors.email && <p className="mt-2 text-xs text-[#d32f2f]">{errors.email}</p>}
             
             {/* Resultados de búsqueda */}
             {showSearchResults && searchResults && searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] max-h-60 overflow-y-auto">
                 {searchResults.map((user) => (
                   <button
                     key={user._id}
@@ -737,10 +735,10 @@ function PastorGridView() {
                       setMemberSearch(user.email || "");
                       setShowSearchResults(false);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    className="w-full px-4 py-3 text-left hover:bg-[#fafafa] transition-colors border-b border-[#e5e5e5] last:border-b-0"
                   >
-                    <p className="font-medium text-gray-900">{user.name || "Sin nombre"}</p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className="text-sm font-normal text-black">{user.name || "Sin nombre"}</p>
+                    <p className="text-xs font-normal text-[#666666]">{user.email}</p>
                   </button>
                 ))}
               </div>
@@ -748,13 +746,13 @@ function PastorGridView() {
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={() => {
                 setShowAddMemberModal(false);
@@ -762,20 +760,18 @@ function PastorGridView() {
                 setMemberSearch("");
                 setErrors({});
               }}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Agregando..." : "Agregar Miembro"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>
@@ -833,22 +829,22 @@ function GridCard({
   const displayStats = isAdmin ? adminStats : stats;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white border border-[#e5e5e5] p-6  transition-colors">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl">
-              <HiGlobeAlt className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center justify-center w-10 h-10 bg-blue-50">
+              <HiGlobeAlt className="h-5 w-5 text-blue-700" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900">{grid.name}</h3>
+            <h3 className="text-xl font-normal text-black tracking-tight">{grid.name}</h3>
           </div>
           {grid.pastor && (
             <div className="mt-2">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Pastor:</span> {grid.pastor.name || grid.pastor.email}
+              <p className="text-sm font-normal text-[#666666]">
+                <span className="text-black">Pastor:</span> {grid.pastor.name || grid.pastor.email}
               </p>
               {grid.pastor.email && (
-                <p className="text-xs text-gray-500">{grid.pastor.email}</p>
+                <p className="text-xs font-normal text-[#999999]">{grid.pastor.email}</p>
               )}
             </div>
           )}
@@ -857,11 +853,11 @@ function GridCard({
 
       {/* Botones de acción para admin */}
       {isAdmin && (onEdit || onDelete || onAddMember) && (
-        <div className="flex gap-2 mb-4 pt-4 border-t border-gray-200">
+        <div className="flex gap-2 mb-4 pt-4 border-t border-[#e5e5e5]">
           {onEdit && (
             <button
               onClick={onEdit}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-black bg-white border border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
             >
               <HiPencil className="h-4 w-4" />
               Editar
@@ -870,7 +866,7 @@ function GridCard({
           {onAddMember && (
             <button
               onClick={onAddMember}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-black bg-white border border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
             >
               <HiPlus className="h-4 w-4" />
               Agregar
@@ -879,7 +875,7 @@ function GridCard({
           {onDelete && (
             <button
               onClick={onDelete}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-black bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
             >
               <HiTrash className="h-4 w-4" />
               Eliminar
@@ -890,42 +886,42 @@ function GridCard({
 
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full mt-4 px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-colors"
+        className="w-full mt-4 px-4 py-2 text-sm font-normal text-black bg-white border border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
       >
         {isExpanded ? "Ocultar detalles" : "Ver detalles"}
       </button>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+        <div className="mt-4 pt-4 border-t border-[#e5e5e5] space-y-4">
           {displayStats && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl">
+              <div className="p-3 bg-blue-50 border border-blue-200">
                 <div className="flex items-center gap-2 mb-1">
-                  <HiUsers className="h-4 w-4 text-blue-500" />
-                  <p className="text-xs text-gray-600">Miembros</p>
+                  <HiUsers className="h-4 w-4 text-blue-700" />
+                  <p className="text-xs font-normal text-[#666666]">Miembros</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{displayStats.totalMembers}</p>
+                <p className="text-2xl font-normal text-black">{displayStats.totalMembers}</p>
               </div>
-              <div className="p-3 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl">
+              <div className="p-3 bg-blue-50 border border-blue-200">
                 <div className="flex items-center gap-2 mb-1">
-                  <HiAcademicCap className="h-4 w-4 text-blue-500" />
-                  <p className="text-xs text-gray-600">En Escuela</p>
+                  <HiAcademicCap className="h-4 w-4 text-blue-700" />
+                  <p className="text-xs font-normal text-[#666666]">En Escuela</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{displayStats.membersInSchool}</p>
+                <p className="text-2xl font-normal text-black">{displayStats.membersInSchool}</p>
               </div>
-              <div className="p-3 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl">
+              <div className="p-3 bg-blue-50 border border-blue-200">
                 <div className="flex items-center gap-2 mb-1">
-                  <HiUserGroup className="h-4 w-4 text-blue-500" />
-                  <p className="text-xs text-gray-600">Grupos</p>
+                  <HiUserGroup className="h-4 w-4 text-blue-700" />
+                  <p className="text-xs font-normal text-[#666666]">Grupos</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{displayStats.totalGroups}</p>
+                <p className="text-2xl font-normal text-black">{displayStats.totalGroups}</p>
               </div>
-              <div className="p-3 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl">
+              <div className="p-3 bg-blue-50 border border-blue-200">
                 <div className="flex items-center gap-2 mb-1">
-                  <HiUsers className="h-4 w-4 text-blue-500" />
-                  <p className="text-xs text-gray-600">Hombres/Mujeres</p>
+                  <HiUsers className="h-4 w-4 text-blue-700" />
+                  <p className="text-xs font-normal text-[#666666]">Hombres/Mujeres</p>
                 </div>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-normal text-black">
                   {displayStats.maleCount} / {displayStats.femaleCount}
                 </p>
               </div>
@@ -934,25 +930,25 @@ function GridCard({
 
           {displayMembers && displayMembers.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
+              <h4 className="text-sm font-normal text-black mb-2 uppercase tracking-wide">
                 Miembros ({displayMembers.length})
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {displayMembers.map((member: { _id: Id<"users">; name?: string; email?: string }) => (
                   <div
                     key={member._id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-2 bg-[#fafafa] border border-[#e5e5e5]"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-normal text-black text-sm">
                         {member.name || "Sin nombre"}
                       </p>
-                      <p className="text-xs text-gray-600">{member.email}</p>
+                      <p className="text-xs font-normal text-[#666666]">{member.email}</p>
                     </div>
                     {onRemoveMember && (
                       <button
                         onClick={() => onRemoveMember(member._id)}
-                        className="ml-2 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        className="ml-2 p-1 text-black hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                         title="Remover miembro"
                       >
                         <HiX className="h-4 w-4" />

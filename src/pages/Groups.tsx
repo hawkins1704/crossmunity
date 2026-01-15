@@ -5,7 +5,6 @@ import { api } from "../../convex/_generated/api";
 import { HiPlus, HiUsers, HiLocationMarker, HiClipboardCopy, HiCheck, HiSearch, HiX } from "react-icons/hi";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 // Lista de distritos de Lima
@@ -249,7 +248,7 @@ export default function Groups() {
   if (groups === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -260,35 +259,35 @@ export default function Groups() {
         title="Mis Grupos"
         description="Grupos donde eres líder"
         button={
-          <Button
+          <button
             onClick={handleModalOpen}
-            size="lg"
-            icon={<HiPlus className="h-5 w-5" />}
+            className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Crear Grupo
-          </Button>
+          </button>
         }
       />
 
       {/* Lista de grupos */}
       {groups.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiUsers className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiUsers className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No has creado ningún grupo
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm font-normal text-[#666666] mb-8">
             Crea tu primer grupo de conexión para comenzar a liderar.
           </p>
-          <Button
+          <button
             onClick={handleModalOpen}
-            size="lg"
-            icon={<HiPlus className="h-5 w-5" />}
+            className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
           >
+            <HiPlus className="h-5 w-5" />
             Crear tu primer grupo
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -296,44 +295,44 @@ export default function Groups() {
             <div
               key={group._id}
               onClick={() => navigate(`/groups/${group._id}`)}
-              className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white border border-[#e5e5e5] p-6 hover:border-black transition-colors cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                  <h3 className="text-xl font-normal text-black mb-1 tracking-tight">
                     {group.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                  <div className="flex items-center gap-2 text-sm font-normal text-[#666666] mb-1">
                     <HiLocationMarker className="h-4 w-4" />
                     <span>{group.address}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{group.district}</p>
+                  <p className="text-sm font-normal text-[#666666]">{group.district}</p>
                 </div>
               </div>
 
               {/* Información adicional */}
               <div className="mb-4 space-y-2 text-sm">
                 {group.minAge && group.maxAge && (
-                  <p className="text-gray-600">
-                    <span className="font-medium">Edad:</span> {group.minAge} - {group.maxAge} años
+                  <p className="font-normal text-[#666666]">
+                    <span className="font-normal text-black">Edad:</span> {group.minAge} - {group.maxAge} años
                   </p>
                 )}
-                <p className="text-gray-600">
-                  <span className="font-medium">Día:</span> {group.day}
+                <p className="font-normal text-[#666666]">
+                  <span className="font-normal text-black">Día:</span> {group.day}
                 </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Hora:</span> {group.time}
+                <p className="font-normal text-[#666666]">
+                  <span className="font-normal text-black">Hora:</span> {group.time}
                 </p>
               </div>
 
               {/* Código de invitación */}
-              <div className="mb-4 p-3 bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl border border-sky-200">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-600 mb-1">
+                    <p className="text-xs font-normal text-[#666666] mb-1 uppercase tracking-wide">
                       Código de Invitación
                     </p>
-                    <p className="text-lg font-mono font-bold text-gray-900">
+                    <p className="text-lg font-mono font-normal text-black">
                       {group.invitationCode}
                     </p>
                   </div>
@@ -342,13 +341,13 @@ export default function Groups() {
                       e.stopPropagation();
                       copyInvitationCode(group.invitationCode);
                     }}
-                    className="p-2 rounded-full hover:bg-white/50 transition-colors"
+                    className="p-2 hover:bg-blue-100 transition-colors"
                     title="Copiar código"
                   >
                     {copiedCode === group.invitationCode ? (
-                      <HiCheck className="h-5 w-5 text-green-500" />
+                      <HiCheck className="h-5 w-5 text-black" />
                     ) : (
-                      <HiClipboardCopy className="h-5 w-5 text-gray-600" />
+                      <HiClipboardCopy className="h-5 w-5 text-[#666666]" />
                     )}
                   </button>
                 </div>
@@ -356,14 +355,14 @@ export default function Groups() {
 
               {/* Líderes */}
               <div className="mb-4">
-                <p className="text-xs font-medium text-gray-600 mb-2">Líderes</p>
+                <p className="text-xs font-normal text-black mb-2 uppercase tracking-wide">Líderes</p>
                 <div className="flex flex-wrap gap-2">
                   {group.leaders
                     .filter((leader): leader is NonNullable<typeof leader> => leader !== null)
                     .map((leader) => (
                       <span
                         key={leader._id}
-                        className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                        className="inline-flex items-center px-3 py-1 bg-blue-50 text-black border border-blue-200 text-sm font-normal"
                       >
                         {leader.name || leader.email}
                       </span>
@@ -372,11 +371,11 @@ export default function Groups() {
               </div>
 
               {/* Estadísticas */}
-              <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-4 pt-4 border-t border-[#e5e5e5]">
                 <div className="flex items-center gap-2">
-                  <HiUsers className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    <span className="font-semibold text-gray-900">
+                  <HiUsers className="h-5 w-5 text-[#999999]" />
+                  <span className="text-sm font-normal text-[#666666]">
+                    <span className="font-normal text-black">
                       {group.disciples.length}
                     </span>{" "}
                     discípulo{group.disciples.length !== 1 ? "s" : ""}
@@ -394,12 +393,12 @@ export default function Groups() {
         onClose={handleModalClose}
         title="Crear Nuevo Grupo"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Nombre del grupo */}
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Nombre del Grupo *
             </label>
@@ -408,15 +407,15 @@ export default function Groups() {
               name="name"
               type="text"
               required
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Grupo de Conexión Norte"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>
             )}
           </div>
 
@@ -424,7 +423,7 @@ export default function Groups() {
           <div>
             <label
               htmlFor="address"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Dirección *
             </label>
@@ -433,15 +432,15 @@ export default function Groups() {
               name="address"
               type="text"
               required
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.address
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Av. Principal 123"
             />
             {errors.address && (
-              <p className="mt-1 text-sm text-red-500">{errors.address}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.address}</p>
             )}
           </div>
 
@@ -449,7 +448,7 @@ export default function Groups() {
           <div>
             <label
               htmlFor="district"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Distrito *
             </label>
@@ -457,10 +456,10 @@ export default function Groups() {
               id="district"
               name="district"
               required
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.district
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             >
               <option value="">Selecciona un distrito</option>
@@ -471,7 +470,7 @@ export default function Groups() {
               ))}
             </select>
             {errors.district && (
-              <p className="mt-1 text-sm text-red-500">{errors.district}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.district}</p>
             )}
           </div>
 
@@ -480,7 +479,7 @@ export default function Groups() {
             <div>
               <label
                 htmlFor="minAge"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Edad Mínima
               </label>
@@ -490,10 +489,10 @@ export default function Groups() {
                 type="number"
                 min="0"
                 max="100"
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.age
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Ej: 18"
               />
@@ -501,7 +500,7 @@ export default function Groups() {
             <div>
               <label
                 htmlFor="maxAge"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Edad Máxima
               </label>
@@ -511,24 +510,24 @@ export default function Groups() {
                 type="number"
                 min="0"
                 max="100"
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.age
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Ej: 35"
               />
             </div>
           </div>
           {errors.age && (
-            <p className="text-sm text-red-500 -mt-3">{errors.age}</p>
+            <p className="text-xs text-[#d32f2f] -mt-3">{errors.age}</p>
           )}
 
           {/* Día */}
           <div>
             <label
               htmlFor="day"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Día de la Semana *
             </label>
@@ -536,10 +535,10 @@ export default function Groups() {
               id="day"
               name="day"
               required
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.day
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             >
               <option value="">Selecciona un día</option>
@@ -550,7 +549,7 @@ export default function Groups() {
               ))}
             </select>
             {errors.day && (
-              <p className="mt-1 text-sm text-red-500">{errors.day}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.day}</p>
             )}
           </div>
 
@@ -558,7 +557,7 @@ export default function Groups() {
           <div>
             <label
               htmlFor="time"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
             >
               Hora *
             </label>
@@ -567,49 +566,49 @@ export default function Groups() {
               name="time"
               type="time"
               required
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.time
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             />
             {errors.time && (
-              <p className="mt-1 text-sm text-red-500">{errors.time}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.time}</p>
             )}
           </div>
 
           {/* Co-líder (buscador) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Co-líder (Opcional)
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+              Co-líder <span className="text-[#999999] font-normal normal-case">(Opcional)</span>
             </label>
-            <p className="text-xs text-gray-500 mb-2">
+            <p className="text-xs font-normal text-[#666666] mb-3">
               Busca un usuario por email para agregarlo como co-líder. Debe ser
               de diferente género al tuyo.
             </p>
             
             <div className="relative" ref={searchRef}>
               {selectedCoLeader ? (
-                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-normal text-black">
                       {selectedCoLeader.name || "Sin nombre"}
                     </p>
-                    <p className="text-xs text-gray-600">{selectedCoLeader.email}</p>
+                    <p className="text-xs font-normal text-[#666666]">{selectedCoLeader.email}</p>
                   </div>
                   <button
                     type="button"
                     onClick={handleRemoveCoLeader}
-                    className="p-1 rounded-full hover:bg-blue-100 transition-colors"
+                    className="p-1 hover:bg-blue-100 transition-colors"
                   >
-                    <HiX className="h-4 w-4 text-gray-600" />
+                    <HiX className="h-4 w-4 text-black" />
                   </button>
                 </div>
               ) : (
                 <>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <HiSearch className="h-5 w-5 text-gray-400" />
+                      <HiSearch className="h-4 w-4 text-[#999999]" />
                     </div>
                     <input
                       type="text"
@@ -624,10 +623,10 @@ export default function Groups() {
                           setShowSearchResults(true);
                         }
                       }}
-                      className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                      className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                         errors.coLeader
-                          ? "border-red-300 focus:ring-red-200"
-                          : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                          ? "border-[#d32f2f]"
+                          : "border-[#e5e5e5]"
                       }`}
                       placeholder="Buscar por email..."
                     />
@@ -635,29 +634,29 @@ export default function Groups() {
 
                   {/* Resultados de búsqueda */}
                   {showSearchResults && coLeaderSearch.length >= 2 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] max-h-60 overflow-y-auto">
                       {searchResults === undefined ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
+                        <div className="p-4 text-center text-sm font-normal text-[#666666]">
                           Buscando...
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
+                        <div className="p-4 text-center text-sm font-normal text-[#666666]">
                           No se encontraron usuarios con ese correo
                         </div>
                       ) : (
-                        <div className="py-2">
+                        <div>
                           {searchResults.map((user) => (
                             <button
                               key={user._id}
                               type="button"
                               onClick={() => handleSelectCoLeader(user)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-3 text-left hover:bg-[#fafafa] transition-colors border-b border-[#e5e5e5] last:border-b-0"
                             >
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-normal text-black">
                                 {user.name || "Sin nombre"}
                               </p>
-                              <p className="text-xs text-gray-600">{user.email}</p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs font-normal text-[#666666]">{user.email}</p>
+                              <p className="text-xs font-normal text-[#999999] mt-1">
                                 {user.role} • {user.gender === "Male" ? "Hombre" : "Mujer"}
                               </p>
                             </button>
@@ -670,36 +669,34 @@ export default function Groups() {
               )}
             </div>
             {errors.coLeader && (
-              <p className="mt-1 text-sm text-red-500">{errors.coLeader}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.coLeader}</p>
             )}
           </div>
 
           {/* Error general */}
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={handleModalClose}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Creando..." : "Crear Grupo"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>

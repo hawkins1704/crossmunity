@@ -4,7 +4,6 @@ import { api } from "../../convex/_generated/api";
 import { HiPencil, HiTrash, HiCalendar, HiUsers, HiAcademicCap } from "react-icons/hi";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
-import Button from "../components/Button";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export default function Records() {
@@ -198,15 +197,15 @@ export default function Records() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "nuevos":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-50 border-blue-200 text-black";
       case "asistencias":
-        return "bg-green-100 text-green-700";
+        return "bg-green-50 border-green-200 text-black";
       case "reset":
-        return "bg-purple-100 text-purple-700";
+        return "bg-purple-50 border-purple-200 text-black";
       case "conferencia":
-        return "bg-orange-100 text-orange-700";
+        return "bg-orange-50 border-orange-200 text-black";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-[#fafafa] border-[#e5e5e5] text-black";
     }
   };
 
@@ -245,7 +244,7 @@ export default function Records() {
   if (records === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -258,70 +257,70 @@ export default function Records() {
       />
 
       {records.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-            <HiCalendar className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+            <HiCalendar className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-normal text-black mb-3 tracking-tight">
             No hay registros
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm font-normal text-[#666666]">
             Aún no has registrado ninguna asistencia.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white border border-[#e5e5e5] overflow-hidden">
           {/* Tabla para desktop */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Fecha</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Tipo</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Cantidad</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Acciones</th>
+                <tr className="border-b border-[#e5e5e5] bg-[#fafafa]">
+                  <th className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Fecha</th>
+                  <th className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Tipo</th>
+                  <th className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Cantidad</th>
+                  <th className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((record) => (
                   <tr
                     key={record._id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <HiCalendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">
+                        <HiCalendar className="h-4 w-4 text-[#999999]" />
+                        <span className="text-sm font-normal text-black">
                           {formatDate(record.date)}
                         </span>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(record.type)}`}>
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 border text-xs font-normal ${getTypeColor(record.type)}`}>
                         {getTypeIcon(record.type)}
                         {getTypeLabel(record.type)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-normal text-black">
                         {record.maleCount + record.femaleCount + (record.kidsCount || 0)} {(record.maleCount + record.femaleCount + (record.kidsCount || 0)) === 1 ? "persona" : "personas"}
                       </span>
                       {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
-                        <span className="ml-2 text-xs text-gray-500">(+ tú)</span>
+                        <span className="ml-2 text-xs text-[#666666]">(+ tú)</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleOpenEditModal(record)}
-                          className="p-2 text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+                          className="p-2 text-black hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
                           title="Editar registro"
                         >
                           <HiPencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(record._id)}
-                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-black hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                           title="Eliminar registro"
                         >
                           <HiTrash className="h-4 w-4" />
@@ -335,28 +334,28 @@ export default function Records() {
           </div>
 
           {/* Cards para mobile */}
-          <div className="md:hidden divide-y divide-gray-200">
+          <div className="md:hidden divide-y divide-[#e5e5e5]">
             {records.map((record) => (
               <div
                 key={record._id}
-                className="p-4 hover:bg-gray-50 transition-colors"
+                className="p-4 hover:bg-[#fafafa] transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <HiCalendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">
+                      <HiCalendar className="h-4 w-4 text-[#999999]" />
+                      <span className="text-sm font-normal text-black">
                         {formatDate(record.date)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(record.type)}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 border text-xs font-normal ${getTypeColor(record.type)}`}>
                         {getTypeIcon(record.type)}
                         {getTypeLabel(record.type)}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">{record.maleCount + record.femaleCount + (record.kidsCount || 0)}</span> {(record.maleCount + record.femaleCount + (record.kidsCount || 0)) === 1 ? "persona" : "personas"}
+                    <div className="text-sm font-normal text-[#666666]">
+                      <span className="text-black">{record.maleCount + record.femaleCount + (record.kidsCount || 0)}</span> {(record.maleCount + record.femaleCount + (record.kidsCount || 0)) === 1 ? "persona" : "personas"}
                       {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
                         <span className="ml-1 text-xs">(+ tú)</span>
                       )}
@@ -365,14 +364,14 @@ export default function Records() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEditModal(record)}
-                      className="p-2 text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+                      className="p-2 text-black hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
                       title="Editar registro"
                     >
                       <HiPencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(record._id)}
-                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-black hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                       title="Eliminar registro"
                     >
                       <HiTrash className="h-4 w-4" />
@@ -392,9 +391,9 @@ export default function Records() {
         title="Editar Registro"
         maxWidth="xl"
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="date" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Fecha *
             </label>
             <input
@@ -405,18 +404,18 @@ export default function Records() {
                 setFormData({ ...formData, date: e.target.value });
                 setErrors({ ...errors, date: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.date
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               required
             />
-            {errors.date && <p className="mt-1 text-sm text-red-500">{errors.date}</p>}
+            {errors.date && <p className="mt-2 text-xs text-[#d32f2f]">{errors.date}</p>}
           </div>
 
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="type" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Tipo *
             </label>
             <select
@@ -430,7 +429,7 @@ export default function Records() {
                 });
                 setErrors({ ...errors, type: "" });
               }}
-              className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+              className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black focus:outline-none focus:border-black transition-colors"
               required
             >
               <option value="nuevos">Nuevos Asistentes</option>
@@ -443,7 +442,7 @@ export default function Records() {
           {/* Servicio (solo para nuevos y asistencias) */}
           {(formData.type === "nuevos" || formData.type === "asistencias") && (
             <div>
-              <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="service" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                 Servicio *
               </label>
               <select
@@ -456,10 +455,10 @@ export default function Records() {
                   });
                   setErrors({ ...errors, service: "" });
                 }}
-                className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.service
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 required
               >
@@ -469,13 +468,13 @@ export default function Records() {
                 <option value="sunday-1">Domingo 9AM</option>
                 <option value="sunday-2">Domingo 11:30AM</option>
               </select>
-              {errors.service && <p className="mt-1 text-sm text-red-500">{errors.service}</p>}
+              {errors.service && <p className="mt-2 text-xs text-[#d32f2f]">{errors.service}</p>}
             </div>
           )}
 
           {/* Sede */}
           <div>
-            <label htmlFor="sede" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="sede" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Sede
             </label>
             <select
@@ -488,7 +487,7 @@ export default function Records() {
                 });
                 setErrors({ ...errors, sede: "" });
               }}
-              className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+              className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black focus:outline-none focus:border-black transition-colors"
             >
               <option value="">Selecciona una sede</option>
               <option value="CENTRAL">CENTRAL</option>
@@ -508,28 +507,28 @@ export default function Records() {
           {(formData.type === "asistencias" || formData.type === "conferencia") && (
             <>
             <div>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.attended}
                   onChange={(e) => setFormData({ ...formData, attended: e.target.checked })}
-                  className="w-4 h-4 text-blue-800 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-black border-[#e5e5e5] focus:border-black"
                 />
-                <span className="text-sm text-gray-700">Asistí ese día</span>
+                <span className="text-sm font-normal text-black">Asistí ese día</span>
               </label>
             </div>
 
               {/* Sección del colíder */}
               {coLeaders && coLeaders.length > 0 && (
-                <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="text-sm font-medium text-gray-700">
+                <div className="space-y-3 p-4 bg-[#fafafa] border border-[#e5e5e5]">
+                  <div className="text-xs font-normal text-black uppercase tracking-wide">
                     Colíder
                   </div>
                   
                   {/* Selector de colíder si hay más de uno */}
                   {coLeaders.length > 1 && (
                     <div>
-                      <label htmlFor="coLeader" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="coLeader" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                         Seleccionar colíder
                       </label>
                       <select
@@ -542,7 +541,7 @@ export default function Records() {
                             coLeaderAttended: undefined, // Reset cuando cambia el colíder
                           });
                         }}
-                        className="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all"
+                        className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black focus:outline-none focus:border-black transition-colors"
                       >
                         <option value="">Ninguno</option>
                         {coLeaders.map((coLeader) => (
@@ -557,7 +556,7 @@ export default function Records() {
                   {/* Radio buttons para asistencia del colíder */}
                   {formData.coLeaderId && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                         ¿El colíder asistió?
                       </label>
                       <div className="flex gap-4">
@@ -567,9 +566,9 @@ export default function Records() {
                             name="coLeaderAttended"
                             checked={formData.coLeaderAttended === true}
                             onChange={() => setFormData({ ...formData, coLeaderAttended: true })}
-                            className="w-4 h-4 text-blue-800 border-gray-300 focus:ring-blue-500"
+                            className="w-4 h-4 text-black border-[#e5e5e5] focus:border-black"
                           />
-                          <span className="text-sm text-gray-700">Sí</span>
+                          <span className="text-sm font-normal text-black">Sí</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
@@ -577,9 +576,9 @@ export default function Records() {
                             name="coLeaderAttended"
                             checked={formData.coLeaderAttended === false}
                             onChange={() => setFormData({ ...formData, coLeaderAttended: false })}
-                            className="w-4 h-4 text-blue-800 border-gray-300 focus:ring-blue-500"
+                            className="w-4 h-4 text-black border-[#e5e5e5] focus:border-black"
                           />
-                          <span className="text-sm text-gray-700">No</span>
+                          <span className="text-sm font-normal text-black">No</span>
                         </label>
                       </div>
                     </div>
@@ -592,7 +591,7 @@ export default function Records() {
           )}
 
           <div>
-            <label htmlFor="maleCount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="maleCount" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Cantidad de hombres *
             </label>
             <input
@@ -604,17 +603,17 @@ export default function Records() {
                 setFormData({ ...formData, maleCount: parseInt(e.target.value) || 0 });
                 setErrors({ ...errors, count: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.count
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               required
             />
           </div>
 
           <div>
-            <label htmlFor="femaleCount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="femaleCount" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Cantidad de mujeres *
             </label>
             <input
@@ -626,23 +625,23 @@ export default function Records() {
                 setFormData({ ...formData, femaleCount: parseInt(e.target.value) || 0 });
                 setErrors({ ...errors, count: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.count
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               required
             />
-            {errors.count && <p className="mt-1 text-sm text-red-500">{errors.count}</p>}
+            {errors.count && <p className="mt-2 text-xs text-[#d32f2f]">{errors.count}</p>}
             {(formData.type === "asistencias" || formData.type === "conferencia") && formData.attended && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-2 text-xs font-normal text-[#666666]">
                 El total será: {formData.maleCount + formData.femaleCount + formData.kidsCount + 1} personas (incluyéndote)
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="kidsCount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="kidsCount" className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Cantidad de niños *
             </label>
             <input
@@ -654,39 +653,37 @@ export default function Records() {
                 setFormData({ ...formData, kidsCount: parseInt(e.target.value) || 0 });
                 setErrors({ ...errors, count: "" });
               }}
-              className={`block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.count
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               required
             />
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <button
               type="button"
               onClick={handleCloseModal}
-              variant="outline"
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
+              disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              rounded="xl"
-              fullWidth
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>

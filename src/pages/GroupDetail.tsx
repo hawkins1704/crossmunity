@@ -90,7 +90,6 @@ const DAYS_OF_WEEK = [
 // Componente para la vista de calendario de actividades (tipo Google Calendar)
 function ActivitiesCalendarView({
   activities,
-  isLeader,
   onActivityClick,
 }: {
   activities: Array<{
@@ -99,7 +98,6 @@ function ActivitiesCalendarView({
     address: string;
     dateTime: number;
   }>;
-  isLeader: boolean;
   onActivityClick: (activityId: Id<"activities">) => void;
   ActivityResponseButtons: React.ComponentType<{ activityId: Id<"activities"> }>;
 }) {
@@ -208,38 +206,38 @@ function ActivitiesCalendarView({
         <div className="flex items-center gap-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
             title="Mes anterior"
           >
-            <HiChevronLeft className="h-5 w-5 text-gray-600" />
+            <HiChevronLeft className="h-5 w-5 text-black" />
           </button>
-          <h3 className="text-xl font-semibold text-gray-900 capitalize">
+          <h3 className="text-xl font-normal text-black capitalize">
             {monthName}
           </h3>
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
             title="Mes siguiente"
           >
-            <HiChevronRight className="h-5 w-5 text-gray-600" />
+            <HiChevronRight className="h-5 w-5 text-black" />
           </button>
         </div>
         <button
           onClick={goToToday}
-          className="px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-normal text-black hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
         >
           Hoy
         </button>
       </div>
 
       {/* Calendario */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-[#e5e5e5] overflow-hidden">
         {/* Encabezados de días de la semana */}
-        <div className="grid grid-cols-7 border-b border-gray-200">
+        <div className="grid grid-cols-7 border-b border-[#e5e5e5]">
           {weekDays.map((day) => (
             <div
               key={day}
-              className="p-3 text-center text-xs font-semibold text-gray-600 uppercase bg-gray-50"
+              className="p-3 text-center text-xs font-normal text-[#666666] uppercase bg-[#fafafa]"
             >
               {day}
             </div>
@@ -256,24 +254,24 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={`prev-${day}`}
-                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
-                  !isLastColumn ? "border-r" : ""
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 bg-[#fafafa] ${
+                  !isLastColumn ? "border-r border-[#e5e5e5]" : ""
                 }`}
               >
-                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="text-xs font-normal text-[#999999] mb-1">{day}</div>
                 <div className="space-y-0.5">
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -292,15 +290,15 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={day}
-                className={`min-h-[120px] border-b border-gray-200 p-2 hover:bg-gray-50 transition-colors ${
-                  today ? "bg-blue-50" : ""
-                } ${!isLastColumn ? "border-r" : ""}`}
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 hover:bg-[#fafafa] transition-colors ${
+                  today ? "bg-[#fafafa]" : ""
+                } ${!isLastColumn ? "border-r border-[#e5e5e5]" : ""}`}
               >
                 <div
-                  className={`text-sm font-medium mb-1 inline-flex items-center justify-center ${
+                  className={`text-sm font-normal mb-1 inline-flex items-center justify-center ${
                     today
-                      ? "w-7 h-7 rounded-full bg-blue-600 text-white"
-                      : "text-gray-900"
+                      ? "w-7 h-7 bg-black text-white"
+                      : "text-black"
                   }`}
                 >
                   {day}
@@ -309,19 +307,15 @@ function ActivitiesCalendarView({
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className={`text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
-                        isLeader
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -338,24 +332,24 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={`next-${day}`}
-                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
-                  !isLastColumn ? "border-r" : ""
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 bg-[#fafafa] ${
+                  !isLastColumn ? "border-r border-[#e5e5e5]" : ""
                 }`}
               >
-                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="text-xs font-normal text-[#999999] mb-1">{day}</div>
                 <div className="space-y-0.5">
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -390,10 +384,10 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
             e.stopPropagation();
             handleRespond("confirmed");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
+          className={`flex items-center gap-2 px-3 py-2 transition-colors font-normal text-sm flex-1 md:flex-initial border ${
             myResponse?.status === "confirmed"
-              ? "bg-green-100 text-green-700 border-2 border-green-300"
-              : "bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700 border-2 border-transparent"
+              ? "bg-green-50 text-black border-green-200"
+              : "bg-white text-black border-[#e5e5e5] hover:border-green-200 hover:bg-green-50"
           }`}
           title="Confirmar asistencia"
         >
@@ -405,10 +399,10 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
             e.stopPropagation();
             handleRespond("denied");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
+          className={`flex items-center gap-2 px-3 py-2 transition-colors font-normal text-sm flex-1 md:flex-initial border ${
             myResponse?.status === "denied"
-              ? "bg-red-100 text-red-700 border-2 border-red-300"
-              : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-700 border-2 border-transparent"
+              ? "bg-red-50 text-black border-red-200"
+              : "bg-white text-black border-[#e5e5e5] hover:border-red-200 hover:bg-red-50"
           }`}
           title="No asistiré"
         >
@@ -417,7 +411,7 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
         </button>
       </div>
       {myResponse?.status && (
-        <span className="text-xs text-gray-500 md:text-right w-full md:w-auto">
+        <span className="text-xs font-normal text-[#666666] md:text-right w-full md:w-auto">
           {myResponse.status === "confirmed" && "✓ Confirmado"}
           {myResponse.status === "denied" && "✗ No asistirás"}
         </span>
@@ -516,7 +510,7 @@ export default function GroupDetail() {
   if (group === undefined || activities === undefined || currentUser === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -846,31 +840,31 @@ export default function GroupDetail() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate("/groups")}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
         >
-          <HiArrowLeft className="h-5 w-5 text-gray-600" />
+          <HiArrowLeft className="h-5 w-5 text-black" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-          <p className="mt-1 text-sm text-gray-600">Detalle del grupo</p>
+          <h1 className="text-2xl font-normal text-black tracking-tight">{group.name}</h1>
+          <p className="mt-3 text-sm font-normal text-[#666666]">Detalle del grupo</p>
         </div>
       </div>
 
       {/* Banner con info del grupo */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white border border-[#e5e5e5] p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{group.name}</h2>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+            <h2 className="text-2xl font-normal text-black mb-2 tracking-tight">{group.name}</h2>
+            <div className="flex items-center gap-2 text-sm font-normal text-[#666666] mb-1">
               <HiLocationMarker className="h-4 w-4" />
               <span>{group.address}</span>
             </div>
-            <p className="text-sm text-gray-600">{group.district}</p>
+            <p className="text-sm font-normal text-[#666666]">{group.district}</p>
           </div>
           {isLeader && (
             <button
               onClick={handleOpenEditModal}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-normal text-black hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
               title="Editar información del grupo"
             >
               <HiPencil className="h-4 w-4" />
@@ -882,36 +876,36 @@ export default function GroupDetail() {
         {/* Información adicional */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {group.minAge && group.maxAge && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <HiUsers className="h-5 w-5 text-blue-800" />
+            <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+              <div className="p-2">
+                <HiUsers className="h-5 w-5 text-black" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Rango de Edad</p>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Rango de Edad</p>
+                <p className="text-sm font-normal text-black">
                   {group.minAge} - {group.maxAge} años
                 </p>
               </div>
             </div>
           )}
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <HiCalendar className="h-5 w-5 text-purple-800" />
+          <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+            <div className="p-2">
+              <HiCalendar className="h-5 w-5 text-black" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Día de Reunión</p>
-              <p className="text-sm font-semibold text-gray-900">{group.day}</p>
+              <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Día de Reunión</p>
+              <p className="text-sm font-normal text-black">{group.day}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <HiClock className="h-5 w-5 text-orange-800" />
+          <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+            <div className="p-2">
+              <HiClock className="h-5 w-5 text-black" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Hora</p>
-              <p className="text-sm font-semibold text-gray-900">{group.time}</p>
+              <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Hora</p>
+              <p className="text-sm font-normal text-black">{group.time}</p>
             </div>
           </div>
         </div>
@@ -924,43 +918,43 @@ export default function GroupDetail() {
       <LeadersSection disciples={group.disciples} />
 
       {/* Actividades */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white border border-[#e5e5e5] p-6">
         <div className="flex flex-col gap-2 md:flex-row items-start md:items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 w-full md:w-auto">
+          <h3 className="text-lg font-normal text-black w-full md:w-auto">
             Actividades ({activities.length})
           </h3>
           <div className="flex items-center justify-between gap-3 w-full md:w-auto">
             {/* Toggle de vista */}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center border border-[#e5e5e5]">
               <button
                 onClick={() => setActivitiesView("list")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                   activitiesView === "list"
-                    ? "bg-white text-blue-800 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-black text-white"
+                    : "bg-white text-black hover:bg-[#fafafa]"
                 }`}
                 title="Vista de lista"
               >
                 <HiViewList className="h-4 w-4" />
-                <span className="hidden md:block text-sm font-medium">Lista</span>
+                <span className="hidden md:block text-sm font-normal">Lista</span>
               </button>
               <button
                 onClick={() => setActivitiesView("calendar")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                   activitiesView === "calendar"
-                    ? "bg-white text-blue-800 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-black text-white"
+                    : "bg-white text-black hover:bg-[#fafafa]"
                 }`}
                 title="Vista de calendario"
               >
                 <IoIosCalendar className="h-4 w-4" />
-                <span className="hidden md:block text-sm font-medium">Calendario</span>
+                <span className="hidden md:block text-sm font-normal">Calendario</span>
               </button>
             </div>
             {isLeader && (
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="flex items-center gap-2 px-4 py-2 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors"
               >
                 <HiPlus className="h-5 w-5" />
                 Nueva Actividad
@@ -970,7 +964,7 @@ export default function GroupDetail() {
         </div>
 
         {activities.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">Aún no hay actividades en este grupo</p>
+          <p className="text-sm font-normal text-[#666666]">Aún no hay actividades en este grupo</p>
         ) : activitiesView === "list" ? (
           <div className="space-y-3">
             {activities.map((activity) => {
@@ -979,25 +973,21 @@ export default function GroupDetail() {
               return (
                 <div
                   key={activity._id}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    isLeader
-                      ? "border-gray-200 hover:border-blue-300 hover:shadow-md"
-                      : "border-gray-200"
-                  }`}
+                  className="p-4 border border-[#e5e5e5] transition-colors cursor-pointer hover:border-black"
                   onClick={() => {
                     setSelectedActivityId(activity._id);
                   }}
                 >
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-base font-semibold text-gray-900 mb-1">
+                      <h4 className="text-base font-normal text-black mb-1">
                         {activity.name}
                       </h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                      <div className="flex items-center gap-2 text-sm font-normal text-[#666666] mb-1">
                         <HiLocationMarker className="h-4 w-4 flex-shrink-0" />
                         <span className="truncate">{activity.address}</span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm font-normal text-[#666666]">
                         <div className="flex items-center gap-1">
                           <HiCalendar className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate">{dateTime.date}</span>
@@ -1022,7 +1012,6 @@ export default function GroupDetail() {
         ) : (
           <ActivitiesCalendarView
             activities={activities}
-            isLeader={isLeader}
             onActivityClick={(activityId) => setSelectedActivityId(activityId)}
             ActivityResponseButtons={ActivityResponseButtons}
           />
@@ -1041,71 +1030,71 @@ export default function GroupDetail() {
           setActivityDescription("");
         }}
         title="Crear Nueva Actividad"
-        maxWidth="2xl"
+        maxWidth="3xl"
       >
-        <form onSubmit={handleCreateActivity} className="space-y-4">
+        <form onSubmit={handleCreateActivity} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Nombre de la Actividad
             </label>
             <input
               type="text"
               value={activityName}
               onChange={(e) => setActivityName(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Reunión de oración"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Dirección
             </label>
             <input
               type="text"
               value={activityAddress}
               onChange={(e) => setActivityAddress(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.address
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Av. Principal 123"
             />
             {errors.address && (
-              <p className="mt-1 text-sm text-red-500">{errors.address}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.address}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Fecha y Hora
             </label>
             <input
               type="datetime-local"
               value={activityDateTime}
               onChange={(e) => setActivityDateTime(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.dateTime
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             />
             {errors.dateTime && (
-              <p className="mt-1 text-sm text-red-500">{errors.dateTime}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.dateTime}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción <span className="text-gray-400 font-normal">(opcional)</span>
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+              Descripción <span className="text-[#999999] font-normal normal-case">(opcional)</span>
             </label>
             <RichTextEditor
               content={activityDescription}
@@ -1115,8 +1104,8 @@ export default function GroupDetail() {
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
@@ -1131,14 +1120,14 @@ export default function GroupDetail() {
                 setActivityDateTime("");
                 setActivityDescription("");
               }}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isSubmitting ? "Creando..." : "Crear Actividad"}
             </button>
@@ -1151,63 +1140,63 @@ export default function GroupDetail() {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         title="Editar Información del Grupo"
-        maxWidth="2xl"
+        maxWidth="3xl"
       >
-        <form onSubmit={handleUpdateGroup} className="space-y-5">
+        <form onSubmit={handleUpdateGroup} className="space-y-6">
           {/* Nombre del grupo */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Nombre del Grupo *
             </label>
             <input
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Grupo de Conexión Norte"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>
             )}
           </div>
 
           {/* Dirección */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Dirección *
             </label>
             <input
               type="text"
               value={groupAddress}
               onChange={(e) => setGroupAddress(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 errors.address
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Av. Principal 123"
             />
             {errors.address && (
-              <p className="mt-1 text-sm text-red-500">{errors.address}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.address}</p>
             )}
           </div>
 
           {/* Distrito */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Distrito *
             </label>
             <select
               value={groupDistrict}
               onChange={(e) => setGroupDistrict(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 errors.district
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             >
               <option value="">Selecciona un distrito</option>
@@ -1218,64 +1207,64 @@ export default function GroupDetail() {
               ))}
             </select>
             {errors.district && (
-              <p className="mt-1 text-sm text-red-500">{errors.district}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.district}</p>
             )}
           </div>
 
           {/* Rango de edad */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Edad Mínima (opcional)
+              <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+                Edad Mínima <span className="text-[#999999] font-normal normal-case">(opcional)</span>
               </label>
               <input
                 type="number"
                 value={groupMinAge}
                 onChange={(e) => setGroupMinAge(e.target.value)}
                 min="0"
-                className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.age
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Ej: 18"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Edad Máxima (opcional)
+              <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+                Edad Máxima <span className="text-[#999999] font-normal normal-case">(opcional)</span>
               </label>
               <input
                 type="number"
                 value={groupMaxAge}
                 onChange={(e) => setGroupMaxAge(e.target.value)}
                 min="0"
-                className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                   errors.age
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
                 placeholder="Ej: 35"
               />
             </div>
           </div>
           {errors.age && (
-            <p className="text-sm text-red-500">{errors.age}</p>
+            <p className="text-xs text-[#d32f2f]">{errors.age}</p>
           )}
 
           {/* Día y hora */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                 Día de Reunión *
               </label>
               <select
                 value={groupDay}
                 onChange={(e) => setGroupDay(e.target.value)}
-                className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.day
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
               >
                 <option value="">Selecciona un día</option>
@@ -1286,61 +1275,61 @@ export default function GroupDetail() {
                 ))}
               </select>
               {errors.day && (
-                <p className="mt-1 text-sm text-red-500">{errors.day}</p>
+                <p className="mt-2 text-xs text-[#d32f2f]">{errors.day}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                 Hora *
               </label>
               <input
                 type="time"
                 value={groupTime}
                 onChange={(e) => setGroupTime(e.target.value)}
-                className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                   errors.time
-                    ? "border-red-300 focus:ring-red-200"
-                    : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                    ? "border-[#d32f2f]"
+                    : "border-[#e5e5e5]"
                 }`}
               />
               {errors.time && (
-                <p className="mt-1 text-sm text-red-500">{errors.time}</p>
+                <p className="mt-2 text-xs text-[#d32f2f]">{errors.time}</p>
               )}
             </div>
           </div>
 
           {/* Co-líder (buscador) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Co-líder (Opcional)
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+              Co-líder <span className="text-[#999999] font-normal normal-case">(Opcional)</span>
             </label>
-            <p className="text-xs text-gray-500 mb-2">
+            <p className="text-xs font-normal text-[#666666] mb-3">
               Busca un usuario por email para agregarlo como co-líder. Debe ser
               de diferente género al tuyo. Deja vacío para quitar el co-líder actual.
             </p>
             
             <div className="relative" ref={searchRef}>
               {selectedCoLeader ? (
-                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-normal text-black">
                       {selectedCoLeader.name || "Sin nombre"}
                     </p>
-                    <p className="text-xs text-gray-600">{selectedCoLeader.email}</p>
+                    <p className="text-xs font-normal text-[#666666]">{selectedCoLeader.email}</p>
                   </div>
                   <button
                     type="button"
                     onClick={handleRemoveCoLeader}
-                    className="p-1 rounded-full hover:bg-blue-100 transition-colors"
+                    className="p-1 hover:bg-blue-100 transition-colors"
                   >
-                    <HiX className="h-4 w-4 text-gray-600" />
+                    <HiX className="h-4 w-4 text-black" />
                   </button>
                 </div>
               ) : (
                 <>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <HiSearch className="h-5 w-5 text-gray-400" />
+                      <HiSearch className="h-4 w-4 text-[#999999]" />
                     </div>
                     <input
                       type="text"
@@ -1355,10 +1344,10 @@ export default function GroupDetail() {
                           setShowSearchResults(true);
                         }
                       }}
-                      className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                      className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                         errors.coLeader
-                          ? "border-red-300 focus:ring-red-200"
-                          : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                          ? "border-[#d32f2f]"
+                          : "border-[#e5e5e5]"
                       }`}
                       placeholder="Buscar por email..."
                     />
@@ -1366,28 +1355,28 @@ export default function GroupDetail() {
 
                   {/* Resultados de búsqueda */}
                   {showSearchResults && coLeaderSearch.length >= 2 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] max-h-60 overflow-y-auto">
                       {searchResults === undefined ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
+                        <div className="p-4 text-center text-sm font-normal text-[#666666]">
                           Buscando...
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
+                        <div className="p-4 text-center text-sm font-normal text-[#666666]">
                           No se encontraron usuarios con ese correo
                         </div>
                       ) : (
-                        <div className="py-2">
+                        <div>
                           {searchResults.map((user) => (
                             <button
                               key={user._id}
                               type="button"
                               onClick={() => handleSelectCoLeader(user)}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-3 text-left hover:bg-[#fafafa] transition-colors border-b border-[#e5e5e5] last:border-b-0"
                             >
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-normal text-black">
                                 {user.name || "Sin nombre"}
                               </p>
-                              <p className="text-xs text-gray-600">{user.email}</p>
+                              <p className="text-xs font-normal text-[#666666]">{user.email}</p>
                             </button>
                           ))}
                         </div>
@@ -1398,13 +1387,13 @@ export default function GroupDetail() {
               )}
             </div>
             {errors.coLeader && (
-              <p className="mt-1 text-sm text-red-500">{errors.coLeader}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{errors.coLeader}</p>
             )}
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
             </div>
           )}
 
@@ -1412,14 +1401,14 @@ export default function GroupDetail() {
             <button
               type="button"
               onClick={handleCloseEditModal}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isUpdatingGroup}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isUpdatingGroup ? "Guardando..." : "Guardar Cambios"}
             </button>
@@ -1437,15 +1426,15 @@ export default function GroupDetail() {
             setIsDeleteActivityConfirmOpen(false);
           }}
           title={activityDetails.activity.name}
-          maxWidth="2xl"
+          maxWidth="3xl"
         >
           <div className="space-y-6">
             {/* Botones de acción (solo si es el creador) */}
             {activityDetails.activity.creator?._id === currentUser._id && (
-              <div className="flex items-center justify-end gap-2 pb-4 border-b border-gray-200">
+              <div className="flex items-center justify-end gap-2 pb-4 border-b border-[#e5e5e5]">
                 <button
                   onClick={handleOpenEditActivityModal}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-normal text-black hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
                   title="Editar actividad"
                 >
                   <HiPencil className="h-4 w-4" />
@@ -1453,7 +1442,7 @@ export default function GroupDetail() {
                 </button>
                 <button
                   onClick={() => setIsDeleteActivityConfirmOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-normal text-black hover:bg-red-50 transition-colors border border-[#e5e5e5] hover:border-red-200"
                   title="Eliminar actividad"
                 >
                   <HiTrash className="h-4 w-4" />
@@ -1464,11 +1453,11 @@ export default function GroupDetail() {
 
             {/* Información de la actividad */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm font-normal text-[#666666]">
                 <HiLocationMarker className="h-4 w-4" />
                 <span>{activityDetails.activity.address}</span>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-4 text-sm font-normal text-[#666666]">
                 <div className="flex items-center gap-1">
                   <HiCalendar className="h-4 w-4" />
                   <span>{formatDateTime(activityDetails.activity.dateTime).date}</span>
@@ -1479,7 +1468,7 @@ export default function GroupDetail() {
                 </div>
               </div>
               <div
-                className="prose prose-sm max-w-none text-sm text-gray-700"
+                className="prose prose-sm max-w-none text-sm font-normal text-black"
                 dangerouslySetInnerHTML={{
                   __html: activityDetails.activity.description,
                 }}
@@ -1487,28 +1476,28 @@ export default function GroupDetail() {
             </div>
 
             {/* Botones de confirmación en el popup */}
-            <div className="flex items-center justify-center gap-3 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-center gap-3 pt-4 border-t border-[#e5e5e5]">
               <ActivityResponseButtons activityId={selectedActivityId} />
             </div>
 
             {/* Listas de respuestas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Confirmados */}
-              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <div className="bg-green-50 p-4 border border-green-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <HiCheckCircle className="h-5 w-5 text-green-600" />
-                  <h4 className="font-semibold text-green-900">
+                  <HiCheckCircle className="h-5 w-5 text-black" />
+                  <h4 className="font-normal text-black text-sm">
                     Confirmados ({activityDetails.responses.confirmed.length})
                   </h4>
                 </div>
                 <div className="space-y-2">
                   {activityDetails.responses.confirmed.length === 0 ? (
-                    <p className="text-xs text-green-700 italic">Ninguno</p>
+                    <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                   ) : (
                     activityDetails.responses.confirmed.map((response) => (
                       <div
                         key={response._id}
-                        className="text-sm text-green-800 bg-white rounded-lg p-2"
+                        className="text-sm font-normal text-black bg-white p-2 border border-green-200"
                       >
                         {response.user?.name || response.user?.email || "Usuario"}
                       </div>
@@ -1518,21 +1507,21 @@ export default function GroupDetail() {
               </div>
 
               {/* Pendientes */}
-              <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+              <div className="bg-yellow-50 p-4 border border-yellow-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <HiPending className="h-5 w-5 text-yellow-600" />
-                  <h4 className="font-semibold text-yellow-900">
+                  <HiPending className="h-5 w-5 text-black" />
+                  <h4 className="font-normal text-black text-sm">
                     Por Confirmar ({activityDetails.responses.pending.length})
                   </h4>
                 </div>
                 <div className="space-y-2">
                   {activityDetails.responses.pending.length === 0 ? (
-                    <p className="text-xs text-yellow-700 italic">Ninguno</p>
+                    <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                   ) : (
                     activityDetails.responses.pending.map((response, idx) => (
                       <div
                         key={response._id || `pending-${idx}`}
-                        className="text-sm text-yellow-800 bg-white rounded-lg p-2"
+                        className="text-sm font-normal text-black bg-white p-2 border border-yellow-200"
                       >
                         {response.user?.name || response.user?.email || "Usuario"}
                       </div>
@@ -1542,21 +1531,21 @@ export default function GroupDetail() {
               </div>
 
               {/* Denegados */}
-              <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+              <div className="bg-red-50 p-4 border border-red-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <HiXCircle className="h-5 w-5 text-red-600" />
-                  <h4 className="font-semibold text-red-900">
+                  <HiXCircle className="h-5 w-5 text-black" />
+                  <h4 className="font-normal text-black text-sm">
                     Denegados ({activityDetails.responses.denied.length})
                   </h4>
                 </div>
                 <div className="space-y-2">
                   {activityDetails.responses.denied.length === 0 ? (
-                    <p className="text-xs text-red-700 italic">Ninguno</p>
+                    <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                   ) : (
                     activityDetails.responses.denied.map((response) => (
                       <div
                         key={response._id}
-                        className="text-sm text-red-800 bg-white rounded-lg p-2"
+                        className="text-sm font-normal text-black bg-white p-2 border border-red-200"
                       >
                         {response.user?.name || response.user?.email || "Usuario"}
                       </div>
@@ -1574,71 +1563,71 @@ export default function GroupDetail() {
         isOpen={isEditActivityModalOpen}
         onClose={handleCloseEditActivityModal}
         title="Editar Actividad"
-        maxWidth="2xl"
+        maxWidth="3xl"
       >
-        <form onSubmit={handleUpdateActivity} className="space-y-4">
+        <form onSubmit={handleUpdateActivity} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Nombre de la Actividad
             </label>
             <input
               type="text"
               value={activityName}
               onChange={(e) => setActivityName(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 activityErrors.name
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Reunión de oración"
             />
             {activityErrors.name && (
-              <p className="mt-1 text-sm text-red-500">{activityErrors.name}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{activityErrors.name}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Dirección
             </label>
             <input
               type="text"
               value={activityAddress}
               onChange={(e) => setActivityAddress(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                 activityErrors.address
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
               placeholder="Ej: Av. Principal 123"
             />
             {activityErrors.address && (
-              <p className="mt-1 text-sm text-red-500">{activityErrors.address}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{activityErrors.address}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
               Fecha y Hora
             </label>
             <input
               type="datetime-local"
               value={activityDateTime}
               onChange={(e) => setActivityDateTime(e.target.value)}
-              className={`block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                 activityErrors.dateTime
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                  ? "border-[#d32f2f]"
+                  : "border-[#e5e5e5]"
               }`}
             />
             {activityErrors.dateTime && (
-              <p className="mt-1 text-sm text-red-500">{activityErrors.dateTime}</p>
+              <p className="mt-2 text-xs text-[#d32f2f]">{activityErrors.dateTime}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción <span className="text-gray-400 font-normal">(opcional)</span>
+            <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+              Descripción <span className="text-[#999999] font-normal normal-case">(opcional)</span>
             </label>
             <RichTextEditor
               content={activityDescription}
@@ -1648,8 +1637,8 @@ export default function GroupDetail() {
           </div>
 
           {activityErrors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{activityErrors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{activityErrors.submit}</p>
             </div>
           )}
 
@@ -1657,14 +1646,14 @@ export default function GroupDetail() {
             <button
               type="button"
               onClick={handleCloseEditActivityModal}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isUpdatingActivity}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex-1 py-3 px-4 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isUpdatingActivity ? "Guardando..." : "Guardar Cambios"}
             </button>
@@ -1679,32 +1668,32 @@ export default function GroupDetail() {
         title="Confirmar Eliminación"
         maxWidth="md"
       >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <HiExclamationCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <div className="space-y-6">
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200">
+            <HiExclamationCircle className="h-5 w-5 text-black flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-red-900 mb-1">
+              <p className="text-sm font-normal text-black mb-1">
                 ¿Estás seguro de que deseas eliminar esta actividad?
               </p>
-              <p className="text-sm text-red-700">
+              <p className="text-sm font-normal text-[#666666]">
                 Esta acción no se puede deshacer. Se eliminarán todas las respuestas asociadas a esta actividad.
               </p>
             </div>
           </div>
 
           {activityDetails && (
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-medium text-gray-900">{activityDetails.activity.name}</p>
-              <p className="text-xs text-gray-600">{activityDetails.activity.address}</p>
-              <p className="text-xs text-gray-600">
+            <div className="bg-[#fafafa] border border-[#e5e5e5] p-4 space-y-2">
+              <p className="text-sm font-normal text-black">{activityDetails.activity.name}</p>
+              <p className="text-xs font-normal text-[#666666]">{activityDetails.activity.address}</p>
+              <p className="text-xs font-normal text-[#666666]">
                 {formatDateTime(activityDetails.activity.dateTime).date} a las {formatDateTime(activityDetails.activity.dateTime).time}
               </p>
             </div>
           )}
 
           {activityErrors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-600">{activityErrors.submit}</p>
+            <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+              <p className="text-xs text-[#d32f2f]">{activityErrors.submit}</p>
             </div>
           )}
 
@@ -1712,7 +1701,7 @@ export default function GroupDetail() {
             <button
               type="button"
               onClick={() => setIsDeleteActivityConfirmOpen(false)}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-[#e5e5e5] text-black font-normal text-sm hover:bg-[#fafafa] transition-colors"
             >
               Cancelar
             </button>
@@ -1720,7 +1709,7 @@ export default function GroupDetail() {
               type="button"
               onClick={handleDeleteActivity}
               disabled={isDeletingActivity}
-              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-4 bg-red-50 text-black border border-red-200 font-normal text-sm hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDeletingActivity ? "Eliminando..." : "Eliminar Actividad"}
             </button>
@@ -1761,12 +1750,12 @@ function DisciplesSection({ disciples, isLeader, groupId }: { disciples: Array<a
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="bg-white border border-[#e5e5e5] p-6">
+      <h3 className="text-lg font-normal text-black mb-4">
         Discípulos ({disciplesWithProgress.length})
       </h3>
       {!hasDiscípulos ? (
-        <p className="text-sm text-gray-500 italic">Aún no hay discípulos en este grupo</p>
+        <p className="text-sm font-normal text-[#666666]">Aún no hay discípulos en este grupo</p>
       ) : (
         <SortableDiscipleTable
           disciples={disciplesWithProgress}
@@ -1925,9 +1914,9 @@ function SortableDiscipleTable({
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200">
+            <tr className="border-b border-[#e5e5e5]">
               <th 
-                className="text-left py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("name")}
               >
                 <div className="flex items-center gap-1">
@@ -1938,7 +1927,7 @@ function SortableDiscipleTable({
                 </div>
               </th>
               <th 
-                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("courses")}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -1949,7 +1938,7 @@ function SortableDiscipleTable({
                 </div>
               </th>
               <th 
-                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("service")}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -1960,23 +1949,23 @@ function SortableDiscipleTable({
                 </div>
               </th>
               <th 
-                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("nuevos_asistentes")}
               >
                 <div className="flex items-center justify-center gap-1">
-                  <HiUsers className="h-4 w-4 text-blue-500" />
-                  <span>Nuevos Asistentes</span>
+                  <HiUsers className="h-4 w-4 text-black" />
+                  <span>Nuevos</span>
                   {sortColumn === "nuevos_asistentes" && (
                     sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
                   )}
                 </div>
               </th>
               <th 
-                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("reset")}
               >
                 <div className="flex items-center justify-center gap-1">
-                  <HiAcademicCap className="h-4 w-4 text-purple-500" />
+                  <HiAcademicCap className="h-4 w-4 text-black" />
                   <span>RESET</span>
                   {sortColumn === "reset" && (
                     sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
@@ -1984,11 +1973,11 @@ function SortableDiscipleTable({
                 </div>
               </th>
               <th 
-                className="text-center py-3 px-4 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
                 onClick={() => onSort("conferencia")}
               >
                 <div className="flex items-center justify-center gap-1">
-                  <HiCalendar className="h-4 w-4 text-green-500" />
+                  <HiCalendar className="h-4 w-4 text-black" />
                   <span>Conferencia</span>
                   {sortColumn === "conferencia" && (
                     sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
@@ -2060,49 +2049,51 @@ function SortableDiscipleRow({
       data-sort-reset={resetTotal}
       data-sort-conferencia={conferenciaTotal}
       onClick={onClick}
-      className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-        hasBacklog ? "bg-red-50/50" : ""
+      className={`border-b border-[#e5e5e5] hover:bg-[#fafafa] cursor-pointer transition-colors ${
+        hasBacklog ? "bg-red-50" : ""
       }`}
     >
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold text-sm">
+          <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center font-normal text-sm ${
+            disciple.gender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+          }`}>
             {(disciple.name || disciple.email || "U")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-normal text-black">
               {disciple.name || "Sin nombre"}
             </p>
             {disciple.email && (
-              <p className="text-xs text-gray-500 truncate max-w-[200px]">{disciple.email}</p>
+              <p className="text-xs font-normal text-[#666666] truncate max-w-[200px]">{disciple.email}</p>
             )}
           </div>
         </div>
       </td>
       <td className="py-3 px-4 text-center">
-        <span className="text-sm font-medium text-gray-900">{courseCount}</span>
+        <span className="text-sm font-normal text-black">{courseCount}</span>
       </td>
       <td className="py-3 px-4 text-center">
         {disciple.service ? (
-          <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+          <span className="inline-flex items-center px-2 py-1 bg-purple-50 text-black border border-purple-200 text-xs font-normal">
             {disciple.service.name}
           </span>
         ) : (
-          <span className="text-xs text-gray-500">Sin servicio</span>
+          <span className="text-xs font-normal text-[#666666]">Sin servicio</span>
         )}
       </td>
       <td className="py-3 px-4 text-center">
-        <span className="text-sm font-medium text-gray-900">
+        <span className="text-sm font-normal text-black">
           {report === undefined ? "-" : nuevosAsistentesTotal}
         </span>
       </td>
       <td className="py-3 px-4 text-center">
-        <span className="text-sm font-medium text-gray-900">
+        <span className="text-sm font-normal text-black">
           {report === undefined ? "-" : resetTotal}
         </span>
       </td>
       <td className="py-3 px-4 text-center">
-        <span className="text-sm font-medium text-gray-900">
+        <span className="text-sm font-normal text-black">
           {report === undefined ? "-" : conferenciaTotal}
         </span>
       </td>
@@ -2140,56 +2131,58 @@ function DiscipleCard({
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+      className={`flex items-start gap-3 p-3 border cursor-pointer transition-colors ${
         hasBacklog
-          ? "bg-red-50/50 border-red-200 hover:border-red-300"
-          : "bg-gray-50 border-gray-200 hover:border-gray-300"
+          ? "bg-red-50 border-red-200 hover:border-red-300"
+          : "bg-white border-[#e5e5e5] hover:border-black"
       }`}
     >
-      <div className="flex-shrink-0 w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold">
+      <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center font-normal text-sm ${
+        disciple.gender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+      }`}>
         {(disciple.name || disciple.email || "U")[0].toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-normal text-black">
             {disciple.name || "Sin nombre"}
           </p>
           {hasBacklog && (
-            <HiExclamationCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <HiExclamationCircle className="h-4 w-4 text-black flex-shrink-0" />
           )}
         </div>
         {disciple.email && (
-          <p className="text-xs text-gray-600 truncate mb-2">{disciple.email}</p>
+          <p className="text-xs font-normal text-[#666666] truncate mb-2">{disciple.email}</p>
         )}
-        <div className="flex items-center gap-3 text-xs flex-wrap">
-          <span className="text-gray-600">
+        <div className="flex items-center gap-3 text-xs flex-wrap font-normal">
+          <span className="text-[#666666]">
             {courseCount} curso{courseCount !== 1 ? "s" : ""}
           </span>
           {disciple.service ? (
-            <span className="inline-flex items-center px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+            <span className="inline-flex items-center px-2 py-0.5 bg-purple-50 text-black border border-purple-200">
               {disciple.service.name}
             </span>
           ) : (
-            <span className="text-gray-500">Sin servicio</span>
+            <span className="text-[#666666]">Sin servicio</span>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">
-              <HiUsers className="h-3 w-3 inline mr-1 text-blue-500" />
+            <span className="text-[#666666]">
+              <HiUsers className="h-3 w-3 inline mr-1 text-black" />
               {discipleReport === undefined ? "-" : nuevosAsistentesTotal}
             </span>
-            <span className="text-gray-600">
-              <HiAcademicCap className="h-3 w-3 inline mr-1 text-purple-500" />
+            <span className="text-[#666666]">
+              <HiAcademicCap className="h-3 w-3 inline mr-1 text-black" />
               {discipleReport === undefined ? "-" : resetTotal}
             </span>
-            <span className="text-gray-600">
-              <HiCalendar className="h-3 w-3 inline mr-1 text-green-500" />
+            <span className="text-[#666666]">
+              <HiCalendar className="h-3 w-3 inline mr-1 text-black" />
               {discipleReport === undefined ? "-" : conferenciaTotal}
             </span>
           </div>
           {hasBacklog ? (
-            <span className="text-red-600 font-medium">Atrasado</span>
+            <span className="text-black font-normal">Atrasado</span>
           ) : courseCount > 0 ? (
-            <span className="text-green-600 font-medium">Al día</span>
+            <span className="text-black font-normal">Al día</span>
           ) : null}
         </div>
       </div>
@@ -2221,9 +2214,9 @@ function DiscipleDetailsModal({
   );
   if (courses === undefined) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title={`Detalles - ${disciple.name || "Discípulo"}`} maxWidth="2xl">
+      <Modal isOpen={isOpen} onClose={onClose} title={`Detalles - ${disciple.name || "Discípulo"}`} maxWidth="3xl">
         <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
         </div>
       </Modal>
     );
@@ -2234,82 +2227,84 @@ function DiscipleDetailsModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Detalles - ${disciple.name || "Discípulo"}`}
-      maxWidth="2xl"
+      maxWidth="3xl"
     >
       <div className="p-6 space-y-6">
         {/* Información básica */}
-        <div className="border-b border-gray-200 pb-4">
+        <div className="border-b border-[#e5e5e5] pb-4">
           <div className="flex items-center gap-3 mb-2">
-            <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold">
+            <div className={`flex-shrink-0 w-12 h-12 flex items-center justify-center font-normal ${
+              disciple.gender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+            }`}>
               {(disciple.name || disciple.email || "U")[0].toUpperCase()}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-normal text-black tracking-tight">
                 {disciple.name || "Sin nombre"}
               </p>
               {disciple.email && (
-                <p className="text-sm text-gray-600">{disciple.email}</p>
+                <p className="text-sm font-normal text-[#666666]">{disciple.email}</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-4 mt-3 flex-wrap">
             <div className="flex items-center gap-2">
               {disciple.isActiveInSchool ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-black border border-green-200 text-sm font-normal">
                   <HiAcademicCap className="h-4 w-4" />
                   Activo en Escuela
                 </span>
               ) : (
-                <span className="text-sm text-gray-500">Inactivo en Escuela</span>
+                <span className="text-sm font-normal text-[#666666]">Inactivo en Escuela</span>
               )}
             </div>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm font-normal text-[#666666]">
               {courses?.length || 0} curso{(courses?.length || 0) !== 1 ? "s" : ""} inscrito{(courses?.length || 0) !== 1 ? "s" : ""}
             </span>
             {disciple.service ? (
-              <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+              <span className="inline-flex items-center px-3 py-1 bg-purple-50 text-black border border-purple-200 text-sm font-normal">
                 {disciple.service.name}
               </span>
             ) : (
-              <span className="text-sm text-gray-500">Sin área de servicio</span>
+              <span className="text-sm font-normal text-[#666666]">Sin área de servicio</span>
             )}
           </div>
         </div>
 
         {/* Lista de cursos */}
         {!courses || courses.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <HiUsers className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-            <p>No está inscrito en ningún curso</p>
+          <div className="text-center py-8">
+            <HiUsers className="h-12 w-12 mx-auto mb-2 text-[#999999]" />
+            <p className="text-sm font-normal text-[#666666]">No está inscrito en ningún curso</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            <h4 className="text-xs font-normal text-black uppercase tracking-wide">
               Cursos y Progreso
             </h4>
             {courses.map((course: any) => (
               <div
                 key={course._id}
-                className={`p-4 rounded-xl border-2 ${
+                className={`p-4 border ${
                   course.hasBacklog
-                    ? "bg-red-50/50 border-red-200"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-red-50 border-red-200"
+                    : "bg-[#fafafa] border-[#e5e5e5]"
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h5 className="font-semibold text-gray-900">{course.name}</h5>
+                    <h5 className="font-normal text-black">{course.name}</h5>
                     {course.description && (
-                      <p className="text-sm text-gray-600 mt-1">{course.description}</p>
+                      <p className="text-sm font-normal text-[#666666] mt-1">{course.description}</p>
                     )}
                   </div>
                   {course.hasBacklog ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-black border border-red-200 text-xs font-normal">
                       <HiExclamationCircle className="h-3 w-3" />
                       Atrasado
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-black border border-green-200 text-xs font-normal">
                       <HiCheckCircle className="h-3 w-3" />
                       Al día
                     </span>
@@ -2320,11 +2315,11 @@ function DiscipleDetailsModal({
                 {course.weekStatuses && course.weekStatuses.length > 0 && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-medium text-gray-700">
+                      <p className="text-xs font-normal text-black">
                         Progreso Semanal (Semana {course.currentWeek} de {course.durationWeeks || 9})
                       </p>
                       {isLeader && (
-                        <p className="text-xs text-gray-600 italic">Haz clic en las semanas para marcarlas/desmarcarlas</p>
+                        <p className="text-xs font-normal text-[#666666]">Haz clic en las semanas para marcarlas/desmarcarlas</p>
                       )}
                     </div>
                     <div className="grid grid-cols-9 gap-1">
@@ -2342,15 +2337,15 @@ function DiscipleDetailsModal({
                               console.error("Error al actualizar semana:", error);
                             }
                           } : undefined}
-                          className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
+                          className={`aspect-square flex items-center justify-center text-xs font-normal transition-colors border ${
                             weekStatus.status === "al-dia"
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-green-50 text-black border-green-200"
                               : weekStatus.status === "atrasado"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-500"
+                              ? "bg-red-50 text-black border-red-200"
+                              : "bg-white text-[#666666] border-[#e5e5e5]"
                           } ${
                             isLeader
-                              ? "cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-1"
+                              ? "cursor-pointer hover:border-black"
                               : ""
                           }`}
                           title={isLeader ? `Haz clic para ${weekStatus.isCompleted ? "desmarcar" : "marcar"} la semana ${weekStatus.week}` : `Semana ${weekStatus.week}: ${weekStatus.status}`}
@@ -2363,17 +2358,17 @@ function DiscipleDetailsModal({
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-600">
+                    <div className="flex items-center gap-4 mt-3 text-xs font-normal text-[#666666]">
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-green-100 rounded"></div>
+                        <div className="w-3 h-3 bg-green-50 border border-green-200"></div>
                         <span>Al día</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-red-100 rounded"></div>
+                        <div className="w-3 h-3 bg-red-50 border border-red-200"></div>
                         <span>Atrasado</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-gray-100 rounded"></div>
+                        <div className="w-3 h-3 bg-white border border-[#e5e5e5]"></div>
                         <span>Pendiente</span>
                       </div>
                     </div>
@@ -2382,7 +2377,7 @@ function DiscipleDetailsModal({
 
                 {/* Trabajo y examen */}
                 {course.completedWorkAndExam !== undefined && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="mt-3 pt-3 border-t border-[#e5e5e5]">
                     <div
                       onClick={isLeader ? async () => {
                         try {
@@ -2395,23 +2390,23 @@ function DiscipleDetailsModal({
                         }
                       } : undefined}
                       className={`flex items-center gap-2 ${
-                        isLeader ? "cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" : ""
+                        isLeader ? "cursor-pointer hover:bg-[#fafafa] p-2 -m-2 transition-colors" : ""
                       }`}
                       title={isLeader ? `Haz clic para ${course.completedWorkAndExam ? "desmarcar" : "marcar"} trabajo y examen` : undefined}
                     >
                       {course.completedWorkAndExam ? (
                         <>
-                          <HiCheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-gray-700">Trabajo y examen completados</span>
+                          <HiCheckCircle className="h-4 w-4 text-black" />
+                          <span className="text-sm font-normal text-black">Trabajo y examen completados</span>
                         </>
                       ) : (
                         <>
-                          <HiXCircle className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-500">Trabajo y examen pendientes</span>
+                          <HiXCircle className="h-4 w-4 text-[#999999]" />
+                          <span className="text-sm font-normal text-[#666666]">Trabajo y examen pendientes</span>
                         </>
                       )}
                       {isLeader && (
-                        <span className="ml-auto text-xs text-gray-600 italic">(Clic para editar)</span>
+                        <span className="ml-auto text-xs font-normal text-[#666666]">(Clic para editar)</span>
                       )}
                     </div>
                   </div>
@@ -2422,41 +2417,41 @@ function DiscipleDetailsModal({
         )}
 
         {/* Sección de Reportes */}
-        <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+        <div className="border-t border-[#e5e5e5] pt-6">
+          <h4 className="text-xs font-normal text-black uppercase tracking-wide mb-4">
             Reportes
           </h4>
           {attendanceRecords === undefined ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <div className="animate-spin h-6 w-6 border-2 border-black border-t-transparent"></div>
             </div>
           ) : attendanceRecords.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <HiCalendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm">No hay registros de asistencia</p>
+            <div className="text-center py-8">
+              <HiCalendar className="h-8 w-8 mx-auto mb-2 text-[#999999]" />
+              <p className="text-sm font-normal text-[#666666]">No hay registros de asistencia</p>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-[#fafafa] border border-[#e5e5e5] overflow-hidden">
               {/* Tabla para desktop */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200 bg-white">
-                      <th className="text-left py-2 px-4 text-xs font-semibold text-gray-700">Fecha</th>
-                      <th className="text-center py-2 px-4 text-xs font-semibold text-gray-700">Tipo</th>
-                      <th className="text-center py-2 px-4 text-xs font-semibold text-gray-700">Cantidad</th>
+                    <tr className="border-b border-[#e5e5e5] bg-white">
+                      <th className="text-left py-2 px-4 text-xs font-normal text-black uppercase tracking-wide">Fecha</th>
+                      <th className="text-center py-2 px-4 text-xs font-normal text-black uppercase tracking-wide">Tipo</th>
+                      <th className="text-center py-2 px-4 text-xs font-normal text-black uppercase tracking-wide">Cantidad</th>
                     </tr>
                   </thead>
                   <tbody>
                     {attendanceRecords.slice(0, 10).map((record: any) => (
                       <tr
                         key={record._id}
-                        className="border-b border-gray-100 hover:bg-white transition-colors"
+                        className="border-b border-[#e5e5e5] hover:bg-white transition-colors"
                       >
                         <td className="py-2 px-4">
                           <div className="flex items-center gap-2">
-                            <HiCalendar className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-900">
+                            <HiCalendar className="h-3 w-3 text-[#999999]" />
+                            <span className="text-xs font-normal text-black">
                               {new Date(record.date).toLocaleDateString("es-PE", {
                                 year: "numeric",
                                 month: "short",
@@ -2466,14 +2461,14 @@ function DiscipleDetailsModal({
                           </div>
                         </td>
                         <td className="py-2 px-4 text-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-normal border ${
                             record.type === "nuevos"
-                              ? "bg-blue-100 text-blue-700"
+                              ? "bg-blue-50 text-black border-blue-200"
                               : record.type === "reset"
-                              ? "bg-purple-100 text-purple-700"
+                              ? "bg-purple-50 text-black border-purple-200"
                               : record.type === "asistencias"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
+                              ? "bg-green-50 text-black border-green-200"
+                              : "bg-orange-50 text-black border-orange-200"
                           }`}>
                             {record.type === "nuevos" && <HiUsers className="h-3 w-3" />}
                             {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
@@ -2489,7 +2484,7 @@ function DiscipleDetailsModal({
                           </span>
                         </td>
                         <td className="py-2 px-4 text-center">
-                          <span className="text-xs font-medium text-gray-900">
+                          <span className="text-xs font-normal text-black">
                             {(() => {
                               const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
                               const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
@@ -2505,7 +2500,7 @@ function DiscipleDetailsModal({
                             })()}
                           </span>
                           {(record.type === "asistencias" || record.type === "conferencia") && record.attended && (
-                            <span className="ml-1 text-xs text-gray-500">(él/ella incluido(a))</span>
+                            <span className="ml-1 text-xs font-normal text-[#666666]">(él/ella incluido(a))</span>
                           )}
                         </td>
                       </tr>
@@ -2515,7 +2510,7 @@ function DiscipleDetailsModal({
               </div>
 
               {/* Cards para mobile */}
-              <div className="md:hidden divide-y divide-gray-200">
+              <div className="md:hidden divide-y divide-[#e5e5e5]">
                 {attendanceRecords.slice(0, 10).map((record: any) => (
                   <div
                     key={record._id}
@@ -2524,8 +2519,8 @@ function DiscipleDetailsModal({
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <HiCalendar className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs font-medium text-gray-900">
+                          <HiCalendar className="h-3 w-3 text-[#999999]" />
+                          <span className="text-xs font-normal text-black">
                             {new Date(record.date).toLocaleDateString("es-PE", {
                               year: "numeric",
                               month: "short",
@@ -2534,14 +2529,14 @@ function DiscipleDetailsModal({
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-normal border ${
                             record.type === "nuevos"
-                              ? "bg-blue-100 text-blue-700"
+                              ? "bg-blue-50 text-black border-blue-200"
                               : record.type === "reset"
-                              ? "bg-purple-100 text-purple-700"
+                              ? "bg-purple-50 text-black border-purple-200"
                               : record.type === "asistencias"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
+                              ? "bg-green-50 text-black border-green-200"
+                              : "bg-orange-50 text-black border-orange-200"
                           }`}>
                             {record.type === "nuevos" && <HiUsers className="h-3 w-3" />}
                             {record.type === "reset" && <HiAcademicCap className="h-3 w-3" />}
@@ -2556,8 +2551,8 @@ function DiscipleDetailsModal({
                               : "Conferencia"}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-600">
-                          <span className="font-medium">
+                        <div className="text-xs font-normal text-[#666666]">
+                          <span className="font-normal text-black">
                             {(() => {
                               const baseCount = (record.maleCount || 0) + (record.femaleCount || 0);
                               const total = (record.type === "asistencias" || record.type === "conferencia") && record.attended
@@ -2583,8 +2578,8 @@ function DiscipleDetailsModal({
               </div>
 
               {attendanceRecords.length > 10 && (
-                <div className="px-4 py-2 bg-white border-t border-gray-200 text-center">
-                  <p className="text-xs text-gray-500">
+                <div className="px-4 py-2 bg-white border-t border-[#e5e5e5] text-center">
+                  <p className="text-xs font-normal text-[#666666]">
                     Mostrando los últimos 10 registros de {attendanceRecords.length} total
                   </p>
                 </div>
@@ -2629,12 +2624,12 @@ function LeadersSection({ disciples }: { disciples: Array<{ _id: Id<"users">; na
   // Si está undefined, mostrar loading solo si hay discípulos para verificar
   if (disciplesWhoAreLeaders === undefined && discipleIds.length > 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white border border-[#e5e5e5] p-6">
+        <h3 className="text-lg font-normal text-black mb-4">
           Líderes
         </h3>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
         </div>
       </div>
     );
@@ -2645,23 +2640,23 @@ function LeadersSection({ disciples }: { disciples: Array<{ _id: Id<"users">; na
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white border border-[#e5e5e5] p-6">
+        <h3 className="text-lg font-normal text-black mb-4">
           Líderes {leadersList.length > 0 && `(${leadersList.length})`}
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm font-normal text-[#666666] mb-4">
           Discípulos que han abierto su propio grupo
         </p>
 
         {leadersList.length === 0 ? (
           <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <HiUsers className="h-8 w-8 text-gray-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+              <HiUsers className="h-8 w-8 text-white" />
             </div>
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm font-normal text-[#666666]">
               Aún no tienes líderes en tu grupo
             </p>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs font-normal text-[#999999] mt-2">
               Los discípulos que abran su propio grupo aparecerán aquí
             </p>
           </div>
@@ -2671,10 +2666,10 @@ function LeadersSection({ disciples }: { disciples: Array<{ _id: Id<"users">; na
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Nombre</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Grupos</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Información</th>
+                  <tr className="border-b border-[#e5e5e5]">
+                    <th className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Nombre</th>
+                    <th className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Grupos</th>
+                    <th className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Información</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2729,32 +2724,32 @@ function LeaderRow({
   return (
     <tr
       onClick={onClick}
-      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+      className="border-b border-[#e5e5e5] hover:bg-[#fafafa] transition-colors cursor-pointer"
     >
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+          <div className="flex-shrink-0 w-8 h-8 bg-black flex items-center justify-center text-white font-normal text-sm">
             {(item.user.name || item.user.email || "U")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-normal text-black">
               {item.user.name || "Sin nombre"}
             </p>
             {item.user.email && (
-              <p className="text-xs text-gray-500 truncate max-w-[200px]">{item.user.email}</p>
+              <p className="text-xs font-normal text-[#666666] truncate max-w-[200px]">{item.user.email}</p>
             )}
           </div>
         </div>
       </td>
       <td className="py-3 px-4 text-center">
-        <span className="text-sm font-medium text-gray-900">{item.groups.length}</span>
+        <span className="text-sm font-normal text-black">{item.groups.length}</span>
       </td>
       <td className="py-3 px-4">
         <div className="space-y-1">
           {item.groups.map((group) => (
-            <div key={group._id} className="text-xs text-gray-600">
-              <span className="font-medium">{group.name}</span>
-              <span className="text-gray-400 mx-1">•</span>
+            <div key={group._id} className="text-xs font-normal text-[#666666]">
+              <span className="font-normal text-black">{group.name}</span>
+              <span className="text-[#999999] mx-1">•</span>
               <span>{group.disciples.length} discípulo{group.disciples.length !== 1 ? "s" : ""}</span>
             </div>
           ))}
@@ -2778,23 +2773,23 @@ function LeaderCard({
   return (
     <div
       onClick={onClick}
-      className="flex items-start gap-3 p-3 rounded-xl border-2 border-gray-200 bg-gray-50 hover:border-gray-300 cursor-pointer transition-all"
+      className="flex items-start gap-3 p-3 border border-[#e5e5e5] bg-white hover:border-black cursor-pointer transition-colors"
     >
-      <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+      <div className="flex-shrink-0 w-10 h-10 bg-black flex items-center justify-center text-white font-normal">
         {(item.user.name || item.user.email || "U")[0].toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 mb-1">
+        <p className="text-sm font-normal text-black mb-1">
           {item.user.name || "Sin nombre"}
         </p>
         {item.user.email && (
-          <p className="text-xs text-gray-600 truncate mb-2">{item.user.email}</p>
+          <p className="text-xs font-normal text-[#666666] truncate mb-2">{item.user.email}</p>
         )}
         <div className="space-y-1">
           {item.groups.map((group) => (
-            <div key={group._id} className="text-xs text-gray-600">
-              <span className="font-medium">{group.name}</span>
-              <span className="text-gray-400 mx-1">•</span>
+            <div key={group._id} className="text-xs font-normal text-[#666666]">
+              <span className="font-normal text-black">{group.name}</span>
+              <span className="text-[#999999] mx-1">•</span>
               <span>{group.disciples.length} discípulo{group.disciples.length !== 1 ? "s" : ""}</span>
             </div>
           ))}
@@ -2833,48 +2828,48 @@ function LeaderDetailsModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Grupos de ${leader.user.name || leader.user.email || "Líder"}`}
-      maxWidth="2xl"
+      maxWidth="3xl"
     >
       <div className="space-y-6">
         {/* Información del líder */}
-        <div className="border-b border-gray-200 pb-4">
+        <div className="border-b border-[#e5e5e5] pb-4">
           <div className="flex items-center gap-3 mb-2">
-            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="flex-shrink-0 w-12 h-12 bg-black flex items-center justify-center text-white font-normal">
               {(leader.user.name || leader.user.email || "U")[0].toUpperCase()}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-normal text-black tracking-tight">
                 {leader.user.name || "Sin nombre"}
               </p>
               {leader.user.email && (
-                <p className="text-sm text-gray-600">{leader.user.email}</p>
+                <p className="text-sm font-normal text-[#666666]">{leader.user.email}</p>
               )}
             </div>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm font-normal text-[#666666] mt-2">
             Líder de {leader.groups.length} grupo{leader.groups.length !== 1 ? "s" : ""}
           </p>
         </div>
 
         {/* Lista de grupos */}
         {leader.groups.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <HiUsers className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-            <p>No tiene grupos asignados</p>
+          <div className="text-center py-8">
+            <HiUsers className="h-12 w-12 mx-auto mb-2 text-[#999999]" />
+            <p className="text-sm font-normal text-[#666666]">No tiene grupos asignados</p>
           </div>
         ) : (
           <div className="space-y-6">
             {leader.groups.map((group) => (
               <div
                 key={group._id}
-                className="bg-gray-50 rounded-xl border border-gray-200 p-5"
+                className="bg-[#fafafa] border border-[#e5e5e5] p-5"
               >
                 {/* Información del grupo */}
                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h4 className="text-lg font-normal text-black mb-2 tracking-tight">
                     {group.name}
                   </h4>
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm font-normal text-[#666666]">
                     <div className="flex items-center gap-2">
                       <HiLocationMarker className="h-4 w-4" />
                       <span>{group.address}</span>
@@ -2882,7 +2877,7 @@ function LeaderDetailsModal({
                     <p className="ml-6">{group.district}</p>
                     {(group.minAge || group.maxAge) && (
                       <p className="ml-6">
-                        <span className="font-medium">Edad:</span>{" "}
+                        <span className="font-normal text-black">Edad:</span>{" "}
                         {group.minAge && group.maxAge
                           ? `${group.minAge} - ${group.maxAge} años`
                           : group.minAge
@@ -2905,8 +2900,8 @@ function LeaderDetailsModal({
 
                 {/* Líderes del grupo */}
                 {group.leaders.length > 0 && (
-                  <div className="mb-4 pb-4 border-b border-gray-200">
-                    <p className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">
+                  <div className="mb-4 pb-4 border-b border-[#e5e5e5]">
+                    <p className="text-xs font-normal text-black mb-2 uppercase tracking-wide">
                       Líderes ({group.leaders.filter(Boolean).length})
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -2915,7 +2910,7 @@ function LeaderDetailsModal({
                         .map((leader) => (
                           <span
                             key={leader._id}
-                            className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                            className="inline-flex items-center px-3 py-1 bg-blue-50 text-black border border-blue-200 text-sm font-normal"
                           >
                             {leader.name || leader.email || "Sin nombre"}
                           </span>
@@ -2926,37 +2921,42 @@ function LeaderDetailsModal({
 
                 {/* Discípulos del grupo */}
                 <div>
-                  <p className="text-xs font-medium text-gray-700 mb-3 uppercase tracking-wide">
+                  <p className="text-xs font-normal text-black mb-3 uppercase tracking-wide">
                     Discípulos ({group.disciples.filter(Boolean).length})
                   </p>
                   {group.disciples.filter(Boolean).length === 0 ? (
-                    <p className="text-sm text-gray-500 italic">
+                    <p className="text-sm font-normal text-[#666666]">
                       Aún no hay discípulos en este grupo
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {group.disciples
                         .filter((d): d is NonNullable<typeof d> => d !== null)
-                        .map((disciple) => (
-                          <div
-                            key={disciple._id}
-                            className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200"
-                          >
-                            <div className="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-semibold text-sm">
-                              {(disciple.name || disciple.email || "U")[0].toUpperCase()}
-                            </div>
+                        .map((disciple) => {
+                          const discipleGender = (disciple as any).gender;
+                          return (
+                            <div
+                              key={disciple._id}
+                              className="flex items-center gap-3 p-2 bg-white border border-[#e5e5e5]"
+                            >
+                              <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center font-normal text-sm ${
+                                discipleGender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                              }`}>
+                                {(disciple.name || disciple.email || "U")[0].toUpperCase()}
+                              </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-normal text-black">
                                 {disciple.name || "Sin nombre"}
                               </p>
                               {disciple.email && (
-                                <p className="text-xs text-gray-500 truncate">
+                                <p className="text-xs font-normal text-[#666666] truncate">
                                   {disciple.email}
                                 </p>
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   )}
                 </div>

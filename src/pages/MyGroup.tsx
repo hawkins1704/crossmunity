@@ -23,7 +23,6 @@ const HiPending = HiClock;
 // Componente para la vista de calendario de actividades (tipo Google Calendar)
 function ActivitiesCalendarView({
   activities,
-  isLeader,
   onActivityClick,
 }: {
   activities: Array<{
@@ -32,7 +31,6 @@ function ActivitiesCalendarView({
     address: string;
     dateTime: number;
   }>;
-  isLeader: boolean;
   onActivityClick: (activityId: Id<"activities">) => void;
   ActivityResponseButtons: React.ComponentType<{ activityId: Id<"activities"> }>;
 }) {
@@ -141,38 +139,38 @@ function ActivitiesCalendarView({
         <div className="flex items-center gap-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
             title="Mes anterior"
           >
-            <HiChevronLeft className="h-5 w-5 text-gray-600" />
+            <HiChevronLeft className="h-5 w-5 text-black" />
           </button>
-          <h3 className="text-xl font-semibold text-gray-900 capitalize">
+          <h3 className="text-xl font-normal text-black capitalize">
             {monthName}
           </h3>
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
             title="Mes siguiente"
           >
-            <HiChevronRight className="h-5 w-5 text-gray-600" />
+            <HiChevronRight className="h-5 w-5 text-black" />
           </button>
         </div>
         <button
           onClick={goToToday}
-          className="px-4 py-2 text-sm font-medium text-blue-800 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-normal text-black hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
         >
           Hoy
         </button>
       </div>
 
       {/* Calendario */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-[#e5e5e5] overflow-hidden">
         {/* Encabezados de días de la semana */}
-        <div className="grid grid-cols-7 border-b border-gray-200">
+        <div className="grid grid-cols-7 border-b border-[#e5e5e5]">
           {weekDays.map((day) => (
             <div
               key={day}
-              className="p-3 text-center text-xs font-semibold text-gray-600 uppercase bg-gray-50"
+              className="p-3 text-center text-xs font-normal text-[#666666] uppercase bg-[#fafafa]"
             >
               {day}
             </div>
@@ -189,24 +187,24 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={`prev-${day}`}
-                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
-                  !isLastColumn ? "border-r" : ""
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 bg-[#fafafa] ${
+                  !isLastColumn ? "border-r border-[#e5e5e5]" : ""
                 }`}
               >
-                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="text-xs font-normal text-[#999999] mb-1">{day}</div>
                 <div className="space-y-0.5">
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -225,15 +223,15 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={day}
-                className={`min-h-[120px] border-b border-gray-200 p-2 hover:bg-gray-50 transition-colors ${
-                  today ? "bg-blue-50" : ""
-                } ${!isLastColumn ? "border-r" : ""}`}
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 hover:bg-[#fafafa] transition-colors ${
+                  today ? "bg-[#fafafa]" : ""
+                } ${!isLastColumn ? "border-r border-[#e5e5e5]" : ""}`}
               >
                 <div
-                  className={`text-sm font-medium mb-1 inline-flex items-center justify-center ${
+                  className={`text-sm font-normal mb-1 inline-flex items-center justify-center ${
                     today
-                      ? "w-7 h-7 rounded-full bg-blue-600 text-white"
-                      : "text-gray-900"
+                      ? "w-7 h-7 bg-black text-white"
+                      : "text-black"
                   }`}
                 >
                   {day}
@@ -242,19 +240,15 @@ function ActivitiesCalendarView({
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className={`text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
-                        isLeader
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -271,24 +265,24 @@ function ActivitiesCalendarView({
             return (
               <div
                 key={`next-${day}`}
-                className={`min-h-[120px] border-b border-gray-200 p-2 bg-gray-50 ${
-                  !isLastColumn ? "border-r" : ""
+                className={`min-h-[120px] border-b border-[#e5e5e5] p-2 bg-[#fafafa] ${
+                  !isLastColumn ? "border-r border-[#e5e5e5]" : ""
                 }`}
               >
-                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                <div className="text-xs font-normal text-[#999999] mb-1">{day}</div>
                 <div className="space-y-0.5">
                   {dayActivities.slice(0, 4).map((activity) => (
                     <div
                       key={activity._id}
-                      className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200 transition-colors"
+                      className="text-xs px-1.5 py-0.5 bg-white text-black border border-[#e5e5e5] truncate cursor-pointer hover:border-black transition-colors"
                       onClick={() => onActivityClick(activity._id)}
                       title={`${getTime(activity.dateTime)} - ${activity.name}`}
                     >
-                      <span className="font-medium">{getTime(activity.dateTime)}</span> {activity.name}
+                      <span className="font-normal">{getTime(activity.dateTime)}</span> {activity.name}
                     </div>
                   ))}
                   {dayActivities.length > 4 && (
-                    <div className="text-xs text-gray-500 font-medium px-1.5">
+                    <div className="text-xs font-normal text-[#666666] px-1.5">
                       +{dayActivities.length - 4} más
                     </div>
                   )}
@@ -323,10 +317,10 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
             e.stopPropagation();
             handleRespond("confirmed");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
+          className={`flex items-center gap-2 px-3 py-2 transition-colors font-normal text-sm flex-1 md:flex-initial border ${
             myResponse?.status === "confirmed"
-              ? "bg-green-100 text-green-700 border-2 border-green-300"
-              : "bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700 border-2 border-transparent"
+              ? "bg-green-50 text-black border-green-200"
+              : "bg-white text-black border-[#e5e5e5] hover:border-green-200 hover:bg-green-50"
           }`}
           title="Confirmar asistencia"
         >
@@ -338,10 +332,10 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
             e.stopPropagation();
             handleRespond("denied");
           }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-sm flex-1 md:flex-initial ${
+          className={`flex items-center gap-2 px-3 py-2 transition-colors font-normal text-sm flex-1 md:flex-initial border ${
             myResponse?.status === "denied"
-              ? "bg-red-100 text-red-700 border-2 border-red-300"
-              : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-700 border-2 border-transparent"
+              ? "bg-red-50 text-black border-red-200"
+              : "bg-white text-black border-[#e5e5e5] hover:border-red-200 hover:bg-red-50"
           }`}
           title="No asistiré"
         >
@@ -350,7 +344,7 @@ function ActivityResponseButtons({ activityId }: { activityId: Id<"activities"> 
         </button>
       </div>
       {myResponse?.status && (
-        <span className="text-xs text-gray-500 md:text-right w-full md:w-auto">
+        <span className="text-xs font-normal text-[#666666] md:text-right w-full md:w-auto">
           {myResponse.status === "confirmed" && "✓ Confirmado"}
           {myResponse.status === "denied" && "✗ No asistirás"}
         </span>
@@ -418,7 +412,7 @@ export default function MyGroup() {
   if (group === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
       </div>
     );
   }
@@ -449,25 +443,25 @@ export default function MyGroup() {
         />
 
         {/* Card para unirse */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full mb-4">
-              <HiUsers className="h-8 w-8 text-blue-500" />
+        <div className="bg-white border border-[#e5e5e5] p-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+              <HiUsers className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-normal text-black mb-3 tracking-tight">
               No perteneces a ningún grupo
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm font-normal text-[#666666]">
               Pide el código de invitación a un líder de grupo para unirte
             </p>
           </div>
 
           {/* Formulario para unirse */}
-          <form onSubmit={handleJoinGroup} className="space-y-4">
+          <form onSubmit={handleJoinGroup} className="space-y-6">
             <div>
               <label
                 htmlFor="invitationCode"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Código de Invitación
               </label>
@@ -488,22 +482,22 @@ export default function MyGroup() {
                   }}
                   placeholder="ABC123"
                   maxLength={6}
-                  className={`block w-full px-4 py-3 border rounded-xl bg-white font-mono text-lg text-center tracking-widest focus:outline-none focus:ring-2 transition-all ${
+                  className={`block w-full px-4 py-3 border bg-white font-mono text-lg text-center tracking-widest text-black focus:outline-none focus:border-black transition-colors ${
                     error
-                      ? "border-red-300 focus:ring-red-200"
-                      : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                      ? "border-[#d32f2f]"
+                      : "border-[#e5e5e5]"
                   }`}
                   required
                 />
               </div>
               {error && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-red-600">
+                <div className="mt-2 flex items-center gap-2 text-xs text-[#d32f2f]">
                   <HiXCircle className="h-4 w-4" />
                   <span>{error}</span>
                 </div>
               )}
               {success && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                <div className="mt-2 flex items-center gap-2 text-xs text-black">
                   <HiCheckCircle className="h-4 w-4" />
                   <span>¡Te has unido al grupo exitosamente!</span>
                 </div>
@@ -513,18 +507,18 @@ export default function MyGroup() {
             <button
               type="submit"
               disabled={isJoining || invitationCode.length !== 6}
-              className="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full px-4 py-3 bg-black text-white font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isJoining ? "Uniéndose..." : "Unirse al Grupo"}
             </button>
           </form>
 
           {/* Información adicional */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <p className="text-sm text-blue-800">
+          <div className="mt-8 p-4 bg-[#fafafa] border border-[#e5e5e5]">
+            <p className="text-sm font-normal text-black">
               <strong>¿Cómo obtener un código?</strong>
             </p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm font-normal text-[#666666] mt-1">
               Contacta a un líder de grupo y pídele el código de invitación de 6
               caracteres. Una vez que lo tengas, ingrésalo arriba para unirte al
               grupo.
@@ -545,19 +539,19 @@ export default function MyGroup() {
         />
 
         {/* Card del grupo */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white border border-[#e5e5e5] p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl font-normal text-black mb-2 tracking-tight">
                 {group.name}
               </h2>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm font-normal text-[#666666]">
                 <HiLocationMarker className="h-4 w-4" />
                 <span>{group.address}</span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">{group.district}</p>
+              <p className="text-sm font-normal text-[#666666] mt-1">{group.district}</p>
             </div>
-            <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+            <div className="px-3 py-1 bg-green-50 text-black border border-green-200 text-sm font-normal flex items-center gap-1">
               <HiCheckCircle className="h-4 w-4" />
               Activo
             </div>
@@ -566,38 +560,38 @@ export default function MyGroup() {
           {/* Información del grupo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {group.minAge && group.maxAge && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <HiUser className="h-5 w-5 text-blue-800" />
+              <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+                <div className="p-2">
+                  <HiUser className="h-5 w-5 text-black" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Rango de Edad</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Rango de Edad</p>
+                  <p className="text-sm font-normal text-black">
                     {group.minAge} - {group.maxAge} años
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <HiCalendar className="h-5 w-5 text-purple-600" />
+            <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+              <div className="p-2">
+                <HiCalendar className="h-5 w-5 text-black" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Día de Reunión</p>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Día de Reunión</p>
+                <p className="text-sm font-normal text-black">
                   {group.day}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <HiClock className="h-5 w-5 text-orange-600" />
+            <div className="flex items-center gap-3 p-3 bg-[#fafafa] border border-[#e5e5e5]">
+              <div className="p-2">
+                <HiClock className="h-5 w-5 text-black" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Hora</p>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Hora</p>
+                <p className="text-sm font-normal text-black">
                   {group.time}
                 </p>
               </div>
@@ -606,7 +600,7 @@ export default function MyGroup() {
 
           {/* Líderes */}
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            <h3 className="text-xs font-normal text-black mb-3 uppercase tracking-wide">
               Mis líderes
             </h3>
             <div className="space-y-2">
@@ -615,20 +609,22 @@ export default function MyGroup() {
                 .map((leader) => (
                   <div
                     key={leader._id}
-                    className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl border border-blue-100"
+                    className="flex items-center gap-3 p-3 bg-white border border-[#e5e5e5]"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-sky-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center font-normal ${
+                      leader.gender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                    }`}>
                       {(leader.name || leader.email || "U")[0].toUpperCase()}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-normal text-black">
                         {leader.name || "Sin nombre"}
                       </p>
                       {leader.email && (
-                        <p className="text-xs text-gray-600">{leader.email}</p>
+                        <p className="text-xs font-normal text-[#666666]">{leader.email}</p>
                       )}
                     </div>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    <span className="px-2 py-1 bg-[#fafafa] text-black border border-[#e5e5e5] text-xs font-normal">
                       {leader.gender === "Male" ? "Hombre" : "Mujer"}
                     </span>
                   </div>
@@ -638,11 +634,11 @@ export default function MyGroup() {
 
           {/* Mis consiervos */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            <h3 className="text-xs font-normal text-black mb-3 uppercase tracking-wide">
               Mis consiervos ({group.disciples.length})
             </h3>
             {group.disciples.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">
+              <p className="text-sm font-normal text-[#666666]">
                 Aún no hay consiervos en tu grupo
               </p>
             ) : (
@@ -653,25 +649,22 @@ export default function MyGroup() {
                     .slice(0, visibleDisciples)
                     .map((disciple) => {
                       const isMale = disciple.gender === "Male";
-      
-                      const avatarBg = isMale 
-                        ? "bg-blue-200 text-blue-800" 
-                        : "bg-red-200 text-red-800";
-                      
                       return (
                         <div
                           key={disciple._id}
-                          className={`flex items-center gap-3 p-3 bg-gray-50 border-gray-200 rounded-xl border`}
+                          className="flex items-center gap-3 p-3 bg-white border border-[#e5e5e5]"
                         >
-                          <div className={`flex-shrink-0 w-8 h-8 ${avatarBg} rounded-full flex items-center justify-center text-xs font-semibold`}>
+                          <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center text-xs font-normal ${
+                            isMale ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                          }`}>
                             {(disciple.name || disciple.email || "U")[0].toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-normal text-black truncate">
                               {disciple.name || "Sin nombre"}
                             </p>
                             {disciple.email && (
-                              <p className="text-xs text-gray-600 truncate">
+                              <p className="text-xs font-normal text-[#666666] truncate">
                                 {disciple.email}
                               </p>
                             )}
@@ -684,7 +677,7 @@ export default function MyGroup() {
                   <div className="mt-4 flex justify-center">
                     <button
                       onClick={() => setVisibleDisciples(prev => prev + 5)}
-                      className="px-6 py-2 text-sm font-medium rounded-lg text-blue-800 hover:text-blue-900  transition-colors"
+                      className="px-6 py-2 text-sm font-normal text-black hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
                     >
                       Ver más
                     </button>
@@ -696,43 +689,43 @@ export default function MyGroup() {
         </div>
 
         {/* Actividades */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
+        <div className="bg-white border border-[#e5e5e5] p-6 mt-6">
           <div className="flex flex-col gap-2 md:flex-row items-start md:items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 w-full md:w-auto">
+            <h3 className="text-lg font-normal text-black w-full md:w-auto">
               Actividades ({activities?.length || 0})
             </h3>
             {/* Toggle de vista */}
             {activities && activities.length > 0 && (
-              <div className="flex items-center justify-between gap-1 bg-gray-100 rounded-lg p-1 w-full md:w-auto">
+              <div className="flex items-center border border-[#e5e5e5] w-full md:w-auto">
                 <button
                   onClick={() => setActivitiesView("list")}
-                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-2 transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                     activitiesView === "list"
-                      ? "bg-white text-blue-800 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-black text-white"
+                      : "bg-white text-black hover:bg-[#fafafa]"
                   }`}
                   title="Vista de lista"
                 >
                   <HiViewList className="h-4 w-4" />
-                  <span className="text-sm font-medium">Lista</span>
+                  <span className="text-sm font-normal">Lista</span>
                 </button>
                 <button
                   onClick={() => setActivitiesView("calendar")}
-                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                  className={`flex flex-1 justify-center items-center gap-2 px-3 py-2 transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                     activitiesView === "calendar"
-                      ? "bg-white text-blue-800 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-black text-white"
+                      : "bg-white text-black hover:bg-[#fafafa]"
                   }`}
                   title="Vista de calendario"
                 >
                   <IoIosCalendar className="h-4 w-4" />
-                  <span className="text-sm font-medium">Calendario</span>
+                  <span className="text-sm font-normal">Calendario</span>
                 </button>
               </div>
             )}
           </div>
           {!activities || activities.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm font-normal text-[#666666]">
               Aún no hay actividades en este grupo
             </p>
           ) : activitiesView === "list" ? (
@@ -743,19 +736,19 @@ export default function MyGroup() {
                 return (
                   <div
                     key={activity._id}
-                    className="p-4 rounded-xl border-2 border-gray-200 transition-all cursor-pointer hover:border-blue-300 hover:shadow-md"
+                    className="p-4 border border-[#e5e5e5] transition-colors cursor-pointer hover:border-black"
                     onClick={() => setSelectedActivityId(activity._id)}
                   >
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-base font-semibold text-gray-900 mb-1">
+                        <h4 className="text-base font-normal text-black mb-1">
                           {activity.name}
                         </h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                        <div className="flex items-center gap-2 text-sm font-normal text-[#666666] mb-1">
                           <HiLocationMarker className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate">{activity.address}</span>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm font-normal text-[#666666]">
                           <div className="flex items-center gap-1">
                             <HiCalendar className="h-4 w-4 flex-shrink-0" />
                             <span className="truncate">{dateTime.date}</span>
@@ -780,7 +773,6 @@ export default function MyGroup() {
           ) : (
             <ActivitiesCalendarView
               activities={activities}
-              isLeader={false}
               onActivityClick={(activityId) => setSelectedActivityId(activityId)}
               ActivityResponseButtons={ActivityResponseButtons}
             />
@@ -793,16 +785,16 @@ export default function MyGroup() {
             isOpen={!!selectedActivityId}
             onClose={() => setSelectedActivityId(null)}
             title={activityDetails.activity.name}
-            maxWidth="xl"
+            maxWidth="4xl"
           >
             <div className="space-y-6">
               {/* Información de la actividad */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm font-normal text-[#666666]">
                   <HiLocationMarker className="h-4 w-4" />
                   <span>{activityDetails.activity.address}</span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-4 text-sm font-normal text-[#666666]">
                   <div className="flex items-center gap-1">
                     <HiCalendar className="h-4 w-4" />
                     <span>{formatDateTime(activityDetails.activity.dateTime).date}</span>
@@ -813,7 +805,7 @@ export default function MyGroup() {
                   </div>
                 </div>
                 <div
-                  className="prose prose-sm max-w-none text-sm text-gray-700"
+                  className="prose prose-sm max-w-none text-sm font-normal text-black"
                   dangerouslySetInnerHTML={{
                     __html: activityDetails.activity.description,
                   }}
@@ -821,28 +813,28 @@ export default function MyGroup() {
               </div>
 
               {/* Botones de confirmación en el popup */}
-              <div className="flex items-center justify-center gap-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-center gap-3 pt-4 border-t border-[#e5e5e5]">
                 <ActivityResponseButtons activityId={selectedActivityId} />
               </div>
 
               {/* Listas de respuestas */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Confirmados */}
-                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                <div className="bg-green-50 p-4 border border-green-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <HiCheckCircle className="h-5 w-5 text-green-600" />
-                    <h4 className="font-semibold text-green-900">
+                    <HiCheckCircle className="h-5 w-5 text-black" />
+                    <h4 className="font-normal text-black text-sm">
                       Confirmados ({activityDetails.responses.confirmed.length})
                     </h4>
                   </div>
                   <div className="space-y-2">
                     {activityDetails.responses.confirmed.length === 0 ? (
-                      <p className="text-xs text-green-700 italic">Ninguno</p>
+                      <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                     ) : (
                       activityDetails.responses.confirmed.map((response) => (
                         <div
                           key={response._id}
-                          className="text-sm text-green-800 bg-white rounded-lg p-2"
+                          className="text-sm font-normal text-black bg-white p-2 border border-green-200"
                         >
                           {response.user?.name || response.user?.email || "Usuario"}
                         </div>
@@ -852,21 +844,21 @@ export default function MyGroup() {
                 </div>
 
                 {/* Pendientes */}
-                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                <div className="bg-yellow-50 p-4 border border-yellow-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <HiPending className="h-5 w-5 text-yellow-600" />
-                    <h4 className="font-semibold text-yellow-900">
+                    <HiPending className="h-5 w-5 text-black" />
+                    <h4 className="font-normal text-black text-sm">
                       Por Confirmar ({activityDetails.responses.pending.length})
                     </h4>
                   </div>
                   <div className="space-y-2">
                     {activityDetails.responses.pending.length === 0 ? (
-                      <p className="text-xs text-yellow-700 italic">Ninguno</p>
+                      <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                     ) : (
                       activityDetails.responses.pending.map((response, idx) => (
                         <div
                           key={response._id || `pending-${idx}`}
-                          className="text-sm text-yellow-800 bg-white rounded-lg p-2"
+                          className="text-sm font-normal text-black bg-white p-2 border border-yellow-200"
                         >
                           {response.user?.name || response.user?.email || "Usuario"}
                         </div>
@@ -876,21 +868,21 @@ export default function MyGroup() {
                 </div>
 
                 {/* Denegados */}
-                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                <div className="bg-red-50 p-4 border border-red-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <HiXCircle className="h-5 w-5 text-red-600" />
-                    <h4 className="font-semibold text-red-900">
+                    <HiXCircle className="h-5 w-5 text-black" />
+                    <h4 className="font-normal text-black text-sm">
                       Denegados ({activityDetails.responses.denied.length})
                     </h4>
                   </div>
                   <div className="space-y-2">
                     {activityDetails.responses.denied.length === 0 ? (
-                      <p className="text-xs text-red-700 italic">Ninguno</p>
+                      <p className="text-xs font-normal text-[#666666]">Ninguno</p>
                     ) : (
                       activityDetails.responses.denied.map((response) => (
                         <div
                           key={response._id}
-                          className="text-sm text-red-800 bg-white rounded-lg p-2"
+                          className="text-sm font-normal text-black bg-white p-2 border border-red-200"
                         >
                           {response.user?.name || response.user?.email || "Usuario"}
                         </div>

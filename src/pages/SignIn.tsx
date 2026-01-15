@@ -139,15 +139,15 @@ export function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 p-4">
-      <div className="w-full max-w-md animate-fadeIn">
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] p-4">
+      <div className="w-full max-w-md">
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-200 to-blue-200 rounded-2xl mb-4 shadow-lg">
-            <HiSparkles className="h-8 w-8 text-blue-800" />
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-black mb-6">
+            <HiSparkles className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Crossmunity</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-normal text-black mb-3 tracking-tight">Crossmunity</h1>
+          <p className="text-sm text-[#666666] font-normal">
             {step === "signIn"
               ? "Bienvenido de vuelta"
               : "Crea tu cuenta para comenzar"}
@@ -155,36 +155,36 @@ export function SignIn() {
         </div>
 
         {/* Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white border border-[#e5e5e5] p-10">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name field (only for sign up) */}
             {step === "signUp" && (
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
                 >
                   Nombre completo
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <HiUser className="h-5 w-5 text-gray-400" />
+                    <HiUser className="h-4 w-4 text-[#999999]" />
                   </div>
                   <input
                     id="name"
                     name="name"
                     type="text"
                     required
-                    className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                    className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                       errors.name
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                        ? "border-[#d32f2f]"
+                        : "border-[#e5e5e5]"
                     }`}
                     placeholder="Juan Pérez"
                   />
                 </div>
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.name}</p>
                 )}
               </div>
             )}
@@ -193,29 +193,29 @@ export function SignIn() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <HiMail className="h-5 w-5 text-gray-400" />
+                  <HiMail className="h-4 w-4 text-[#999999]" />
                 </div>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   required
-                    className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                    className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                       errors.email
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                        ? "border-[#d32f2f]"
+                        : "border-[#e5e5e5]"
                     }`}
                   placeholder="tu@email.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                <p className="mt-2 text-xs text-[#d32f2f]">{errors.email}</p>
               )}
             </div>
 
@@ -223,29 +223,29 @@ export function SignIn() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
               >
                 Contraseña
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <HiLockClosed className="h-5 w-5 text-gray-400" />
+                  <HiLockClosed className="h-4 w-4 text-[#999999]" />
                 </div>
                 <input
                   id="password"
                   name="password"
                   type="password"
                   required
-                    className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                    className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                       errors.password
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                        ? "border-[#d32f2f]"
+                        : "border-[#e5e5e5]"
                     }`}
                   placeholder={step === "signIn" ? "••••••••" : "Mínimo 6 caracteres"}
                 />
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                <p className="mt-2 text-xs text-[#d32f2f]">{errors.password}</p>
               )}
             </div>
 
@@ -254,29 +254,29 @@ export function SignIn() {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
                 >
                   Confirmar contraseña
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <HiLockClosed className="h-5 w-5 text-gray-400" />
+                    <HiLockClosed className="h-4 w-4 text-[#999999]" />
                   </div>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type="password"
                     required
-                    className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                    className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                       errors.confirmPassword
-                        ? "border-red-300 focus:ring-red-200"
-                        : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                        ? "border-[#d32f2f]"
+                        : "border-[#e5e5e5]"
                     }`}
                     placeholder="Repite tu contraseña"
                   />
                 </div>
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">
+                  <p className="mt-2 text-xs text-[#d32f2f]">
                     {errors.confirmPassword}
                   </p>
                 )}
@@ -286,21 +286,21 @@ export function SignIn() {
             {/* Role field (only for sign up) */}
             {step === "signUp" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
                   Rol
                 </label>
                 <div className="relative">
-                  <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+                  <div className="flex border border-[#e5e5e5]">
                     <button
                       type="button"
                       onClick={() => {
                         setRole("Member");
                         setErrors((prev) => ({ ...prev, role: "" }));
                       }}
-                      className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-200 relative ${
+                      className={`flex-1 py-3 px-4 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                         role === "Member"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-black text-white"
+                          : "bg-white text-black hover:bg-[#fafafa]"
                       }`}
                     >
                       Miembro
@@ -311,10 +311,10 @@ export function SignIn() {
                         setRole("Pastor");
                         setErrors((prev) => ({ ...prev, role: "" }));
                       }}
-                      className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-200 relative ${
+                      className={`flex-1 py-3 px-4 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
                         role === "Pastor"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-black text-white"
+                          : "bg-white text-black hover:bg-[#fafafa]"
                       }`}
                     >
                       Pastor
@@ -328,7 +328,7 @@ export function SignIn() {
                   />
                 </div>
                 {errors.role && (
-                  <p className="mt-1 text-sm text-red-500">{errors.role}</p>
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.role}</p>
                 )}
               </div>
             )}
@@ -338,7 +338,7 @@ export function SignIn() {
               <div>
                 <label
                   htmlFor="gender"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
                 >
                   Género
                 </label>
@@ -346,10 +346,10 @@ export function SignIn() {
                   id="gender"
                   name="gender"
                   required
-                  className={`block w-full px-4 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                  className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
                     errors.gender
-                      ? "border-red-300 focus:ring-red-200"
-                      : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                      ? "border-[#d32f2f]"
+                      : "border-[#e5e5e5]"
                   }`}
                 >
                   <option value="">Selecciona tu género</option>
@@ -357,7 +357,7 @@ export function SignIn() {
                   <option value="Female">Mujer</option>
                 </select>
                 {errors.gender && (
-                  <p className="mt-1 text-sm text-red-500">{errors.gender}</p>
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.gender}</p>
                 )}
               </div>
             )}
@@ -365,22 +365,22 @@ export function SignIn() {
             {/* Grid/Red field (only for sign up) */}
             {step === "signUp" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Red <span className="text-gray-400 font-normal">(opcional)</span>
+                <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
+                  Red <span className="text-[#999999] font-normal normal-case">(opcional)</span>
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-[#666666] mb-3 font-normal">
                   Busca y selecciona la red a la que perteneces (opcional)
                 </p>
                 
                 <div className="relative" ref={gridSearchRef}>
                   {selectedGrid ? (
-                    <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-between px-4 py-3 bg-[#fafafa] border border-[#e5e5e5]">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-normal text-black">
                           {selectedGrid.name}
                         </p>
                         {selectedGrid.pastor && (
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-[#666666] mt-1">
                             Pastor: {selectedGrid.pastor.name || selectedGrid.pastor.email}
                           </p>
                         )}
@@ -388,16 +388,16 @@ export function SignIn() {
                       <button
                         type="button"
                         onClick={handleRemoveGrid}
-                        className="p-1 rounded-full hover:bg-blue-100 transition-colors"
+                        className="p-1 hover:bg-[#e5e5e5] transition-colors"
                       >
-                        <HiX className="h-4 w-4 text-gray-600" />
+                        <HiX className="h-4 w-4 text-black" />
                       </button>
                     </div>
                   ) : (
                     <>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <HiSearch className="h-5 w-5 text-gray-400" />
+                          <HiSearch className="h-4 w-4 text-[#999999]" />
                         </div>
                         <input
                           type="text"
@@ -412,10 +412,10 @@ export function SignIn() {
                               setShowGridResults(true);
                             }
                           }}
-                          className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all ${
+                          className={`block w-full pl-10 pr-3 py-3 border bg-white text-black placeholder-[#999999] focus:outline-none focus:border-black transition-colors ${
                             errors.grid
-                              ? "border-red-300 focus:ring-red-200"
-                              : "border-gray-200 focus:ring-sky-200 focus:border-sky-300"
+                              ? "border-[#d32f2f]"
+                              : "border-[#e5e5e5]"
                           }`}
                           placeholder="Buscar red por nombre..."
                         />
@@ -423,29 +423,29 @@ export function SignIn() {
 
                       {/* Resultados de búsqueda */}
                       {showGridResults && gridSearch.length >= 2 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] max-h-60 overflow-y-auto">
                           {gridSearchResults === undefined ? (
-                            <div className="p-4 text-center text-sm text-gray-500">
+                            <div className="p-4 text-center text-sm text-[#666666]">
                               Buscando...
                             </div>
                           ) : gridSearchResults.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-gray-500">
+                            <div className="p-4 text-center text-sm text-[#666666]">
                               No se encontraron redes con ese nombre
                             </div>
                           ) : (
-                            <div className="py-2">
+                            <div>
                               {gridSearchResults.map((grid) => (
                                 <button
                                   key={grid._id}
                                   type="button"
                                   onClick={() => handleSelectGrid(grid)}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                                  className="w-full px-4 py-3 text-left hover:bg-[#fafafa] transition-colors border-b border-[#e5e5e5] last:border-b-0"
                                 >
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-normal text-black">
                                     {grid.name}
                                   </p>
                                   {grid.pastor && (
-                                    <p className="text-xs text-gray-600 mt-1">
+                                    <p className="text-xs text-[#666666] mt-1">
                                       Pastor: {grid.pastor.name || grid.pastor.email}
                                     </p>
                                   )}
@@ -459,7 +459,7 @@ export function SignIn() {
                   )}
                 </div>
                 {errors.grid && (
-                  <p className="mt-1 text-sm text-red-500">{errors.grid}</p>
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.grid}</p>
                 )}
                 <input
                   name="gridId"
@@ -474,8 +474,8 @@ export function SignIn() {
 
             {/* Submit error */}
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-sm text-red-600">{errors.submit}</p>
+              <div className="bg-[#ffebee] border border-[#ffcdd2] p-3">
+                <p className="text-xs text-[#d32f2f]">{errors.submit}</p>
               </div>
             )}
 
@@ -483,7 +483,7 @@ export function SignIn() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-sky-500 to-blue-500 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full bg-black text-white py-3 px-4 font-normal text-sm hover:bg-[#333333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
             >
               {isLoading
                 ? "Procesando..."
@@ -494,7 +494,7 @@ export function SignIn() {
           </form>
 
           {/* Toggle between sign in and sign up */}
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <button
               type="button"
               onClick={() => {
@@ -506,19 +506,19 @@ export function SignIn() {
                 setSelectedGrid(null);
                 setShowGridResults(false);
               }}
-              className="text-sm text-gray-600 ç∂ transition-colors"
+              className="text-xs text-[#666666] font-normal transition-colors hover:text-black"
             >
               {step === "signIn" ? (
                 <>
                   ¿No tienes cuenta?{" "}
-                  <span className="font-semibold text-blue-800 hover:text-blue-900 transition-colors hover:underline">
+                  <span className="text-black hover:underline">
                     Regístrate aquí
                   </span>
                 </>
               ) : (
                 <>
                   ¿Ya tienes cuenta?{" "}
-                  <span className="font-semibold text-blue-800 hover:text-blue-900 transition-colors hover:underline">
+                  <span className="text-black hover:underline">
                     Inicia sesión aquí
                   </span>
                 </>
@@ -528,7 +528,7 @@ export function SignIn() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-xs text-[#999999] mt-8 font-normal">
           Al continuar, aceptas nuestros términos y condiciones
         </p>
       </div>
