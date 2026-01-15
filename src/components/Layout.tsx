@@ -79,8 +79,8 @@ const Layout = () => {
           {/* Header móvil */}
           <div className="flex h-20 items-center justify-between px-6 border-b border-[#e5e5e5]">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-black">
-                <HiSparkles className="h-6 w-6 text-white" />
+              <div className="flex items-center justify-center bg-black">
+                <img src="/logo.png" alt="Crossmunity" className="h-10 w-10" />
               </div>
               <h1 className="text-xl font-normal text-black tracking-tight">Crossmunity</h1>
             </div>
@@ -166,8 +166,8 @@ const Layout = () => {
           {/* Header desktop */}
           <div className="flex h-20 items-center px-6 border-b border-[#e5e5e5]">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-black">
-                <HiSparkles className="h-6 w-6 text-white" />
+              <div className="flex items-center justify-center  bg-black">
+                <img src="/logo.png" alt="Crossmunity" className="h-10 w-10" />
               </div>
               <h1 className="text-xl font-normal text-black tracking-tight">Crossmunity</h1>
             </div>

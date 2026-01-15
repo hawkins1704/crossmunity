@@ -1,6 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect, useRef } from "react";
-import { HiMail, HiLockClosed, HiUser, HiSparkles, HiSearch, HiX } from "react-icons/hi";
+import { HiMail, HiLockClosed, HiUser,  HiSearch, HiX } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -143,10 +143,10 @@ export function SignIn() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-black mb-6">
-            <HiSparkles className="h-6 w-6 text-white" />
+          <div className="inline-flex items-center justify-center">
+            <img src="/logo.png" alt="Crossmunity" className="h-24 w-24 mb-2" />
           </div>
-          <h1 className="text-2xl font-normal text-black mb-3 tracking-tight">Crossmunity</h1>
+          <h1 className="text-3xl font-normal text-black mb-2 tracking-tight">Crossmunity</h1>
           <p className="text-sm text-[#666666] font-normal">
             {step === "signIn"
               ? "Bienvenido de vuelta"
@@ -527,10 +527,7 @@ export function SignIn() {
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-[#999999] mt-8 font-normal">
-          Al continuar, aceptas nuestros términos y condiciones
-        </p>
+       
       </div>
     </div>
   );
