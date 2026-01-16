@@ -27,10 +27,11 @@ export const getActivitiesByGroup = query({
       throw new Error("No tienes acceso a este grupo");
     }
 
-    // Obtener actividades ordenadas por fecha (más recientes primero)
+    // Obtener actividades ordenadas por fecha usando el índice compuesto groupId_dateTime
+    // Esto es más eficiente que usar solo groupId y ordenar en memoria
     const activities = await ctx.db
       .query("activities")
-      .withIndex("groupId", (q) => q.eq("groupId", args.groupId))
+      .withIndex("groupId_dateTime", (q) => q.eq("groupId", args.groupId))
       .order("desc")
       .collect();
 

@@ -188,6 +188,77 @@ export const getGroupById = query({
 });
 
 /**
+ * Query: Obtiene todos los discípulos de un grupo específico
+ * Solo accesible para líderes del grupo
+ * Útil para mostrar todos los discípulos de un grupo (incluyendo los del colíder)
+ */
+export const getGroupDisciples = query({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const group = await ctx.db.get(args.groupId);
+    if (!group) {
+      throw new Error("Grupo no encontrado");
+    }
+
+    // Verificar que el usuario es líder del grupo
+    if (!group.leaders.includes(userId)) {
+      throw new Error("Solo los líderes pueden ver los discípulos del grupo");
+    }
+
+    // Obtener todos los discípulos del grupo
+    const disciples = await Promise.all(
+      group.disciples.map((discipleId) => ctx.db.get(discipleId))
+    );
+
+    return disciples.filter(
+      (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
+    );
+  },
+});
+
+/**
+ * Query: Obtiene todos los discípulos de todos los grupos donde el usuario es líder
+ * Útil para mostrar todos los discípulos cuando no hay un grupo específico seleccionado
+ * Incluye discípulos de ambos líderes (hombre y mujer) en grupos mixtos
+ */
+export const getAllDisciplesFromAllGroups = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Obtener todos los grupos donde el usuario es líder
+    const allGroups = await ctx.db.query("groups").collect();
+    const userGroups = allGroups.filter((group) => group.leaders.includes(userId));
+
+    // Recopilar todos los IDs de discípulos de todos los grupos (sin duplicados)
+    const allDiscipleIds = new Set<Id<"users">>();
+    
+    for (const group of userGroups) {
+      for (const discipleId of group.disciples) {
+        allDiscipleIds.add(discipleId);
+      }
+    }
+
+    // Obtener información de todos los discípulos únicos
+    const disciples = await Promise.all(
+      Array.from(allDiscipleIds).map((discipleId) => ctx.db.get(discipleId))
+    );
+
+    return disciples.filter(
+      (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
+    );
+  },
+});
+
+/**
  * Query: Obtiene información de discípulos que son líderes de otros grupos
  * Recibe un array de user IDs y retorna cuáles son líderes junto con información de sus grupos
  */

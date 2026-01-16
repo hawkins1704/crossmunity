@@ -392,6 +392,7 @@ export default function Groups() {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         title="Crear Nuevo Grupo"
+        maxWidth="3xl"
       >
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Nombre del grupo */}

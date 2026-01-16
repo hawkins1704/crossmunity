@@ -14,6 +14,10 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { MdMan, MdWoman } from "react-icons/md";
 import type { IconType } from "react-icons";
 import { LuBaby } from "react-icons/lu";
+import AgeDistributionChart from "../components/Statistics/AgeDistributionChart";
+import GenderDistributionChart from "../components/Statistics/GenderDistributionChart";
+import AttendanceTrendsChart from "../components/Statistics/AttendanceTrendsChart";
+import ServiceDistributionChart from "../components/Statistics/ServiceDistributionChart";
 
 // Componente reutilizable para las cards de registro
 function RegistrationCard({
@@ -125,6 +129,7 @@ export default function Home() {
     const dashboard = useQuery(api.users.getDashboard);
     const recordAttendance = useMutation(api.attendance.recordAttendance);
 
+    const [activeTab, setActiveTab] = useState<"reportes" | "estadisticas">("reportes");
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
     const [selectedMonth, setSelectedMonth] = useState<number | null>(
         getCurrentMonth()
@@ -179,25 +184,24 @@ export default function Home() {
     // Obtener grupos del usuario actual (si es líder)
     const userGroups = useQuery(api.groups.getGroupsAsLeader);
 
-    // Obtener discípulos del usuario actual (si es líder)
-    // Si hay un grupo seleccionado, filtrar discípulos de ese grupo
-    const allDisciples = useQuery(
-        api.users.getDisciplesByLeader,
-        dashboard?.user._id ? { leaderId: dashboard.user._id } : "skip"
+    // Obtener todos los discípulos de todos los grupos (cuando no hay grupo seleccionado)
+    const allDisciplesFromAllGroups = useQuery(
+        api.groups.getAllDisciplesFromAllGroups,
+        dashboard?.user._id ? {} : "skip"
     );
 
-    // Filtrar discípulos por grupo si hay uno seleccionado
-    const disciples =
-        selectedGroupId && userGroups
-            ? allDisciples?.filter((disciple) => {
-                  const group = userGroups.find(
-                      (g) => g._id === selectedGroupId
-                  );
-                  return group?.disciples.some(
-                      (d) => d && d._id === disciple._id
-                  );
-              })
-            : allDisciples;
+    // Obtener todos los discípulos del grupo seleccionado (incluyendo los del colíder)
+    const groupDisciples = useQuery(
+        api.groups.getGroupDisciples,
+        selectedGroupId ? { groupId: selectedGroupId } : "skip"
+    );
+
+    // Determinar qué discípulos mostrar:
+    // - Si hay un grupo seleccionado, mostrar todos los discípulos de ese grupo (incluyendo los del colíder)
+    // - Si no hay grupo seleccionado, mostrar todos los discípulos de TODOS los grupos del usuario
+    const disciples = selectedGroupId && groupDisciples
+        ? groupDisciples
+        : allDisciplesFromAllGroups;
 
     // Obtener colíderes del usuario actual
     const coLeaders = useQuery(api.attendance.getCoLeaders);
@@ -492,6 +496,65 @@ export default function Home() {
         "Diciembre",
     ];
 
+    // Queries para estadísticas (deben estar antes del return condicional)
+    const genderDistribution = useQuery(
+        api.statistics.getGenderDistribution,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+              }
+            : "skip"
+    );
+
+    const ageDistribution = useQuery(
+        api.statistics.getAgeDistribution,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+              }
+            : "skip"
+    );
+
+    const attendanceTrends = useQuery(
+        api.statistics.getAttendanceTrends,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+                  viewMode: viewMode,
+              }
+            : "skip"
+    );
+
+    const serviceDistribution = useQuery(
+        api.statistics.getServiceDistribution,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+              }
+            : "skip"
+    );
+
+
     if (dashboard === undefined || periodReport === undefined) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -504,16 +567,46 @@ export default function Home() {
     const currentGroupReport = periodGroupReport;
 
     return (
-        <div className="min-h-screen bg-[#fafafa] p-4 md:p-8">
+        <div className="bg-[#fafafa] p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                {/* Header con filtro de periodo a la derecha */}
-                <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
-                    <h1 className="text-2xl font-normal text-black tracking-tight">
+                {/* Header con título y tabs */}
+                <div className="mb-8">
+                    <h1 className="text-2xl font-normal text-black tracking-tight mb-4">
                         Dashboard
                     </h1>
+                    
+                    {/* Tabs */}
+                    <div className="flex border-b border-[#e5e5e5]">
+                        <button
+                            onClick={() => setActiveTab("reportes")}
+                            className={`px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
+                                activeTab === "reportes"
+                                    ? "border-black text-black"
+                                    : "border-transparent text-[#666666] hover:text-black"
+                            }`}
+                        >
+                            REPORTES
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("estadisticas")}
+                            className={`px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
+                                activeTab === "estadisticas"
+                                    ? "border-black text-black"
+                                    : "border-transparent text-[#666666] hover:text-black"
+                            }`}
+                        >
+                            ESTADISTICAS
+                        </button>
+                    </div>
+                </div>
 
-                    {/* Filtro de periodo en la parte superior derecha */}
-                    <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
+                {/* Contenido de tabs */}
+                {activeTab === "reportes" && (
+                    <>
+                        {/* Header con filtro de periodo a la derecha */}
+                        <div className="mb-8 flex items-center justify-end flex-wrap gap-4">
+                            {/* Filtro de periodo en la parte superior derecha */}
+                            <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
                         {/* Selector de modo Mes/Año */}
                         <div className="flex flex-1 items-center border border-[#e5e5e5]">
                             <button
@@ -581,8 +674,8 @@ export default function Home() {
                     <div className="mb-4">
                         <h2 className="text-lg font-normal text-black">
                             {viewMode === "month"
-                                ? "Contadores del Mes"
-                                : "Contadores del Año"}
+                                ? "Mis registros del mes"
+                                : "Mis registros del año"}
                         </h2>
                     </div>
 
@@ -736,28 +829,20 @@ export default function Home() {
                                     </div>
                                     <div className="text-xs text-black">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.nuevos.male || 0}{" "}
-                                                hombres
+                                                    ?.nuevos.male || 0}
                                             </div>
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.nuevos.female || 0}{" "}
-                                                mujeres
+                                                    ?.nuevos.female || 0}
                                             </div>
-                                            {((currentGroupReport.groupReport
-                                                ?.nuevos as { kids?: number })?.kids || 0) > 0 && (
-                                                <div className="text-black flex items-center">
-                                                    👶{" "}
-                                                    {(currentGroupReport
-                                                        .groupReport?.nuevos as { kids?: number })
-                                                        ?.kids || 0}{" "}
-                                                    niños
-                                                </div>
-                                            )}
+                                            <div className="text-black flex items-center gap-1">
+                                                <LuBaby className="h-4 w-4" />
+                                                {currentGroupReport.groupReport?.nuevos.kids || 0}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -778,33 +863,25 @@ export default function Home() {
                                     </div>
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.asistencias.male ||
-                                                    0}{" "}
-                                                hombres
+                                                    0}
+                                                
                                             </div>
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.asistencias.female ||
-                                                    0}{" "}
-                                                mujeres
+                                                    0}
+                                                
                                             </div>
-                                            {((currentGroupReport.groupReport
-                                                ?.asistencias as { kids?: number })?.kids || 0) >
-                                                0 && (
-                                                <div className="text-black flex items-center">
-                                                    <LuBaby className="h-4 w-4" />
-                                                    {(currentGroupReport
-                                                        .groupReport
-                                                        ?.asistencias as { kids?: number })
-                                                        ?.kids ||
-                                                        0}{" "}
-                                                    niños
-                                                </div>
-                                            )}
+                                            <div className="text-black flex items-center gap-1">
+                                                <LuBaby className="h-4 w-4" />
+                                                {currentGroupReport.groupReport?.asistencias.kids || 0}
+                                                
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -825,28 +902,20 @@ export default function Home() {
                                     </div>
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.reset.male || 0}{" "}
-                                                hombres
+                                                    ?.reset.male || 0}
                                             </div>
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
-                                                    ?.reset.female || 0}{" "}
-                                                mujeres
+                                                    ?.reset.female || 0}
                                             </div>
-                                            {((currentGroupReport.groupReport
-                                                ?.reset as { kids?: number })?.kids || 0) > 0 && (
-                                                <div className="text-black flex items-center">
-                                                    <LuBaby className="h-4 w-4" />
-                                                    {(currentGroupReport
-                                                        .groupReport?.reset as { kids?: number })
-                                                        ?.kids || 0}{" "}
-                                                    niños
-                                                </div>
-                                            )}
+                                            <div className="text-black flex items-center gap-1">
+                                                <LuBaby className="h-4 w-4" />
+                                                {currentGroupReport.groupReport?.reset.kids || 0}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -867,33 +936,22 @@ export default function Home() {
                                     </div>
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.conferencia.male ||
-                                                    0}{" "}
-                                                hombres
+                                                    0}
                                             </div>
-                                            <div className="text-black flex items-center">
+                                            <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
                                                 {currentGroupReport.groupReport
                                                     ?.conferencia.female ||
-                                                    0}{" "}
-                                                mujeres
+                                                    0}
                                             </div>
-                                            {((currentGroupReport.groupReport
-                                                ?.conferencia as { kids?: number })?.kids || 0) >
-                                                0 && (
-                                                <div className="text-black flex items-center">
-                                                    <LuBaby className="h-4 w-4" />
-                                                    {(currentGroupReport
-                                                        .groupReport
-                                                        ?.conferencia as { kids?: number })
-                                                        ?.kids ||
-                                                        0}{" "}
-                                                    niños
-                                                </div>
-                                            )}
+                                            <div className="text-black flex items-center gap-1">
+                                                <LuBaby className="h-4 w-4" />
+                                                {currentGroupReport.groupReport?.conferencia.kids || 0}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -916,7 +974,7 @@ export default function Home() {
                                     ? "Registrar RESET"
                                     : "Registrar Conferencia"
                         }
-                        maxWidth="md"
+                        maxWidth="xl"
                     >
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Fecha */}
@@ -1379,6 +1437,205 @@ export default function Home() {
                             </div>
                         </form>
                     </Modal>
+                )}
+                    </>
+                )}
+
+                {activeTab === "estadisticas" && (
+                    <div className="space-y-8">
+                        {/* Filtros */}
+                        <div className="bg-white border border-[#e5e5e5] p-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                {/* Dropdown de grupos */}
+                                {userGroups && userGroups.length > 0 && (
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <label className="text-xs font-normal text-black uppercase tracking-wide whitespace-nowrap">
+                                            Por Grupo:
+                                        </label>
+                                        <div className="relative flex-1">
+                                            <select
+                                                value={selectedGroupId || ""}
+                                                onChange={(e) =>
+                                                    handleGroupChange(
+                                                        e.target.value
+                                                            ? (e.target
+                                                                  .value as Id<"groups">)
+                                                            : null
+                                                    )
+                                                }
+                                                className="appearance-none bg-white border border-[#e5e5e5] px-4 py-3 pr-10 text-sm font-normal text-black hover:border-black focus:outline-none focus:border-black transition-colors cursor-pointer w-full"
+                                            >
+                                                <option value="">
+                                                    Todos los grupos
+                                                </option>
+                                                {userGroups.map((group) => (
+                                                    <option
+                                                        key={group._id}
+                                                        value={group._id}
+                                                    >
+                                                        {group.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#999999] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Filtro de periodo */}
+                                <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
+                                    {/* Selector de modo Mes/Año */}
+                                    <div className="flex flex-1 items-center border border-[#e5e5e5]">
+                                        <button
+                                            onClick={() =>
+                                                handleViewModeChange("month")
+                                            }
+                                            className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "month"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Mes
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                handleViewModeChange("year")
+                                            }
+                                            className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "year"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Año
+                                        </button>
+                                    </div>
+
+                                    {/* Navegación de período */}
+                                    <div className="flex flex-1 items-center gap-2">
+                                        <button
+                                            onClick={handlePreviousPeriod}
+                                            className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
+                                            title="Período anterior"
+                                        >
+                                            <HiChevronLeft className="h-5 w-5 text-black" />
+                                        </button>
+                                        <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
+                                            {viewMode === "month" &&
+                                            selectedMonth
+                                                ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
+                                                : `${selectedYear}`}
+                                        </span>
+                                        <button
+                                            onClick={handleNextPeriod}
+                                            className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={
+                                                viewMode === "month" &&
+                                                selectedMonth ===
+                                                    getCurrentMonth() &&
+                                                selectedYear ===
+                                                    new Date().getFullYear()
+                                            }
+                                            title="Período siguiente"
+                                        >
+                                            <HiChevronRight
+                                                className={`h-5 w-5 ${
+                                                    viewMode === "month" &&
+                                                    selectedMonth ===
+                                                        getCurrentMonth() &&
+                                                    selectedYear ===
+                                                        new Date().getFullYear()
+                                                        ? "text-[#999999]"
+                                                        : "text-black"
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sección 1: Demografía y Composición */}
+                        <div>
+                            <h2 className="text-xl font-normal text-black mb-6">
+                                Demografía y Composición
+                            </h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Gráfico 1A: Distribución por Género */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Distribución por Género
+                                    </h3>
+                                    {genderDistribution === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <GenderDistributionChart
+                                            data={genderDistribution}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Gráfico 1B: Distribución por Edad */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Distribución por Edad
+                                    </h3>
+                                    {ageDistribution === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <AgeDistributionChart
+                                            data={ageDistribution}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sección 2: Asistencia y Crecimiento */}
+                        <div>
+                            <h2 className="text-xl font-normal text-black mb-6">
+                                Asistencia y Crecimiento
+                            </h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Gráfico 2A: Tendencias de Asistencia */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Tendencias de Asistencia
+                                    </h3>
+                                    {attendanceTrends === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <AttendanceTrendsChart
+                                            data={attendanceTrends}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Gráfico 2B: Distribución por Servicio */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Asistencias por Servicio
+                                    </h3>
+                                    {serviceDistribution === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <ServiceDistributionChart
+                                            data={serviceDistribution}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

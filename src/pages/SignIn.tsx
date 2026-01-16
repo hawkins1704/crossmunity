@@ -362,6 +362,31 @@ export function SignIn() {
               </div>
             )}
 
+            {/* Birthdate field (only for sign up) */}
+            {step === "signUp" && (
+              <div>
+                <label
+                  htmlFor="birthdate"
+                  className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
+                >
+                  Fecha de Nacimiento
+                </label>
+                <input
+                  id="birthdate"
+                  name="birthdate"
+                  type="date"
+                  className={`block w-full px-4 py-3 border bg-white text-black focus:outline-none focus:border-black transition-colors ${
+                    errors.birthdate
+                      ? "border-[#d32f2f]"
+                      : "border-[#e5e5e5]"
+                  }`}
+                />
+                {errors.birthdate && (
+                  <p className="mt-2 text-xs text-[#d32f2f]">{errors.birthdate}</p>
+                )}
+              </div>
+            )}
+
             {/* Grid/Red field (only for sign up) */}
             {step === "signUp" && (
               <div>

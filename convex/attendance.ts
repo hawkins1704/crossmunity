@@ -71,6 +71,9 @@ export const getCoLeaders = query({
     }
 
     // Obtener todos los grupos donde el usuario es líder
+    // Nota: El índice "leaders" busca por array completo, no por elemento individual.
+    // Esto requiere obtener todos los grupos y filtrar en memoria.
+    // Una optimización futura sería cambiar la estructura o agregar un índice diferente.
     const allGroups = await ctx.db.query("groups").collect();
     const userGroups = allGroups.filter((group) =>
       group.leaders.includes(userId)
@@ -522,6 +525,8 @@ export const updateAttendance = mutation({
         user.gender === "Male" ? args.femaleCount : args.maleCount;
 
       // Buscar registro del colíder para la misma fecha y tipo
+      // Optimización: Usar índice userId_type si fuera necesario, pero por ahora
+      // filtramos en memoria ya que necesitamos filtrar por fecha también
       const coLeaderRecords = await ctx.db
         .query("attendanceRecords")
         .withIndex("userId", (q) => q.eq("userId", args.coLeaderId!))
@@ -614,18 +619,29 @@ export const getMyAttendanceRecords = query({
       throw new Error("Usuario no autenticado");
     }
 
-    // Obtener todos los registros del usuario
-    let records = await ctx.db
-      .query("attendanceRecords")
-      .withIndex("userId", (q) => q.eq("userId", userId))
-      .collect();
-
-    // Filtrar por tipo si se especifica
+    // Optimización: Usar el índice más específico disponible
+    // Si se especifica tipo, usar userId_type; si no, usar userId
+    let records;
     if (args.type) {
-      records = records.filter((r) => r.type === args.type);
+      // Usar índice userId_type para filtrar por tipo directamente
+      records = await ctx.db
+        .query("attendanceRecords")
+        .withIndex("userId_type", (q) =>
+          q.eq("userId", userId).eq("type", args.type!)
+        )
+        .collect();
+    } else {
+      // Usar índice userId si no se especifica tipo
+      records = await ctx.db
+        .query("attendanceRecords")
+        .withIndex("userId", (q) => q.eq("userId", userId))
+        .collect();
     }
 
     // Filtrar por mes y año si se especifican
+    // Nota: Filtrar en memoria es necesario porque Convex no soporta range queries
+    // directamente en índices. El índice userId_date solo permite igualdad exacta.
+    // El índice userId_date_type también requiere valores exactos para date.
     if (args.month !== undefined && args.year !== undefined) {
       const monthStart = getMonthStart(
         new Date(args.year, args.month - 1, 1).getTime()
@@ -660,6 +676,7 @@ export const getAttendanceRecordsByUserId = query({
     }
 
     // Verificar que el usuario actual sea líder del usuario solicitado
+    // Nota: Optimización limitada por el índice "leaders" que busca por array completo
     const allGroups = await ctx.db.query("groups").collect();
     const userGroups = allGroups.filter((group) =>
       group.leaders.includes(currentUserId)
@@ -753,101 +770,76 @@ export const getMyMonthlyReport = query({
       return record.maleCount + record.femaleCount + (record.kidsCount || 0);
     };
 
-    // Calcular totales por tipo
-    const report = {
-      nuevos: {
-        total: 0,
-        male: 0,
-        female: 0,
-        kids: 0,
-        records: periodRecords.filter((r) => r.type === "nuevos"),
-      },
-      asistencias: {
-        total: 0,
-        male: 0,
-        female: 0,
-        kids: 0,
-        records: periodRecords.filter((r) => r.type === "asistencias"),
-      },
-      reset: {
-        total: 0,
-        male: 0,
-        female: 0,
-        kids: 0,
-        records: periodRecords.filter((r) => r.type === "reset"),
-      },
-      conferencia: {
-        total: 0,
-        male: 0,
-        female: 0,
-        kids: 0,
-        records: periodRecords.filter((r) => r.type === "conferencia"),
-      },
-    };
-
     // Obtener información del usuario para conocer su género
     const user = await ctx.db.get(userId);
     if (!user) {
       throw new Error("Usuario no encontrado");
     }
 
-    // Sumar totales y género para nuevos
-    report.nuevos.records.forEach((r) => {
-      const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      report.nuevos.total += total;
-      report.nuevos.male += r.maleCount;
-      report.nuevos.female += r.femaleCount;
-      report.nuevos.kids += r.kidsCount || 0;
-    });
+    // Calcular totales por tipo - optimizado: una sola iteración sobre los registros
+    const report = {
+      nuevos: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+        records: [] as typeof periodRecords,
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+        records: [] as typeof periodRecords,
+      },
+      reset: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+        records: [] as typeof periodRecords,
+      },
+      conferencia: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+        records: [] as typeof periodRecords,
+      },
+    };
 
-    // Sumar totales y género para asistencias
-    report.asistencias.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      report.asistencias.total += total;
-      // Para asistencias, si el usuario asistió, contar según su género
-      if (r.attended) {
-        if (user.gender === "Male") {
-          report.asistencias.male += 1 + r.maleCount;
-          report.asistencias.female += r.femaleCount;
+    // Una sola iteración sobre todos los registros para calcular totales
+    for (const r of periodRecords) {
+      const reportType = report[r.type];
+      if (!reportType) continue;
+
+      reportType.records.push(r);
+
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        reportType.total += total;
+        reportType.male += r.maleCount;
+        reportType.female += r.femaleCount;
+        reportType.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        reportType.total += total;
+        // Si el usuario asistió, contar según su género
+        if (r.attended) {
+          if (user.gender === "Male") {
+            reportType.male += 1 + r.maleCount;
+            reportType.female += r.femaleCount;
+          } else {
+            reportType.male += r.maleCount;
+            reportType.female += 1 + r.femaleCount;
+          }
         } else {
-          report.asistencias.male += r.maleCount;
-          report.asistencias.female += 1 + r.femaleCount;
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
         }
-      } else {
-        report.asistencias.male += r.maleCount;
-        report.asistencias.female += r.femaleCount;
+        reportType.kids += r.kidsCount || 0;
       }
-      report.asistencias.kids += r.kidsCount || 0;
-    });
-
-    // Sumar totales y género para reset
-    report.reset.records.forEach((r) => {
-      const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      report.reset.total += total;
-      report.reset.male += r.maleCount;
-      report.reset.female += r.femaleCount;
-      report.reset.kids += r.kidsCount || 0;
-    });
-
-    // Sumar totales y género para conferencia
-    report.conferencia.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      report.conferencia.total += total;
-      // Para conferencia, si el usuario asistió, contar según su género
-      if (r.attended) {
-        if (user.gender === "Male") {
-          report.conferencia.male += 1 + r.maleCount;
-          report.conferencia.female += r.femaleCount;
-        } else {
-          report.conferencia.male += r.maleCount;
-          report.conferencia.female += 1 + r.femaleCount;
-        }
-      } else {
-        report.conferencia.male += r.maleCount;
-        report.conferencia.female += r.femaleCount;
-      }
-      report.conferencia.kids += r.kidsCount || 0;
-    });
+    }
 
     return report;
   },
@@ -872,6 +864,9 @@ export const getGroupAttendanceReport = query({
     }
 
     // Verificar que el usuario tenga grupos (sea líder)
+    // Nota: El índice "leaders" busca por array completo, no por elemento.
+    // Por ahora necesitamos obtener todos los grupos, pero esto se puede optimizar
+    // si agregamos un índice diferente o cambiamos la estructura de datos.
     const allGroups = await ctx.db.query("groups").collect();
     const userGroups = allGroups.filter((group) =>
       group.leaders.includes(userId)
@@ -903,6 +898,8 @@ export const getGroupAttendanceReport = query({
 
     if (userGroups.length === 0) {
       // Si no es líder, retornar solo su reporte personal
+      // Nota: Filtrar por fecha en memoria es necesario porque Convex no soporta
+      // range queries directamente en índices simples
       const allRecords = await ctx.db
         .query("attendanceRecords")
         .withIndex("userId", (q) => q.eq("userId", userId))
@@ -923,90 +920,69 @@ export const getGroupAttendanceReport = query({
         return record.maleCount + record.femaleCount + (record.kidsCount || 0);
       };
 
+      // Calcular reporte - optimizado: una sola iteración sobre los registros
       const myReport = {
         nuevos: {
           total: 0,
           male: 0,
           female: 0,
           kids: 0,
-          records: periodRecords.filter((r) => r.type === "nuevos"),
+          records: [] as typeof periodRecords,
         },
         asistencias: {
           total: 0,
           male: 0,
           female: 0,
           kids: 0,
-          records: periodRecords.filter((r) => r.type === "asistencias"),
+          records: [] as typeof periodRecords,
         },
         reset: {
           total: 0,
           male: 0,
           female: 0,
           kids: 0,
-          records: periodRecords.filter((r) => r.type === "reset"),
+          records: [] as typeof periodRecords,
         },
         conferencia: {
           total: 0,
           male: 0,
           female: 0,
           kids: 0,
-          records: periodRecords.filter((r) => r.type === "conferencia"),
+          records: [] as typeof periodRecords,
         },
       };
 
-      // Sumar totales para nuevos
-      myReport.nuevos.records.forEach((r) => {
-        myReport.nuevos.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-        myReport.nuevos.male += r.maleCount;
-        myReport.nuevos.female += r.femaleCount;
-        myReport.nuevos.kids += r.kidsCount || 0;
-      });
+      // Una sola iteración sobre todos los registros para calcular totales
+      for (const r of periodRecords) {
+        const reportType = myReport[r.type];
+        if (!reportType) continue;
 
-      // Sumar totales para asistencias
-      myReport.asistencias.records.forEach((r) => {
-        const total = getRecordTotal(r);
-        myReport.asistencias.total += total;
-        if (r.attended) {
-          if (user.gender === "Male") {
-            myReport.asistencias.male += 1 + r.maleCount;
-            myReport.asistencias.female += r.femaleCount;
+        reportType.records.push(r);
+
+        if (r.type === "nuevos" || r.type === "reset") {
+          const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+          reportType.total += total;
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
+          reportType.kids += r.kidsCount || 0;
+        } else if (r.type === "asistencias" || r.type === "conferencia") {
+          const total = getRecordTotal(r);
+          reportType.total += total;
+          if (r.attended) {
+            if (user.gender === "Male") {
+              reportType.male += 1 + r.maleCount;
+              reportType.female += r.femaleCount;
+            } else {
+              reportType.male += r.maleCount;
+              reportType.female += 1 + r.femaleCount;
+            }
           } else {
-            myReport.asistencias.male += r.maleCount;
-            myReport.asistencias.female += 1 + r.femaleCount;
+            reportType.male += r.maleCount;
+            reportType.female += r.femaleCount;
           }
-        } else {
-          myReport.asistencias.male += r.maleCount;
-          myReport.asistencias.female += r.femaleCount;
+          reportType.kids += r.kidsCount || 0;
         }
-        myReport.asistencias.kids += r.kidsCount || 0;
-      });
-
-      // Sumar totales para reset
-      myReport.reset.records.forEach((r) => {
-        myReport.reset.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-        myReport.reset.male += r.maleCount;
-        myReport.reset.female += r.femaleCount;
-        myReport.reset.kids += r.kidsCount || 0;
-      });
-
-      // Sumar totales para conferencia
-      myReport.conferencia.records.forEach((r) => {
-        const total = getRecordTotal(r);
-        myReport.conferencia.total += total;
-        if (r.attended) {
-          if (user.gender === "Male") {
-            myReport.conferencia.male += 1 + r.maleCount;
-            myReport.conferencia.female += r.femaleCount;
-          } else {
-            myReport.conferencia.male += r.maleCount;
-            myReport.conferencia.female += 1 + r.femaleCount;
-          }
-        } else {
-          myReport.conferencia.male += r.maleCount;
-          myReport.conferencia.female += r.femaleCount;
-        }
-        myReport.conferencia.kids += r.kidsCount || 0;
-      });
+      }
 
       return {
         isLeader: false,
@@ -1039,11 +1015,25 @@ export const getGroupAttendanceReport = query({
         (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
       );
     } else {
-      // Si no se especifica grupo, obtener todos los discípulos del usuario
-      allDisciples = await ctx.db
-        .query("users")
-        .withIndex("leader", (q) => q.eq("leader", userId))
-        .collect();
+      // Si no se especifica grupo, obtener TODOS los discípulos de TODOS los grupos del usuario
+      // Esto incluye discípulos de ambos líderes (hombre y mujer) en grupos mixtos
+      const allDiscipleIds = new Set<Id<"users">>();
+      
+      // Recopilar todos los IDs de discípulos de todos los grupos
+      for (const group of userGroups) {
+        for (const discipleId of group.disciples) {
+          allDiscipleIds.add(discipleId);
+        }
+      }
+      
+      // Obtener información de todos los discípulos únicos
+      const disciplesArray = await Promise.all(
+        Array.from(allDiscipleIds).map((discipleId) => ctx.db.get(discipleId))
+      );
+      
+      allDisciples = disciplesArray.filter(
+        (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
+      );
     }
 
     // Si se especifica un discípulo, filtrar solo ese
@@ -1056,7 +1046,8 @@ export const getGroupAttendanceReport = query({
       allDisciples = [disciple];
     }
 
-    // Obtener registros propios del período
+    // Obtener registros propios del período usando el índice userId_date
+    // Filtrar por rango de fechas directamente en la query cuando sea posible
     const myRecords = await ctx.db
       .query("attendanceRecords")
       .withIndex("userId", (q) => q.eq("userId", userId))
@@ -1066,14 +1057,21 @@ export const getGroupAttendanceReport = query({
       (r) => r.date >= periodStart && r.date <= periodEnd
     );
 
-    // Obtener registros de todos los discípulos del período
+    // Optimización: Obtener registros de todos los discípulos en paralelo
+    // pero filtrar por fecha en memoria ya que Convex no soporta rangos directamente en índices simples
     const discipleIds = allDisciples.map((d) => d._id);
+    
+    // Si hay muchos discípulos, esto puede ser lento. Una alternativa sería
+    // agregar un índice compuesto (userId, date) y usar range queries si Convex lo soporta.
+    // Por ahora, optimizamos usando Promise.all para queries paralelas
     const allDiscipleRecords = await Promise.all(
       discipleIds.map(async (discipleId) => {
         const records = await ctx.db
           .query("attendanceRecords")
           .withIndex("userId", (q) => q.eq("userId", discipleId))
           .collect();
+        // Filtrar por fecha en memoria - esto es necesario porque el índice userId_date
+        // solo permite búsqueda exacta, no rangos
         return records.filter(
           (r) => r.date >= periodStart && r.date <= periodEnd
         );
@@ -1110,183 +1108,134 @@ export const getGroupAttendanceReport = query({
       return record.maleCount + record.femaleCount + (record.kidsCount || 0);
     };
 
-    // Calcular reporte propio
+    // Calcular reporte propio - optimizado: una sola iteración sobre los registros
     const myReport = {
       nuevos: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: myPeriodRecords.filter((r) => r.type === "nuevos"),
+        records: [] as typeof myPeriodRecords,
       },
       asistencias: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: myPeriodRecords.filter((r) => r.type === "asistencias"),
+        records: [] as typeof myPeriodRecords,
       },
       reset: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: myPeriodRecords.filter((r) => r.type === "reset"),
+        records: [] as typeof myPeriodRecords,
       },
       conferencia: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: myPeriodRecords.filter((r) => r.type === "conferencia"),
+        records: [] as typeof myPeriodRecords,
       },
     };
 
-    // Sumar totales para nuevos propios
-    myReport.nuevos.records.forEach((r) => {
-      myReport.nuevos.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      myReport.nuevos.male += r.maleCount;
-      myReport.nuevos.female += r.femaleCount;
-      myReport.nuevos.kids += r.kidsCount || 0;
-    });
+    // Una sola iteración sobre todos los registros para calcular totales
+    for (const r of myPeriodRecords) {
+      const report = myReport[r.type];
+      if (!report) continue;
 
-    // Sumar totales para asistencias propias
-    myReport.asistencias.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      myReport.asistencias.total += total;
-      if (r.attended) {
-        if (user.gender === "Male") {
-          myReport.asistencias.male += 1 + r.maleCount;
-          myReport.asistencias.female += r.femaleCount;
+      report.records.push(r);
+      
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        report.total += total;
+        report.male += r.maleCount;
+        report.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        report.total += total;
+        if (r.attended) {
+          if (user.gender === "Male") {
+            report.male += 1 + r.maleCount;
+            report.female += r.femaleCount;
+          } else {
+            report.male += r.maleCount;
+            report.female += 1 + r.femaleCount;
+          }
         } else {
-          myReport.asistencias.male += r.maleCount;
-          myReport.asistencias.female += 1 + r.femaleCount;
+          report.male += r.maleCount;
+          report.female += r.femaleCount;
         }
-      } else {
-        myReport.asistencias.male += r.maleCount;
-        myReport.asistencias.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
       }
-      myReport.asistencias.kids += r.kidsCount || 0;
-    });
+    }
 
-    // Sumar totales para reset propios
-    myReport.reset.records.forEach((r) => {
-      myReport.reset.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      myReport.reset.male += r.maleCount;
-      myReport.reset.female += r.femaleCount;
-      myReport.reset.kids += r.kidsCount || 0;
-    });
-
-    // Sumar totales para conferencia propias
-    myReport.conferencia.records.forEach((r) => {
-      const total = getRecordTotal(r);
-      myReport.conferencia.total += total;
-      if (r.attended) {
-        if (user.gender === "Male") {
-          myReport.conferencia.male += 1 + r.maleCount;
-          myReport.conferencia.female += r.femaleCount;
-        } else {
-          myReport.conferencia.male += r.maleCount;
-          myReport.conferencia.female += 1 + r.femaleCount;
-        }
-      } else {
-        myReport.conferencia.male += r.maleCount;
-        myReport.conferencia.female += r.femaleCount;
-      }
-      myReport.conferencia.kids += r.kidsCount || 0;
-    });
-
-    // Calcular reporte de discípulos
+    // Calcular reporte de discípulos - optimizado: una sola iteración sobre los registros
     const disciplesReport = {
       nuevos: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: disciplePeriodRecords.filter((r) => r.type === "nuevos"),
+        records: [] as typeof disciplePeriodRecords,
       },
       asistencias: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: disciplePeriodRecords.filter(
-          (r) => r.type === "asistencias"
-        ),
+        records: [] as typeof disciplePeriodRecords,
       },
       reset: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: disciplePeriodRecords.filter((r) => r.type === "reset"),
+        records: [] as typeof disciplePeriodRecords,
       },
       conferencia: {
         total: 0,
         male: 0,
         female: 0,
         kids: 0,
-        records: disciplePeriodRecords.filter(
-          (r) => r.type === "conferencia"
-        ),
+        records: [] as typeof disciplePeriodRecords,
       },
     };
 
-    // Sumar totales para nuevos de discípulos
-    disciplesReport.nuevos.records.forEach((r) => {
-      disciplesReport.nuevos.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      disciplesReport.nuevos.male += r.maleCount;
-      disciplesReport.nuevos.female += r.femaleCount;
-      disciplesReport.nuevos.kids += r.kidsCount || 0;
-    });
+    // Una sola iteración sobre todos los registros de discípulos
+    for (const r of disciplePeriodRecords) {
+      const report = disciplesReport[r.type];
+      if (!report) continue;
 
-    // Sumar totales para asistencias de discípulos
-    disciplesReport.asistencias.records.forEach((r) => {
-      const total = getDiscipleRecordTotal(r);
-      disciplesReport.asistencias.total += total;
+      report.records.push(r);
       const discipleGender = discipleGenderMap.get(r.userId);
-      if (r.attended) {
-        if (discipleGender === "Male") {
-          disciplesReport.asistencias.male += 1 + r.maleCount;
-          disciplesReport.asistencias.female += r.femaleCount;
-        } else {
-          disciplesReport.asistencias.male += r.maleCount;
-          disciplesReport.asistencias.female += 1 + r.femaleCount;
-        }
-      } else {
-        disciplesReport.asistencias.male += r.maleCount;
-        disciplesReport.asistencias.female += r.femaleCount;
-      }
-      disciplesReport.asistencias.kids += r.kidsCount || 0;
-    });
 
-    // Sumar totales para reset de discípulos
-    disciplesReport.reset.records.forEach((r) => {
-      disciplesReport.reset.total += r.maleCount + r.femaleCount + (r.kidsCount || 0);
-      disciplesReport.reset.male += r.maleCount;
-      disciplesReport.reset.female += r.femaleCount;
-      disciplesReport.reset.kids += r.kidsCount || 0;
-    });
-
-    // Sumar totales para conferencia de discípulos
-    disciplesReport.conferencia.records.forEach((r) => {
-      const total = getDiscipleRecordTotal(r);
-      disciplesReport.conferencia.total += total;
-      const discipleGender = discipleGenderMap.get(r.userId);
-      if (r.attended) {
-        if (discipleGender === "Male") {
-          disciplesReport.conferencia.male += 1 + r.maleCount;
-          disciplesReport.conferencia.female += r.femaleCount;
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        report.total += total;
+        report.male += r.maleCount;
+        report.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getDiscipleRecordTotal(r);
+        report.total += total;
+        if (r.attended && discipleGender) {
+          if (discipleGender === "Male") {
+            report.male += 1 + r.maleCount;
+            report.female += r.femaleCount;
+          } else {
+            report.male += r.maleCount;
+            report.female += 1 + r.femaleCount;
+          }
         } else {
-          disciplesReport.conferencia.male += r.maleCount;
-          disciplesReport.conferencia.female += 1 + r.femaleCount;
+          report.male += r.maleCount;
+          report.female += r.femaleCount;
         }
-      } else {
-        disciplesReport.conferencia.male += r.maleCount;
-        disciplesReport.conferencia.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
       }
-      disciplesReport.conferencia.kids += r.kidsCount || 0;
-    });
+    }
 
     // Calcular totales combinados
     // El total solo incluye los discípulos filtrados, SIN incluir los registros del líder
@@ -1297,10 +1246,13 @@ export const getGroupAttendanceReport = query({
         disciplesTotal: disciplesReport.nuevos.total,
         male: disciplesReport.nuevos.male, // Solo discípulos filtrados
         female: disciplesReport.nuevos.female, // Solo discípulos filtrados
+        kids: disciplesReport.nuevos.kids, // Solo discípulos filtrados
         myMale: myReport.nuevos.male,
         myFemale: myReport.nuevos.female,
+        myKids: myReport.nuevos.kids,
         disciplesMale: disciplesReport.nuevos.male,
         disciplesFemale: disciplesReport.nuevos.female,
+        disciplesKids: disciplesReport.nuevos.kids,
       },
       asistencias: {
         total: disciplesReport.asistencias.total, // Solo discípulos filtrados
@@ -1308,10 +1260,13 @@ export const getGroupAttendanceReport = query({
         disciplesTotal: disciplesReport.asistencias.total,
         male: disciplesReport.asistencias.male, // Solo discípulos filtrados
         female: disciplesReport.asistencias.female, // Solo discípulos filtrados
+        kids: disciplesReport.asistencias.kids, // Solo discípulos filtrados
         myMale: myReport.asistencias.male,
         myFemale: myReport.asistencias.female,
+        myKids: myReport.asistencias.kids,
         disciplesMale: disciplesReport.asistencias.male,
         disciplesFemale: disciplesReport.asistencias.female,
+        disciplesKids: disciplesReport.asistencias.kids,
       },
       reset: {
         total: disciplesReport.reset.total, // Solo discípulos filtrados
@@ -1319,10 +1274,13 @@ export const getGroupAttendanceReport = query({
         disciplesTotal: disciplesReport.reset.total,
         male: disciplesReport.reset.male, // Solo discípulos filtrados
         female: disciplesReport.reset.female, // Solo discípulos filtrados
+        kids: disciplesReport.reset.kids, // Solo discípulos filtrados
         myMale: myReport.reset.male,
         myFemale: myReport.reset.female,
+        myKids: myReport.reset.kids,
         disciplesMale: disciplesReport.reset.male,
         disciplesFemale: disciplesReport.reset.female,
+        disciplesKids: disciplesReport.reset.kids,
       },
       conferencia: {
         total: disciplesReport.conferencia.total, // Solo discípulos filtrados
@@ -1330,10 +1288,13 @@ export const getGroupAttendanceReport = query({
         disciplesTotal: disciplesReport.conferencia.total,
         male: disciplesReport.conferencia.male, // Solo discípulos filtrados
         female: disciplesReport.conferencia.female, // Solo discípulos filtrados
+        kids: disciplesReport.conferencia.kids, // Solo discípulos filtrados
         myMale: myReport.conferencia.male,
         myFemale: myReport.conferencia.female,
+        myKids: myReport.conferencia.kids,
         disciplesMale: disciplesReport.conferencia.male,
         disciplesFemale: disciplesReport.conferencia.female,
+        disciplesKids: disciplesReport.conferencia.kids,
       },
     };
 

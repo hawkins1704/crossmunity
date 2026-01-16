@@ -19,7 +19,7 @@ export default defineSchema({
     // Campos adicionales de la aplicación
     role: v.union(v.literal("Pastor"), v.literal("Member")), // Rol del usuario
     gender: v.union(v.literal("Male"), v.literal("Female")), // Género del usuario
-    birthday: v.optional(v.number()), // Fecha de cumpleaños (timestamp)
+    birthdate: v.optional(v.number()), // Fecha de nacimiento (timestamp)
     gridId: v.optional(v.id("grids")), // Red a la que pertenece (solo para miembros de una red)
     leader: v.optional(v.id("users")), // Líder asignado cuando se une a un grupo (solo 1 líder)
     isActiveInSchool: v.boolean(), // Si está activo en la escuela
@@ -34,6 +34,10 @@ export default defineSchema({
     .index("serviceId", ["serviceId"]), // Para buscar usuarios por área de servicio
 
   // Tabla de grupos de conexión
+  // NOTA: El índice "leaders" busca por el array completo, no por elementos individuales.
+  // Para buscar grupos donde un userId específico está en el array leaders,
+  // actualmente se requiere obtener todos los grupos y filtrar en memoria.
+  // Una optimización futura sería cambiar la estructura de datos o crear una tabla de relación.
   groups: defineTable({
     name: v.string(), // Nombre del grupo
     address: v.string(), // Dirección del grupo
@@ -47,7 +51,7 @@ export default defineSchema({
     invitationCode: v.string(), // Código de invitación único para unirse al grupo
   })
     .index("invitationCode", ["invitationCode"]) // Para buscar grupo por código de invitación
-    .index("leaders", ["leaders"]), // Para buscar grupos donde un usuario es líder
+    .index("leaders", ["leaders"]), // Para buscar grupos donde un usuario es líder (busca array completo, no elementos individuales)
 
   // Tabla de redes (grids) lideradas por pastores
   grids: defineTable({
@@ -91,7 +95,8 @@ export default defineSchema({
     createdBy: v.id("users"), // Líder que creó la actividad
   })
     .index("groupId", ["groupId"]) // Para buscar actividades de un grupo
-    .index("createdBy", ["createdBy"]), // Para buscar actividades creadas por un usuario
+    .index("createdBy", ["createdBy"]) // Para buscar actividades creadas por un usuario
+    .index("groupId_dateTime", ["groupId", "dateTime"]), // Para obtener actividades de un grupo ordenadas por fecha (útil para filtrar por rango de fechas)
 
   // Tabla de respuestas de usuarios a actividades
   activityResponses: defineTable({
@@ -143,6 +148,7 @@ export default defineSchema({
     kidsCount: v.optional(v.number()), // Cantidad de niños
   })
     .index("userId", ["userId"]) // Para buscar registros de un usuario
-    .index("userId_date", ["userId", "date"]) // Para buscar registros por usuario y fecha
-    .index("userId_type", ["userId", "type"]), // Para buscar registros por usuario y tipo
+    .index("userId_date", ["userId", "date"]) // Para buscar registros por usuario y fecha exacta
+    .index("userId_type", ["userId", "type"]) // Para buscar registros por usuario y tipo
+    .index("userId_date_type", ["userId", "date", "type"]), // Índice compuesto para queries que filtran por usuario, fecha y tipo simultáneamente
 });

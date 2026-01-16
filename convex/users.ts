@@ -128,7 +128,7 @@ export const updateMyProfile = mutation({
     name: v.optional(v.string()),
     gender: v.optional(v.union(v.literal("Male"), v.literal("Female"))),
     phone: v.optional(v.string()),
-    birthday: v.optional(v.number()),
+    birthdate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -140,7 +140,7 @@ export const updateMyProfile = mutation({
       name?: string;
       gender?: "Male" | "Female";
       phone?: string;
-      birthday?: number;
+      birthdate?: number;
     } = {};
 
     if (args.name !== undefined) {
@@ -155,8 +155,8 @@ export const updateMyProfile = mutation({
       updates.phone = args.phone;
     }
 
-    if (args.birthday !== undefined) {
-      updates.birthday = args.birthday;
+    if (args.birthdate !== undefined) {
+      updates.birthdate = args.birthdate;
     }
 
     await ctx.db.patch(userId, updates);

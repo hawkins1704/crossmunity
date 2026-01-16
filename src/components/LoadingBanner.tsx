@@ -1,10 +1,9 @@
 
-
 const LoadingBanner = () => {
   return (
-    <div className="flex items-center justify-center gap-4 h-[100vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-        <p className="text-gray-500">Cargando...</p>
+    <div className="flex items-center justify-center gap-4 h-[100vh] bg-[#fafafa]">
+        <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
+        <p className="text-sm font-normal text-[#666666]">Cargando...</p>
     </div>
   )
 }

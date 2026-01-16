@@ -20,7 +20,7 @@ export default function Profile() {
     name: "",
     gender: "" as "Male" | "Female" | "",
     phone: "",
-    birthday: "",
+    birthdate: "",
   });
 
   // Helper para convertir timestamp a formato de fecha (YYYY-MM-DD)
@@ -53,7 +53,7 @@ export default function Profile() {
         name: profile.name || "",
         gender: profile.gender || "",
         phone: profile.phone || "",
-        birthday: timestampToDateString(profile.birthday),
+        birthdate: timestampToDateString(profile.birthdate),
       });
     }
   }, [profile, isEditing]);
@@ -64,7 +64,7 @@ export default function Profile() {
         name: profile.name || "",
         gender: profile.gender || "",
         phone: profile.phone || "",
-        birthday: timestampToDateString(profile.birthday),
+        birthdate: timestampToDateString(profile.birthdate),
       });
       setIsEditing(true);
       setErrors({});
@@ -77,7 +77,7 @@ export default function Profile() {
         name: profile.name || "",
         gender: profile.gender || "",
         phone: profile.phone || "",
-        birthday: timestampToDateString(profile.birthday),
+        birthdate: timestampToDateString(profile.birthdate),
       });
     }
     setIsEditing(false);
@@ -107,7 +107,7 @@ export default function Profile() {
         name: formData.name.trim(),
         gender: formData.gender as "Male" | "Female",
         phone: formData.phone.trim() || undefined,
-        birthday: dateStringToTimestamp(formData.birthday),
+        birthdate: dateStringToTimestamp(formData.birthdate),
       });
       setIsEditing(false);
     } catch (error) {
@@ -282,20 +282,20 @@ export default function Profile() {
                   />
                 </div>
 
-                {/* Fecha de Cumpleaños */}
+                {/* Fecha de Nacimiento */}
                 <div>
                   <label
-                    htmlFor="birthday"
+                    htmlFor="birthdate"
                     className="block text-xs font-normal text-black mb-2 uppercase tracking-wide"
                   >
-                    Fecha de Cumpleaños
+                    Fecha de Nacimiento
                   </label>
                   <input
-                    id="birthday"
+                    id="birthdate"
                     type="date"
-                    value={formData.birthday}
+                    value={formData.birthdate}
                     onChange={(e) => {
-                      setFormData({ ...formData, birthday: e.target.value });
+                      setFormData({ ...formData, birthdate: e.target.value });
                     }}
                     className="block w-full px-4 py-3 border border-[#e5e5e5] bg-white text-black focus:outline-none focus:border-black transition-colors"
                   />
@@ -371,13 +371,13 @@ export default function Profile() {
                   </div>
                 )}
 
-                {profile.birthday && (
+                {profile.birthdate && (
                   <div className="flex items-center gap-3">
                     <HiCalendar className="h-5 w-5 text-[#999999]" />
                     <div>
-                      <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Fecha de Cumpleaños</p>
+                      <p className="text-xs font-normal text-[#666666] uppercase tracking-wide">Fecha de Nacimiento</p>
                       <p className="text-sm font-normal text-black mt-1">
-                        {new Date(profile.birthday).toLocaleDateString("es-PE", {
+                        {new Date(profile.birthdate).toLocaleDateString("es-PE", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
