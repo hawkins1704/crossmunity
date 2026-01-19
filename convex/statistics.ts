@@ -216,7 +216,7 @@ export const getAgeDistribution = query({
 });
 
 /**
- * Query: Obtiene las tendencias de asistencia (nuevos y reset) por mes
+ * Query: Obtiene las tendencias de asistencia (nuevos y asistencias totales) por mes
  */
 export const getAttendanceTrends = query({
   args: {
@@ -268,7 +268,7 @@ export const getAttendanceTrends = query({
           (r) =>
             r.date >= periodStart &&
             r.date <= periodEnd &&
-            (r.type === "nuevos" || r.type === "reset")
+            (r.type === "nuevos" || r.type === "asistencias")
         );
       })
     );
@@ -276,7 +276,7 @@ export const getAttendanceTrends = query({
     const records = allRecords.flat();
 
     // Agrupar por mes
-    const monthData = new Map<string, { nuevos: number; reset: number }>();
+    const monthData = new Map<string, { nuevos: number; asistencias: number }>();
 
     // Inicializar todos los meses con 0
     const start = new Date(periodStart);
@@ -284,7 +284,7 @@ export const getAttendanceTrends = query({
       const currentMonth = new Date(start);
       currentMonth.setMonth(start.getMonth() + i);
       const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}`;
-      monthData.set(monthKey, { nuevos: 0, reset: 0 });
+      monthData.set(monthKey, { nuevos: 0, asistencias: 0 });
     }
 
     // Agrupar registros por mes
@@ -293,11 +293,16 @@ export const getAttendanceTrends = query({
       const monthKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, "0")}`;
       
       if (monthData.has(monthKey)) {
-        const total = record.maleCount + record.femaleCount + (record.kidsCount || 0);
+        // Para asistencias, incluir al usuario si asistió
+        let total = record.maleCount + record.femaleCount + (record.kidsCount || 0);
+        if (record.type === "asistencias" && record.attended) {
+          total += 1;
+        }
+        
         if (record.type === "nuevos") {
           monthData.get(monthKey)!.nuevos += total;
-        } else if (record.type === "reset") {
-          monthData.get(monthKey)!.reset += total;
+        } else if (record.type === "asistencias") {
+          monthData.get(monthKey)!.asistencias += total;
         }
       }
     }
@@ -314,7 +319,7 @@ export const getAttendanceTrends = query({
         return {
           month: `${monthNames[parseInt(month) - 1]} ${year}`,
           nuevos: data.nuevos,
-          reset: data.reset,
+          asistencias: data.asistencias,
         };
       })
       .sort((a, b) => {
@@ -427,5 +432,98 @@ export const getServiceDistribution = query({
         ];
         return order.indexOf(a.service) - order.indexOf(b.service);
       });
+  },
+});
+
+/**
+ * Query: Obtiene la participación en escuela de los discípulos
+ */
+export const getSchoolParticipation = query({
+  args: {
+    groupId: v.optional(v.id("groups")),
+    month: v.optional(v.number()),
+    year: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Obtener discípulos según el filtro de grupo
+    const disciples = await getDisciplesForStatistics(ctx, userId, args.groupId);
+
+    // Contar por estado de escuela
+    let activeCount = 0;
+    let inactiveCount = 0;
+
+    for (const disciple of disciples) {
+      if (disciple.isActiveInSchool) {
+        activeCount++;
+      } else {
+        inactiveCount++;
+      }
+    }
+
+    return {
+      active: activeCount,
+      inactive: inactiveCount,
+    };
+  },
+});
+
+/**
+ * Query: Obtiene los cursos más populares (por inscripciones)
+ */
+export const getPopularCourses = query({
+  args: {
+    groupId: v.optional(v.id("groups")),
+    month: v.optional(v.number()),
+    year: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Obtener discípulos según el filtro de grupo
+    const disciples = await getDisciplesForStatistics(ctx, userId, args.groupId);
+
+    // Contar inscripciones por curso
+    const courseCounts = new Map<Id<"courses">, number>();
+
+    for (const disciple of disciples) {
+      if (disciple.currentCourses && disciple.currentCourses.length > 0) {
+        for (const courseId of disciple.currentCourses) {
+          const currentCount = courseCounts.get(courseId) || 0;
+          courseCounts.set(courseId, currentCount + 1);
+        }
+      }
+    }
+
+    // Obtener nombres de cursos
+    const courseData = await Promise.all(
+      Array.from(courseCounts.entries()).map(async ([courseId, count]) => {
+        const course = await ctx.db.get(courseId);
+        return {
+          courseId,
+          courseName: course?.name || "Curso desconocido",
+          count,
+        };
+      })
+    );
+
+    // Ordenar por cantidad (más popular primero) y limitar
+    const limit = args.limit || 10;
+    const sortedCourses = courseData
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+
+    return sortedCourses.map(({ courseName, count }) => ({
+      courseName,
+      count,
+    }));
   },
 });

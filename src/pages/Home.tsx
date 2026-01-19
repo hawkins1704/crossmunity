@@ -18,6 +18,8 @@ import AgeDistributionChart from "../components/Statistics/AgeDistributionChart"
 import GenderDistributionChart from "../components/Statistics/GenderDistributionChart";
 import AttendanceTrendsChart from "../components/Statistics/AttendanceTrendsChart";
 import ServiceDistributionChart from "../components/Statistics/ServiceDistributionChart";
+import SchoolParticipationChart from "../components/Statistics/SchoolParticipationChart";
+import PopularCoursesChart from "../components/Statistics/PopularCoursesChart";
 
 // Componente reutilizable para las cards de registro
 function RegistrationCard({
@@ -267,9 +269,9 @@ export default function Home() {
         type: "nuevos" | "asistencias" | "reset" | "conferencia"
     ) => {
         setModalType(type);
-        // Si solo hay un colíder y es para asistencias o conferencia, seleccionarlo por defecto
+        // Si solo hay un colíder y es para asistencias, seleccionarlo por defecto
         const defaultCoLeaderId =
-            (type === "asistencias" || type === "conferencia") &&
+            type === "asistencias" &&
             coLeaders &&
             coLeaders.length === 1
                 ? coLeaders[0]._id
@@ -298,8 +300,6 @@ export default function Home() {
     // Cerrar modal
     const handleCloseModal = () => {
         setModalType(null);
-        const defaultCoLeaderId =
-            coLeaders && coLeaders.length === 1 ? coLeaders[0]._id : null;
         setFormData({
             date: timestampToDateString(Date.now()),
             service: null as null,
@@ -308,7 +308,7 @@ export default function Home() {
             maleCount: 0,
             femaleCount: 0,
             kidsCount: 0,
-            coLeaderId: defaultCoLeaderId,
+            coLeaderId: null,
             coLeaderAttended: undefined,
         });
         setErrors({});
@@ -328,7 +328,7 @@ export default function Home() {
         }
 
         if (
-            (modalType === "asistencias" || modalType === "conferencia") &&
+            modalType === "asistencias" &&
             formData.attended === undefined
         ) {
             setErrors({ attended: "Indica si asististe o no" });
@@ -358,9 +358,9 @@ export default function Home() {
             return;
         }
 
-        // Permitir 0 personas solo si es asistencias o conferencia y el usuario o colíder asistió
+        // Permitir 0 personas solo si es asistencias y el usuario o colíder asistió
         const canHaveZeroCount =
-            (modalType === "asistencias" || modalType === "conferencia") &&
+            modalType === "asistencias" &&
             (formData.attended === true ||
                 (formData.coLeaderId && formData.coLeaderAttended === true));
 
@@ -403,7 +403,7 @@ export default function Home() {
                 service: formData.service || undefined,
                 sede: formData.sede || undefined,
                 attended:
-                    modalType === "asistencias" || modalType === "conferencia"
+                    modalType === "asistencias"
                         ? formData.attended
                         : undefined,
                 maleCount: formData.maleCount,
@@ -411,8 +411,7 @@ export default function Home() {
                 kidsCount: formData.kidsCount,
                 coLeaderId: formData.coLeaderId || undefined,
                 coLeaderAttended:
-                    (modalType === "asistencias" ||
-                        modalType === "conferencia") &&
+                    modalType === "asistencias" &&
                     formData.coLeaderId
                         ? formData.coLeaderAttended
                         : undefined,
@@ -550,6 +549,35 @@ export default function Home() {
                           ? selectedMonth
                           : undefined,
                   year: selectedYear,
+              }
+            : "skip"
+    );
+
+    const schoolParticipation = useQuery(
+        api.statistics.getSchoolParticipation,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+              }
+            : "skip"
+    );
+
+    const popularCourses = useQuery(
+        api.statistics.getPopularCourses,
+        dashboard?.user._id
+            ? {
+                  groupId: selectedGroupId || undefined,
+                  month:
+                      viewMode === "month" && selectedMonth
+                          ? selectedMonth
+                          : undefined,
+                  year: selectedYear,
+                  limit: 10,
               }
             : "skip"
     );
@@ -1101,9 +1129,8 @@ export default function Home() {
                                 )}
                             </div>
 
-                            {/* Asistencia (solo para asistencias y conferencia) */}
-                            {(modalType === "asistencias" ||
-                                modalType === "conferencia") && (
+                            {/* Asistencia (solo para asistencias) */}
+                            {modalType === "asistencias" && (
                                 <>
                                     <div>
                                         <label className="block text-xs font-normal text-black mb-2 uppercase tracking-wide">
@@ -1158,7 +1185,7 @@ export default function Home() {
                                         )}
                                     </div>
 
-                                    {/* Sección del colíder para asistencias y conferencia */}
+                                    {/* Sección del colíder para asistencias */}
                                     {coLeaders && coLeaders.length > 0 && (
                                         <div className="space-y-3 p-4 bg-[#fafafa] border border-[#e5e5e5]">
                                             <div className="text-xs font-normal text-black uppercase tracking-wide">
@@ -1630,6 +1657,46 @@ export default function Home() {
                                     ) : (
                                         <ServiceDistributionChart
                                             data={serviceDistribution}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sección 3: Formación y Educación */}
+                        <div>
+                            <h2 className="text-xl font-normal text-black mb-6">
+                                Formación y Educación
+                            </h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Gráfico 3B: Participación en Escuela */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Participación en Escuela
+                                    </h3>
+                                    {schoolParticipation === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <SchoolParticipationChart
+                                            data={schoolParticipation}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Gráfico 3C: Cursos Más Populares */}
+                                <div className="bg-white border border-[#e5e5e5] p-6">
+                                    <h3 className="text-lg font-normal text-black mb-4">
+                                        Cursos Más Populares
+                                    </h3>
+                                    {popularCourses === undefined ? (
+                                        <div className="flex items-center justify-center h-64">
+                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <PopularCoursesChart
+                                            data={popularCourses}
                                         />
                                     )}
                                 </div>

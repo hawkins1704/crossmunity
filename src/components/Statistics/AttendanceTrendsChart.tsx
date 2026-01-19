@@ -12,7 +12,7 @@ import {
 interface AttendanceTrendsData {
     month: string;
     nuevos: number;
-    reset: number;
+    asistencias: number;
 }
 
 interface AttendanceTrendsChartProps {
@@ -21,7 +21,7 @@ interface AttendanceTrendsChartProps {
 
 const COLORS = {
     nuevos: "#10B981", // Verde
-    reset: "#8B5CF6", // Púrpura
+    asistencias: "#3B82F6", // Azul
 };
 
 export default function AttendanceTrendsChart({
@@ -54,14 +54,16 @@ export default function AttendanceTrendsChart({
                         border: "1px solid #e5e5e5",
                         borderRadius: "4px",
                     }}
-                    formatter={(value: number, name: string) => [
-                        `${value} ${value === 1 ? "persona" : "personas"}`,
-                        name === "nuevos" ? "Nuevos" : "RESET",
+                    formatter={(value: number | undefined, name: string) => [
+                        value !== undefined
+                            ? `${value} ${value === 1 ? "persona" : "personas"}`
+                            : "0 personas",
+                        name === "nuevos" ? "Nuevos" : "Asistencias",
                     ]}
                 />
                 <Legend
                     formatter={(value) =>
-                        value === "nuevos" ? "Nuevos" : "RESET"
+                        value === "nuevos" ? "Nuevos" : "Asistencias"
                     }
                 />
                 <Line
@@ -75,11 +77,11 @@ export default function AttendanceTrendsChart({
                 />
                 <Line
                     type="monotone"
-                    dataKey="reset"
-                    stroke={COLORS.reset}
+                    dataKey="asistencias"
+                    stroke={COLORS.asistencias}
                     strokeWidth={2}
-                    name="reset"
-                    dot={{ fill: COLORS.reset, r: 4 }}
+                    name="asistencias"
+                    dot={{ fill: COLORS.asistencias, r: 4 }}
                     activeDot={{ r: 6 }}
                 />
             </LineChart>

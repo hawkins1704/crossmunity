@@ -7,26 +7,24 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
-interface ServiceDistributionData {
-    service: string;
-    count: number;
+interface SchoolParticipationData {
+    active: number;
+    inactive: number;
 }
 
-interface ServiceDistributionChartProps {
-    data: ServiceDistributionData[];
+interface SchoolParticipationChartProps {
+    data: SchoolParticipationData;
 }
 
-const COLORS = [
-    "#3B82F6", // Azul
-    "#10B981", // Verde
-    "#F59E0B", // Naranja
-    "#8B5CF6", // Púrpura
-];
+const COLORS = {
+    active: "#10B981", // Verde
+    inactive: "#6B7280", // Gris
+};
 
-export default function ServiceDistributionChart({
+export default function SchoolParticipationChart({
     data,
-}: ServiceDistributionChartProps) {
-    if (!data || data.length === 0) {
+}: SchoolParticipationChartProps) {
+    if (!data || (data.active === 0 && data.inactive === 0)) {
         return (
             <div className="flex items-center justify-center h-64 text-[#666666]">
                 <p className="text-sm">No hay datos disponibles</p>
@@ -34,27 +32,30 @@ export default function ServiceDistributionChart({
         );
     }
 
+    const chartData = [
+        { name: "Activos", value: data.active, color: COLORS.active },
+        { name: "No activos", value: data.inactive, color: COLORS.inactive },
+    ].filter((item) => item.value > 0); // Solo mostrar categorías con datos
+
     return (
         <ResponsiveContainer width="100%" height={300}>
             <PieChart>
                 <Pie
-                    data={data as unknown as Record<string, unknown>[]}
+                    data={chartData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ percent }) =>
-                        percent !== undefined ? ` ${(percent * 100).toFixed(1)}%` : ""
+                    label={({ name, percent }) =>
+                        percent !== undefined
+                            ? `${name}: ${(percent * 100).toFixed(1)}%`
+                            : ""
                     }
                     outerRadius={100}
                     fill="#8884d8"
-                    dataKey="count"
-                    nameKey="service"
+                    dataKey="value"
                 >
-                    {data.map((_, index) => (
-                        <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                        />
+                    {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                 </Pie>
                 <Tooltip
@@ -71,11 +72,14 @@ export default function ServiceDistributionChart({
                     ]}
                 />
                 <Legend
-                    formatter={(_value, entry) => {
-                        const payload = entry.payload as ServiceDistributionData;
+                    formatter={(value, entry) => {
+                        const payload = entry.payload as {
+                            name?: string;
+                            value?: number;
+                        };
                         return (
                             <span style={{ color: entry.color }}>
-                                {payload?.service}: {payload?.count ?? 0}
+                                {payload?.name}: {payload?.value ?? 0}
                             </span>
                         );
                     }}
