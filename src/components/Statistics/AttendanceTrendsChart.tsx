@@ -54,7 +54,7 @@ export default function AttendanceTrendsChart({
                         border: "1px solid #e5e5e5",
                         borderRadius: "4px",
                     }}
-                    formatter={(value: number | undefined, name: string) => [
+                    formatter={(value: number | undefined, name: string | undefined) => [
                         value !== undefined
                             ? `${value} ${value === 1 ? "persona" : "personas"}`
                             : "0 personas",

@@ -46,7 +46,7 @@ export default function GenderDistributionChart({
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(1)}%`
+                        `${name}: ${percent !== undefined ? (percent * 100).toFixed(1) : "0"}%`
                     }
                     outerRadius={100}
                     fill="#8884d8"
@@ -62,15 +62,15 @@ export default function GenderDistributionChart({
                         border: "1px solid #e5e5e5",
                         borderRadius: "4px",
                     }}
-                    formatter={(value: number) => [
+                    formatter={(value: number | undefined) => [
                         `${value} ${value === 1 ? "persona" : "personas"}`,
                         "",
                     ]}
                 />
                 <Legend
-                    formatter={(value, entry: any) => (
-                        <span style={{ color: entry.color }}>
-                            {value}: {entry.payload.value}
+                    formatter={(value, entry?: { color?: string; payload?: { value?: number } }) => (
+                        <span style={{ color: entry?.color }}>
+                            {value}: {entry?.payload?.value ?? 0}
                         </span>
                     )}
                 />

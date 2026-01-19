@@ -72,7 +72,7 @@ export default function SchoolParticipationChart({
                     ]}
                 />
                 <Legend
-                    formatter={(value, entry) => {
+                    formatter={(entry) => {
                         const payload = entry.payload as {
                             name?: string;
                             value?: number;
