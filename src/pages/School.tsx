@@ -128,7 +128,7 @@ export default function School() {
               className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
             >
               <HiPlus className="h-5 w-5" />
-              Agregar Cursos
+               Inscribirme
             </button>
           ) : undefined
         }
@@ -154,7 +154,7 @@ export default function School() {
               className="inline-flex items-center gap-2 bg-black text-white py-3 px-6 font-normal text-sm hover:bg-[#333333] transition-colors"
             >
               <HiPlus className="h-5 w-5" />
-              Agregar tu primer curso
+              Inscríbete!
             </button>
           )}
         </div>

@@ -64,7 +64,7 @@ export default function GenderDistributionChart({
                     }}
                     formatter={(value: number | undefined) => [
                         `${value} ${value === 1 ? "persona" : "personas"}`,
-                        "",
+                        "Cantidad",
                     ]}
                 />
                 <Legend

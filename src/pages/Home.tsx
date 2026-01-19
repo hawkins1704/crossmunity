@@ -607,7 +607,7 @@ export default function Home() {
                     <div className="flex border-b border-[#e5e5e5]">
                         <button
                             onClick={() => setActiveTab("reportes")}
-                            className={`px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
+                            className={`flex-1 md:flex-none px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
                                 activeTab === "reportes"
                                     ? "border-black text-black"
                                     : "border-transparent text-[#666666] hover:text-black"
@@ -617,7 +617,7 @@ export default function Home() {
                         </button>
                         <button
                             onClick={() => setActiveTab("estadisticas")}
-                            className={`px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
+                            className={`flex-1 md:flex-none px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
                                 activeTab === "estadisticas"
                                     ? "border-black text-black"
                                     : "border-transparent text-[#666666] hover:text-black"
@@ -763,7 +763,7 @@ export default function Home() {
 
                         {/* Dropdowns de filtro */}
                         <div className="bg-white border border-[#e5e5e5] p-4 mb-4">
-                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-center">
                                 {/* Dropdown de grupos */}
                                 {userGroups && userGroups.length > 0 && (
                                     <div className="flex items-center gap-3 flex-1">
@@ -1472,7 +1472,7 @@ export default function Home() {
                     <div className="space-y-8">
                         {/* Filtros */}
                         <div className="bg-white border border-[#e5e5e5] p-4">
-                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-center">
                                 {/* Dropdown de grupos */}
                                 {userGroups && userGroups.length > 0 && (
                                     <div className="flex items-center gap-3 flex-1">

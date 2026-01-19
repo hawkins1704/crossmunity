@@ -63,11 +63,14 @@ export default function ServiceDistributionChart({
                         border: "1px solid #e5e5e5",
                         borderRadius: "4px",
                     }}
+                   
                     formatter={(value: number | undefined) => [
+                  
                         value !== undefined
                             ? `${value} ${value === 1 ? "persona" : "personas"}`
                             : "0 personas",
-                        "",
+                        "Cantidad",
+                      
                     ]}
                 />
                 <Legend

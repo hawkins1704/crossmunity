@@ -5,7 +5,6 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
     ResponsiveContainer,
 } from "recharts";
 
@@ -49,7 +48,7 @@ export default function AgeDistributionChart({
                         borderRadius: "4px",
                     }}
                 />
-                <Legend />
+               
                 <Bar
                     dataKey="count"
                     fill="#000000"

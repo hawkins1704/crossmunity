@@ -68,7 +68,7 @@ export default function SchoolParticipationChart({
                         value !== undefined
                             ? `${value} ${value === 1 ? "persona" : "personas"}`
                             : "0 personas",
-                        "",
+                        "Cantidad",
                     ]}
                 />
                 <Legend
