@@ -140,8 +140,27 @@ export const getGroupById = query({
     const isLeader = group.leaders.includes(userId);
     const isDisciple = group.disciples.includes(userId);
 
+    // Si no es líder o discípulo directo, verificar si es líder de un grupo padre
+    // (es decir, si alguno de los líderes del grupo consultado es discípulo de un grupo del usuario)
     if (!isLeader && !isDisciple) {
-      throw new Error("No tienes acceso a este grupo");
+      const allGroups = await ctx.db.query("groups").collect();
+      const userGroupsAsLeader = allGroups.filter((g) => g.leaders.includes(userId));
+      
+      // Verificar si alguno de los líderes del grupo consultado es discípulo de algún grupo del usuario
+      let hasAccess = false;
+      for (const groupLeaderId of group.leaders) {
+        for (const userGroup of userGroupsAsLeader) {
+          if (userGroup.disciples.includes(groupLeaderId)) {
+            hasAccess = true;
+            break;
+          }
+        }
+        if (hasAccess) break;
+      }
+
+      if (!hasAccess) {
+        throw new Error("No tienes acceso a este grupo");
+      }
     }
 
     // Enriquecer con información de líderes
@@ -657,4 +676,382 @@ function generateInvitationCode(): string {
   }
   return code;
 }
+
+/**
+ * Helper: Obtiene el inicio del año (timestamp) para un año dado
+ */
+function getYearStart(year: number): number {
+  return new Date(year, 0, 1).getTime();
+}
+
+/**
+ * Helper: Obtiene el fin del año (timestamp) para un año dado
+ */
+function getYearEnd(year: number): number {
+  return new Date(year, 11, 31, 23, 59, 59, 999).getTime();
+}
+
+/**
+ * Query: Obtiene estadísticas de grupos agrupadas por grupo
+ * Retorna información de grupos con estadísticas de CURSOS, RESET y CONFERENCIA
+ * Para usar en la tabla de líderes agrupada por grupos
+ * Incluye tanto los líderes dueños del grupo como los discípulos que son líderes de otros grupos
+ */
+export const getGroupsStatistics = query({
+  args: {
+    groupId: v.optional(v.id("groups")), // Grupo actual para incluir sus líderes también
+    year: v.optional(v.number()), // Año para estadísticas (por defecto año actual)
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const currentYear = args.year || new Date().getFullYear();
+    const periodStart = getYearStart(currentYear);
+    const periodEnd = getYearEnd(currentYear);
+
+    // Obtener todos los grupos
+    const allGroups = await ctx.db.query("groups").collect();
+
+    // Si se especifica un grupo, obtenerlo y verificar acceso
+    let currentGroup: typeof allGroups[0] | null = null;
+    if (args.groupId) {
+      currentGroup = await ctx.db.get(args.groupId);
+      if (!currentGroup) {
+        throw new Error("Grupo no encontrado");
+      }
+      // Verificar que el usuario tenga acceso al grupo
+      if (!currentGroup.leaders.includes(userId) && !currentGroup.disciples.includes(userId)) {
+        throw new Error("No tienes acceso a este grupo");
+      }
+    } else {
+      // Si no se especifica grupo, obtener grupos donde el usuario es líder o discípulo
+      const userGroups = allGroups.filter(
+        (group) => group.leaders.includes(userId) || group.disciples.includes(userId)
+      );
+      if (userGroups.length > 0) {
+        currentGroup = userGroups[0]; // Usar el primer grupo encontrado
+      }
+    }
+
+    if (!currentGroup) {
+      return [];
+    }
+
+    // 1. Obtener líderes dueños del grupo actual
+    const ownerLeaderIds = new Set<Id<"users">>();
+    for (const leaderId of currentGroup.leaders) {
+      ownerLeaderIds.add(leaderId);
+    }
+
+    // 2. Obtener discípulos del grupo actual que son líderes de otros grupos
+    const discipleLeaderIds = new Set<Id<"users">>();
+    for (const discipleId of currentGroup.disciples) {
+      // Verificar si este discípulo es líder de algún grupo
+      const isLeader = allGroups.some((group) => group.leaders.includes(discipleId));
+      if (isLeader) {
+        discipleLeaderIds.add(discipleId);
+      }
+    }
+
+    // 3. Combinar todos los IDs de líderes (dueños + discípulos-líderes)
+    const allLeaderIds = new Set<Id<"users">>();
+    ownerLeaderIds.forEach((id) => allLeaderIds.add(id));
+    discipleLeaderIds.forEach((id) => allLeaderIds.add(id));
+
+    // 4. Obtener todos los grupos donde estos líderes son líderes
+    const groupsToShow = allGroups.filter((group) =>
+      group.leaders.some((leaderId) => allLeaderIds.has(leaderId))
+    );
+
+    // 5. Agrupar grupos por sus líderes (co-líderes juntos, líderes solos separados)
+    const groupsByLeaders = new Map<string, typeof groupsToShow>();
+    
+    for (const group of groupsToShow) {
+      // Crear clave única basada en los líderes ordenados
+      const sortedLeaders = [...group.leaders].sort().join(",");
+      if (!groupsByLeaders.has(sortedLeaders)) {
+        groupsByLeaders.set(sortedLeaders, []);
+      }
+      groupsByLeaders.get(sortedLeaders)!.push(group);
+    }
+
+    // 6. Calcular estadísticas para cada grupo
+    const result = await Promise.all(
+      Array.from(groupsByLeaders.entries()).map(async ([leaderKey, groups]) => {
+        // Obtener información de los líderes
+        const leaderIds = leaderKey.split(",") as Id<"users">[];
+        const leaders = await Promise.all(
+          leaderIds.map((leaderId) => ctx.db.get(leaderId))
+        );
+        const validLeaders = leaders.filter(Boolean);
+
+        if (validLeaders.length === 0) return null;
+
+        // Obtener todos los miembros del grupo (líderes + discípulos)
+        const allMemberIds = new Set<Id<"users">>();
+        const leaderMemberIds = new Set<Id<"users">>();
+        const discipleMemberIds = new Set<Id<"users">>();
+        
+        for (const group of groups) {
+          for (const leaderId of group.leaders) {
+            allMemberIds.add(leaderId);
+            leaderMemberIds.add(leaderId);
+          }
+          for (const discipleId of group.disciples) {
+            allMemberIds.add(discipleId);
+            discipleMemberIds.add(discipleId);
+          }
+        }
+
+        // Identificar qué discípulos son líderes de otros grupos (excluirlos del conteo)
+        const disciplesWhoAreLeaders = new Set<Id<"users">>();
+        for (const discipleId of discipleMemberIds) {
+          // Verificar si este discípulo es líder de algún grupo
+          const isLeader = allGroups.some((group) => 
+            group.leaders.includes(discipleId) && !leaderMemberIds.has(discipleId)
+          );
+          if (isLeader) {
+            disciplesWhoAreLeaders.add(discipleId);
+          }
+        }
+
+        // Contar CURSOS: líderes + discípulos que NO son líderes (excluir discípulos-líderes)
+        const members = await Promise.all(
+          Array.from(allMemberIds).map((memberId) => ctx.db.get(memberId))
+        );
+        const activeInSchoolCount = members.filter(
+          (member): member is NonNullable<typeof member> =>
+            member !== null && 
+            member.isActiveInSchool === true &&
+            !disciplesWhoAreLeaders.has(member._id) // Excluir discípulos que son líderes
+        ).length;
+
+        // Contar RESET y CONFERENCIA: solo registros de los líderes
+        let resetTotal = 0;
+        let conferenciaTotal = 0;
+
+        for (const leaderId of leaderIds) {
+          const leaderRecords = await ctx.db
+            .query("attendanceRecords")
+            .withIndex("userId", (q) => q.eq("userId", leaderId))
+            .collect();
+
+          const periodRecords = leaderRecords.filter(
+            (r) => r.date >= periodStart && r.date <= periodEnd
+          );
+
+          for (const record of periodRecords) {
+            if (record.type === "reset") {
+              const total = record.maleCount + record.femaleCount + (record.kidsCount || 0);
+              resetTotal += total;
+            } else if (record.type === "conferencia") {
+              const total =
+                (record.attended ? 1 : 0) +
+                record.maleCount +
+                record.femaleCount +
+                (record.kidsCount || 0);
+              conferenciaTotal += total;
+            }
+          }
+        }
+
+        return {
+          leaders: validLeaders,
+          groups: groups.map((g) => ({
+            _id: g._id,
+            name: g.name,
+            address: g.address,
+            district: g.district,
+            minAge: g.minAge,
+            maxAge: g.maxAge,
+            day: g.day,
+            time: g.time,
+            disciples: g.disciples,
+          })),
+          statistics: {
+            cursos: activeInSchoolCount,
+            reset: resetTotal,
+            conferencia: conferenciaTotal,
+          },
+        };
+      })
+    );
+
+    return result.filter((item): item is NonNullable<typeof item> => item !== null);
+  },
+});
+
+/**
+ * Query: Obtiene todos los grupos con estadísticas para la vista de grilla
+ * Retorna SOLO los grupos de los discípulos que son líderes (NO los grupos de los líderes dueños)
+ */
+export const getAllGroupsWithStatistics = query({
+  args: {
+    groupId: v.optional(v.id("groups")), // Grupo actual para filtrar discípulos
+    year: v.optional(v.number()), // Año para estadísticas (por defecto año actual)
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const currentYear = args.year || new Date().getFullYear();
+    const periodStart = getYearStart(currentYear);
+    const periodEnd = getYearEnd(currentYear);
+
+    // Obtener todos los grupos
+    const allGroups = await ctx.db.query("groups").collect();
+
+    // Si se especifica un grupo, obtenerlo y verificar acceso
+    let currentGroup: typeof allGroups[0] | null = null;
+    if (args.groupId) {
+      currentGroup = await ctx.db.get(args.groupId);
+      if (!currentGroup) {
+        throw new Error("Grupo no encontrado");
+      }
+      // Verificar que el usuario tenga acceso al grupo
+      if (!currentGroup.leaders.includes(userId) && !currentGroup.disciples.includes(userId)) {
+        throw new Error("No tienes acceso a este grupo");
+      }
+    } else {
+      // Si no se especifica grupo, obtener grupos donde el usuario es líder o discípulo
+      const userGroups = allGroups.filter(
+        (group) => group.leaders.includes(userId) || group.disciples.includes(userId)
+      );
+      if (userGroups.length > 0) {
+        currentGroup = userGroups[0]; // Usar el primer grupo encontrado
+      }
+    }
+
+    if (!currentGroup) {
+      return [];
+    }
+
+    // 1. Obtener líderes dueños del grupo actual (para EXCLUIR sus grupos)
+    const ownerLeaderIds = new Set<Id<"users">>();
+    for (const leaderId of currentGroup.leaders) {
+      ownerLeaderIds.add(leaderId);
+    }
+
+    // 2. Obtener discípulos del grupo actual que son líderes de otros grupos (para INCLUIR sus grupos)
+    const discipleLeaderIds = new Set<Id<"users">>();
+    for (const discipleId of currentGroup.disciples) {
+      // Verificar si este discípulo es líder de algún grupo
+      const isLeader = allGroups.some((group) => group.leaders.includes(discipleId));
+      if (isLeader) {
+        discipleLeaderIds.add(discipleId);
+      }
+    }
+
+    // 3. Obtener SOLO los grupos donde los líderes son discípulos-líderes (NO líderes dueños)
+    const groupsToShow = allGroups.filter((group) => {
+      // Verificar que al menos uno de los líderes del grupo sea un discípulo-líder
+      const hasDiscipleLeader = group.leaders.some((leaderId) => discipleLeaderIds.has(leaderId));
+      // Verificar que NINGUNO de los líderes del grupo sea un líder dueño
+      const hasOwnerLeader = group.leaders.some((leaderId) => ownerLeaderIds.has(leaderId));
+      return hasDiscipleLeader && !hasOwnerLeader;
+    });
+
+    // Calcular estadísticas para cada grupo
+    const result = await Promise.all(
+      groupsToShow.map(async (group) => {
+        // Obtener información de los líderes
+        const leaders = await Promise.all(
+          group.leaders.map((leaderId) => ctx.db.get(leaderId))
+        );
+        const validLeaders = leaders.filter(Boolean);
+
+        if (validLeaders.length === 0) return null;
+
+        // Obtener todos los miembros del grupo (líderes + discípulos)
+        const allMemberIds = new Set<Id<"users">>();
+        const leaderMemberIds = new Set<Id<"users">>();
+        const discipleMemberIds = new Set<Id<"users">>();
+        
+        for (const leaderId of group.leaders) {
+          allMemberIds.add(leaderId);
+          leaderMemberIds.add(leaderId);
+        }
+        for (const discipleId of group.disciples) {
+          allMemberIds.add(discipleId);
+          discipleMemberIds.add(discipleId);
+        }
+
+        // Identificar qué discípulos son líderes de otros grupos (excluirlos del conteo)
+        const disciplesWhoAreLeaders = new Set<Id<"users">>();
+        for (const discipleId of discipleMemberIds) {
+          // Verificar si este discípulo es líder de algún grupo
+          const isLeader = allGroups.some((g) => 
+            g.leaders.includes(discipleId) && !leaderMemberIds.has(discipleId)
+          );
+          if (isLeader) {
+            disciplesWhoAreLeaders.add(discipleId);
+          }
+        }
+
+        // Contar CURSOS: líderes + discípulos que NO son líderes (excluir discípulos-líderes)
+        const members = await Promise.all(
+          Array.from(allMemberIds).map((memberId) => ctx.db.get(memberId))
+        );
+        const activeInSchoolCount = members.filter(
+          (member): member is NonNullable<typeof member> =>
+            member !== null && 
+            member.isActiveInSchool === true &&
+            !disciplesWhoAreLeaders.has(member._id) // Excluir discípulos que son líderes
+        ).length;
+
+        // Contar RESET y CONFERENCIA: solo registros de los líderes
+        let resetTotal = 0;
+        let conferenciaTotal = 0;
+
+        for (const leaderId of group.leaders) {
+          const leaderRecords = await ctx.db
+            .query("attendanceRecords")
+            .withIndex("userId", (q) => q.eq("userId", leaderId))
+            .collect();
+
+          const periodRecords = leaderRecords.filter(
+            (r) => r.date >= periodStart && r.date <= periodEnd
+          );
+
+          for (const record of periodRecords) {
+            if (record.type === "reset") {
+              const total = record.maleCount + record.femaleCount + (record.kidsCount || 0);
+              resetTotal += total;
+            } else if (record.type === "conferencia") {
+              const total =
+                (record.attended ? 1 : 0) +
+                record.maleCount +
+                record.femaleCount +
+                (record.kidsCount || 0);
+              conferenciaTotal += total;
+            }
+          }
+        }
+
+        // Obtener discípulos
+        const disciples = await Promise.all(
+          group.disciples.map((discipleId) => ctx.db.get(discipleId))
+        );
+
+        return {
+          ...group,
+          leaders: validLeaders,
+          disciples: disciples.filter(Boolean),
+          statistics: {
+            cursos: activeInSchoolCount,
+            reset: resetTotal,
+            conferencia: conferenciaTotal,
+          },
+        };
+      })
+    );
+
+    return result.filter((item): item is NonNullable<typeof item> => item !== null);
+  },
+});
 

@@ -11,8 +11,10 @@ import {
 
 interface AttendanceTrendsData {
     month: string;
-    nuevos: number;
-    asistencias: number;
+    "saturday-1": number;
+    "saturday-2": number;
+    "sunday-1": number;
+    "sunday-2": number;
 }
 
 interface AttendanceTrendsChartProps {
@@ -20,13 +22,24 @@ interface AttendanceTrendsChartProps {
 }
 
 const COLORS = {
-    nuevos: "#10B981", // Verde
-    asistencias: "#3B82F6", // Azul
+    "saturday-1": "#3B82F6", // Azul - Sábado NEXT 5PM
+    "saturday-2": "#10B981", // Verde - Sábado NEXT 7PM
+    "sunday-1": "#F59E0B", // Naranja - Domingo 9AM
+    "sunday-2": "#8B5CF6", // Morado - Domingo 11:30AM
+};
+
+const SERVICE_NAMES = {
+    "saturday-1": "Sábado NEXT 5PM",
+    "saturday-2": "Sábado NEXT 7PM",
+    "sunday-1": "Domingo 9AM",
+    "sunday-2": "Domingo 11:30AM",
 };
 
 export default function AttendanceTrendsChart({
     data,
 }: AttendanceTrendsChartProps) {
+  
+    
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-64 text-[#666666]">
@@ -34,6 +47,8 @@ export default function AttendanceTrendsChart({
             </div>
         );
     }
+
+
 
     return (
         <ResponsiveContainer width="100%" height={300}>
@@ -47,7 +62,12 @@ export default function AttendanceTrendsChart({
                     stroke="#666666"
                     style={{ fontSize: "12px" }}
                 />
-                <YAxis stroke="#666666" style={{ fontSize: "12px" }} />
+                <YAxis 
+                    stroke="#666666" 
+                    style={{ fontSize: "12px" }}
+                    domain={[0, 'auto']}
+                    allowDecimals={false}
+                />
                 <Tooltip
                     contentStyle={{
                         backgroundColor: "white",
@@ -58,30 +78,48 @@ export default function AttendanceTrendsChart({
                         value !== undefined
                             ? `${value} ${value === 1 ? "persona" : "personas"}`
                             : "0 personas",
-                        name === "nuevos" ? "Nuevos" : "Asistencias",
+                        SERVICE_NAMES[name as keyof typeof SERVICE_NAMES] || name,
                     ]}
                 />
                 <Legend
                     formatter={(value) =>
-                        value === "nuevos" ? "Nuevos" : "Asistencias"
+                        SERVICE_NAMES[value as keyof typeof SERVICE_NAMES] || value
                     }
                 />
                 <Line
                     type="monotone"
-                    dataKey="nuevos"
-                    stroke={COLORS.nuevos}
+                    dataKey="saturday-1"
+                    stroke={COLORS["saturday-1"]}
                     strokeWidth={2}
-                    name="nuevos"
-                    dot={{ fill: COLORS.nuevos, r: 4 }}
+                    name="saturday-1"
+                    dot={{ fill: COLORS["saturday-1"], r: 4 }}
                     activeDot={{ r: 6 }}
                 />
                 <Line
                     type="monotone"
-                    dataKey="asistencias"
-                    stroke={COLORS.asistencias}
+                    dataKey="saturday-2"
+                    stroke={COLORS["saturday-2"]}
                     strokeWidth={2}
-                    name="asistencias"
-                    dot={{ fill: COLORS.asistencias, r: 4 }}
+                    name="saturday-2"
+                    dot={{ fill: COLORS["saturday-2"], r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+                <Line
+                    type="monotone"
+                    dataKey="sunday-1"
+                    stroke={COLORS["sunday-1"]}
+                    strokeWidth={2}
+                    name="sunday-1"
+                    dot={{ fill: COLORS["sunday-1"], r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+                <Line
+                    type="monotone"
+                    dataKey="sunday-2"
+                    stroke={COLORS["sunday-2"]}
+                    strokeWidth={2}
+                    name="sunday-2"
+                    dot={{ fill: COLORS["sunday-2"], r: 4 }}
                     activeDot={{ r: 6 }}
                 />
             </LineChart>

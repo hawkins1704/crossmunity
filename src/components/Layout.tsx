@@ -11,7 +11,6 @@ import {
   HiX,
   HiLogout,
   HiUser,
-  HiSparkles,
   HiAcademicCap,
   HiBookOpen,
   HiClipboardList,
@@ -79,10 +78,9 @@ const Layout = () => {
           {/* Header móvil */}
           <div className="flex h-20 items-center justify-between px-6 border-b border-[#e5e5e5]">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center bg-black">
-                <img src="/logo.png" alt="Crossmunity" className="h-10 w-10" />
+              <div className="flex items-center justify-center ">
+                <img src="/logo.png" alt="Radar Cervantes" className="w-10" />
               </div>
-              <h1 className="text-xl font-normal text-black tracking-tight">Crossmunity</h1>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -166,10 +164,9 @@ const Layout = () => {
           {/* Header desktop */}
           <div className="flex h-20 items-center px-6 border-b border-[#e5e5e5]">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center  bg-black">
-                <img src="/logo.png" alt="Crossmunity" className="h-10 w-10" />
+              <div className="flex items-center justify-center ">
+                <img src="/logo.png" alt="Radar Cervantes" className="w-10" />
               </div>
-              <h1 className="text-xl font-normal text-black tracking-tight">Crossmunity</h1>
             </div>
           </div>
 
@@ -250,12 +247,7 @@ const Layout = () => {
           >
             <HiMenu className="h-6 w-6" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-black">
-              <HiSparkles className="h-5 w-5 text-white" />
-            </div>
-            <h1 className="text-lg font-normal text-black tracking-tight">Crossmunity</h1>
-          </div>
+        
         </div>
 
         {/* Contenido */}

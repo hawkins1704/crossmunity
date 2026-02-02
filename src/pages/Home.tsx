@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
@@ -17,9 +17,9 @@ import { LuBaby } from "react-icons/lu";
 import AgeDistributionChart from "../components/Statistics/AgeDistributionChart";
 import GenderDistributionChart from "../components/Statistics/GenderDistributionChart";
 import AttendanceTrendsChart from "../components/Statistics/AttendanceTrendsChart";
-import ServiceDistributionChart from "../components/Statistics/ServiceDistributionChart";
 import SchoolParticipationChart from "../components/Statistics/SchoolParticipationChart";
 import PopularCoursesChart from "../components/Statistics/PopularCoursesChart";
+
 
 // Componente reutilizable para las cards de registro
 function RegistrationCard({
@@ -31,6 +31,7 @@ function RegistrationCard({
     femaleCount,
     kidsCount,
     onRegister,
+    comparisonText,
 }: {
     title: string;
     description: string;
@@ -40,6 +41,7 @@ function RegistrationCard({
     femaleCount: number;
     kidsCount?: number;
     onRegister: () => void;
+    comparisonText?: string;
 }) {
     // Determinar color basado en el título del card
     let colors = {
@@ -88,10 +90,10 @@ function RegistrationCard({
                             <Icon className={`h-6 w-6 ${colors.iconText}`} />
                         </div>
                         <div>
-                            <h3 className="font-normal text-black text-sm">
+                            <h3 className={`font-semibold ${colors.iconText} text-md uppercase `}>
                                 {title}
                             </h3>
-                            <p className="text-xs text-[#666666]">
+                            <p className="text-xs font-semibold text-[#666666]">
                                 {description}
                             </p>
                         </div>
@@ -101,6 +103,11 @@ function RegistrationCard({
                     <div className="text-3xl font-normal text-black mb-1">
                         {total}
                     </div>
+                    {comparisonText && (
+                        <div className="text-xs text-[#666666] mb-2">
+                            {comparisonText}
+                        </div>
+                    )}
                     <div className="text-xs text-[#666666] flex gap-4 flex-wrap">
                         <div className="text-black">
                             <MdMan className="inline h-4 w-4" /> {maleCount}
@@ -127,21 +134,41 @@ function RegistrationCard({
     );
 }
 
+// Helper para obtener mes actual (debe estar fuera del componente)
+function getCurrentMonth(): number {
+    return new Date().getMonth() + 1;
+}
+
+const monthNames = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+];
+
 export default function Home() {
+    
     const dashboard = useQuery(api.users.getDashboard);
     const recordAttendance = useMutation(api.attendance.recordAttendance);
 
     const [activeTab, setActiveTab] = useState<"reportes" | "estadisticas">("reportes");
-    const [viewMode, setViewMode] = useState<"month" | "year">("month");
+    const [viewMode, setViewMode] = useState<"week" | "month" | "quarter" | "year">("month");
     const [selectedMonth, setSelectedMonth] = useState<number | null>(
         getCurrentMonth()
     );
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    
     const [selectedGroupId, setSelectedGroupId] = useState<Id<"groups"> | null>(
         null
     );
-    const [selectedDiscipleId, setSelectedDiscipleId] =
-        useState<Id<"users"> | null>(null);
     const [modalType, setModalType] = useState<
         "nuevos" | "asistencias" | "reset" | "conferencia" | null
     >(null);
@@ -186,60 +213,250 @@ export default function Home() {
     // Obtener grupos del usuario actual (si es líder)
     const userGroups = useQuery(api.groups.getGroupsAsLeader);
 
-    // Obtener todos los discípulos de todos los grupos (cuando no hay grupo seleccionado)
-    const allDisciplesFromAllGroups = useQuery(
-        api.groups.getAllDisciplesFromAllGroups,
-        dashboard?.user._id ? {} : "skip"
-    );
-
-    // Obtener todos los discípulos del grupo seleccionado (incluyendo los del colíder)
-    const groupDisciples = useQuery(
-        api.groups.getGroupDisciples,
-        selectedGroupId ? { groupId: selectedGroupId } : "skip"
-    );
-
-    // Determinar qué discípulos mostrar:
-    // - Si hay un grupo seleccionado, mostrar todos los discípulos de ese grupo (incluyendo los del colíder)
-    // - Si no hay grupo seleccionado, mostrar todos los discípulos de TODOS los grupos del usuario
-    const disciples = selectedGroupId && groupDisciples
-        ? groupDisciples
-        : allDisciplesFromAllGroups;
 
     // Obtener colíderes del usuario actual
     const coLeaders = useQuery(api.attendance.getCoLeaders);
 
-    // Actualizar reportes cuando cambia el mes/año/discípulo
+    // Calcular fecha de referencia según el modo de vista (memoizado)
+    const referenceDate = useMemo(() => {
+        const now = new Date();
+        if (viewMode === "week") {
+            // Para semana, usar la fecha actual
+            return now;
+        } else if (viewMode === "month") {
+            // Para mes, usar el mes seleccionado (o mes actual si no hay selección)
+            if (selectedMonth !== null) {
+                const today = new Date();
+                // Si el mes seleccionado es el mes actual, usar hoy
+                if (selectedYear === today.getFullYear() && selectedMonth === today.getMonth() + 1) {
+                    return today; // Mes actual, usar hoy
+                } else {
+                    // Mes pasado o futuro, usar el último día del mes como referencia
+                    // El backend calculará correctamente el rango desde inicio hasta fin del mes
+                    return new Date(selectedYear, selectedMonth, 0); // Último día del mes
+                }
+            }
+            return now;
+        } else if (viewMode === "quarter") {
+            // Para cuatrimestre, usar la fecha actual (o calcular según el mes seleccionado)
+            if (selectedMonth !== null) {
+                const selectedDate = new Date(selectedYear, selectedMonth - 1, 1);
+                const today = new Date();
+                // Si el cuatrimestre seleccionado es el actual, usar hoy. Si es pasado, usar el último día del cuatrimestre.
+                const currentQuarter = Math.floor((today.getMonth()) / 4);
+                const selectedQuarter = Math.floor((selectedMonth - 1) / 4);
+                if (selectedYear === today.getFullYear() && selectedQuarter === currentQuarter) {
+                    return today;
+                } else if (selectedYear < today.getFullYear() || (selectedYear === today.getFullYear() && selectedQuarter < currentQuarter)) {
+                    // Cuatrimestre pasado, usar el último día del cuatrimestre
+                    const quarterEndMonth = selectedQuarter * 4 + 4; // Mes final del cuatrimestre
+                    return new Date(selectedYear, quarterEndMonth, 0);
+                } else {
+                    return selectedDate;
+                }
+            }
+            return now;
+        } else {
+            // Para año, usar el año seleccionado (o año actual si no hay selección)
+            const yearDate = new Date(selectedYear || now.getFullYear(), 0, 1);
+            const today = new Date();
+            // Si el año seleccionado es el año actual, usar hoy. Si es pasado, usar el último día del año.
+            if (selectedYear === today.getFullYear()) {
+                return today;
+            } else if (selectedYear < today.getFullYear()) {
+                return new Date(selectedYear, 11, 31); // Último día del año
+            }
+            return yearDate;
+        }
+    }, [viewMode, selectedMonth, selectedYear]);
+
+    const referenceTimestamp = useMemo(() => {
+        const timestamp = referenceDate.getTime();
+        return timestamp;
+    }, [referenceDate]);
+    
+
+    // Validar que el timestamp sea válido
+    const isValidTimestamp = !isNaN(referenceTimestamp) && isFinite(referenceTimestamp);
+
+    // Actualizar reportes cuando cambia el período/discípulo
+    // Solo ejecutar queries si el usuario está autenticado y el timestamp es válido
     const periodReport = useQuery(
         api.attendance.getMyMonthlyReport,
-        selectedYear
+        dashboard?.user._id && isValidTimestamp
             ? {
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
               }
             : "skip"
     );
+    
     const periodGroupReport = useQuery(
         api.attendance.getGroupAttendanceReport,
-        selectedYear
+        dashboard?.user._id && isValidTimestamp
             ? {
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
                   groupId: selectedGroupId || undefined,
-                  discipleId: selectedDiscipleId || undefined,
               }
             : "skip"
     );
 
-    // Helper para obtener mes y año actual
-    function getCurrentMonth(): number {
-        return new Date().getMonth() + 1;
-    }
+
+    // Helper para obtener el rango de fechas según el período (memoizado)
+    const periodRange = useMemo(() => {
+        const now = new Date();
+        const start = new Date();
+        const end = new Date();
+
+        switch (viewMode) {
+            case "week": {
+                // Lunes de la semana actual hasta hoy
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                start.setDate(diff);
+                start.setHours(0, 0, 0, 0);
+                end.setTime(now.getTime());
+                end.setHours(23, 59, 59, 999);
+                break;
+            }
+            case "month": {
+                // Día 1 del mes seleccionado hasta hoy (si es mes actual) o fin del mes (si es pasado)
+                if (selectedMonth !== null) {
+                    start.setFullYear(selectedYear, selectedMonth - 1, 1);
+                    start.setHours(0, 0, 0, 0);
+                    
+                    // Si el mes seleccionado es el mes actual, usar hoy. Si es pasado, usar el último día del mes.
+                    const today = new Date();
+                    if (selectedYear === today.getFullYear() && selectedMonth === today.getMonth() + 1) {
+                        end.setTime(today.getTime());
+                        end.setHours(23, 59, 59, 999);
+                    } else {
+                        // Mes pasado o futuro, usar el último día del mes
+                        end.setFullYear(selectedYear, selectedMonth, 0); // Día 0 del mes siguiente = último día del mes actual
+                        end.setHours(23, 59, 59, 999);
+                    }
+                } else {
+                    // Fallback: mes actual
+                    start.setDate(1);
+                    start.setHours(0, 0, 0, 0);
+                    end.setTime(now.getTime());
+                    end.setHours(23, 59, 59, 999);
+                }
+                break;
+            }
+            case "quarter": {
+                // Inicio del cuatrimestre seleccionado hasta hoy (si es actual) o fin del cuatrimestre (si es pasado)
+                if (selectedMonth !== null) {
+                    const selectedQuarter = Math.floor((selectedMonth - 1) / 4);
+                    let quarterStartMonth: number;
+                    if (selectedQuarter === 0) {
+                        quarterStartMonth = 0; // Enero
+                    } else if (selectedQuarter === 1) {
+                        quarterStartMonth = 4; // Mayo
+                    } else {
+                        quarterStartMonth = 8; // Septiembre
+                    }
+                    start.setFullYear(selectedYear, quarterStartMonth, 1);
+                    start.setHours(0, 0, 0, 0);
+                    
+                    const today = new Date();
+                    const currentQuarter = Math.floor(today.getMonth() / 4);
+                    if (selectedYear === today.getFullYear() && selectedQuarter === currentQuarter) {
+                        end.setTime(today.getTime());
+                        end.setHours(23, 59, 59, 999);
+                    } else {
+                        // Cuatrimestre pasado o futuro, usar el último día del cuatrimestre
+                        const quarterEndMonth = quarterStartMonth + 4; // Mes final del cuatrimestre
+                        end.setFullYear(selectedYear, quarterEndMonth, 0);
+                        end.setHours(23, 59, 59, 999);
+                    }
+                } else {
+                    // Fallback: cuatrimestre actual
+                    const month = now.getMonth();
+                    let quarterStartMonth: number;
+                    if (month >= 0 && month <= 3) {
+                        quarterStartMonth = 0; // Enero
+                    } else if (month >= 4 && month <= 7) {
+                        quarterStartMonth = 4; // Mayo
+                    } else {
+                        quarterStartMonth = 8; // Septiembre
+                    }
+                    start.setMonth(quarterStartMonth, 1);
+                    start.setHours(0, 0, 0, 0);
+                    end.setTime(now.getTime());
+                    end.setHours(23, 59, 59, 999);
+                }
+                break;
+            }
+            case "year": {
+                // 1 de enero del año seleccionado hasta hoy (si es año actual) o fin del año (si es pasado)
+                start.setFullYear(selectedYear, 0, 1);
+                start.setHours(0, 0, 0, 0);
+                
+                const today = new Date();
+                if (selectedYear === today.getFullYear()) {
+                    end.setTime(today.getTime());
+                    end.setHours(23, 59, 59, 999);
+                } else {
+                    // Año pasado o futuro, usar el último día del año
+                    end.setFullYear(selectedYear, 11, 31);
+                    end.setHours(23, 59, 59, 999);
+                }
+                break;
+            }
+        }
+
+        const result = { start, end };
+        return result;
+    }, [viewMode, selectedMonth, selectedYear]);
+
+    // Helper para formatear el rango de fechas (memoizado)
+    const formattedPeriodRange = useMemo(() => {
+        const formatDate = (date: Date): string => {
+            const day = date.getDate();
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} de ${month} ${year}`;
+        };
+        const result = `${formatDate(periodRange.start)} - ${formatDate(periodRange.end)}`;
+        return result;
+    }, [periodRange]);
+
+    // Helper para obtener el nombre del período en español (memoizado)
+    const periodName = useMemo(() => {
+        switch (viewMode) {
+            case "week":
+                return "semana";
+            case "month":
+                return "mes";
+            case "quarter":
+                return "cuatrimestre";
+            case "year":
+                return "año";
+        }
+    }, [viewMode]);
+    
+
+    // Helper para calcular la comparación con el período anterior
+    const getComparisonText = (
+        current: number | undefined,
+        previous: number | undefined,
+        periodName: string
+    ): string => {
+        // Asegurar que los valores sean números válidos
+        const currentValue = typeof current === 'number' ? current : 0;
+        const previousValue = typeof previous === 'number' ? previous : 0;
+        const diff = currentValue - previousValue;
+        
+        if (diff === 0) {
+            return `Igual que el anterior ${periodName}`;
+        } else if (diff > 0) {
+            return `${diff} más que el anterior ${periodName}`;
+        } else {
+            return `${Math.abs(diff)} menos que el anterior ${periodName}`;
+        }
+    };
 
     // Helper para convertir timestamp a formato de fecha (YYYY-MM-DD)
     const timestampToDateString = (timestamp: number): string => {
@@ -431,13 +648,25 @@ export default function Home() {
 
     // Navegar entre períodos
     const handlePreviousPeriod = () => {
-        if (viewMode === "month" && selectedMonth) {
-            if (selectedMonth === 1) {
-                setSelectedMonth(12);
-                setSelectedYear(selectedYear - 1);
-            } else {
-                setSelectedMonth(selectedMonth - 1);
+        if (viewMode === "week") {
+            // Navegar a la semana anterior (7 días atrás)
+            // No hay navegación para semana, siempre muestra la semana actual
+            return;
+        } else if (viewMode === "month") {
+            if (selectedMonth) {
+                if (selectedMonth === 1) {
+                    setSelectedMonth(12);
+                    setSelectedYear(selectedYear - 1);
+                } else {
+                    setSelectedMonth(selectedMonth - 1);
+                }
             }
+        } else if (viewMode === "quarter") {
+            // Navegar al cuatrimestre anterior (4 meses atrás)
+            const currentDate = new Date(selectedYear, selectedMonth ? selectedMonth - 1 : 0, 1);
+            currentDate.setMonth(currentDate.getMonth() - 4);
+            setSelectedYear(currentDate.getFullYear());
+            setSelectedMonth(currentDate.getMonth() + 1);
         } else {
             // Modo año
             setSelectedYear(selectedYear - 1);
@@ -445,24 +674,54 @@ export default function Home() {
     };
 
     const handleNextPeriod = () => {
-        if (viewMode === "month" && selectedMonth) {
-            if (selectedMonth === 12) {
-                setSelectedMonth(1);
-                setSelectedYear(selectedYear + 1);
-            } else {
-                setSelectedMonth(selectedMonth + 1);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
+        if (viewMode === "week") {
+            // No permitir navegar hacia adelante desde la semana actual
+            return;
+        } else if (viewMode === "month") {
+            if (selectedMonth) {
+                // No permitir navegar más allá del mes actual
+                if (selectedYear === currentYear && selectedMonth >= currentMonth) {
+                    return;
+                }
+                if (selectedMonth === 12) {
+                    setSelectedMonth(1);
+                    setSelectedYear(selectedYear + 1);
+                } else {
+                    setSelectedMonth(selectedMonth + 1);
+                }
             }
+        } else if (viewMode === "quarter") {
+            // No permitir navegar más allá del cuatrimestre actual
+            const currentQuarter = Math.floor((currentMonth - 1) / 4);
+            const selectedQuarter = Math.floor(((selectedMonth || 1) - 1) / 4);
+            if (selectedYear === currentYear && selectedQuarter >= currentQuarter) {
+                return;
+            }
+            const currentDate = new Date(selectedYear, selectedMonth ? selectedMonth - 1 : 0, 1);
+            currentDate.setMonth(currentDate.getMonth() + 4);
+            setSelectedYear(currentDate.getFullYear());
+            setSelectedMonth(currentDate.getMonth() + 1);
         } else {
-            // Modo año
+            // Modo año - no permitir más allá del año actual
+            if (selectedYear >= currentYear) {
+                return;
+            }
             setSelectedYear(selectedYear + 1);
         }
     };
 
     // Cambiar modo de visualización
-    const handleViewModeChange = (mode: "month" | "year") => {
+    const handleViewModeChange = (mode: "week" | "month" | "quarter" | "year") => {
         setViewMode(mode);
         if (mode === "year") {
             setSelectedMonth(null);
+        } else if (mode === "week" || mode === "quarter") {
+            // Para semana y cuatrimestre, usar fecha actual
+            setSelectedMonth(getCurrentMonth());
         } else {
             setSelectedMonth(getCurrentMonth());
         }
@@ -471,119 +730,69 @@ export default function Home() {
     // Manejar cambio de grupo
     const handleGroupChange = (groupId: Id<"groups"> | null) => {
         setSelectedGroupId(groupId);
-        // Resetear discípulo cuando cambia el grupo
-        setSelectedDiscipleId(null);
     };
 
-    // Resetear filtro de discípulo
-    const handleDiscipleChange = (discipleId: Id<"users"> | null) => {
-        setSelectedDiscipleId(discipleId);
-    };
-
-    const monthNames = [
-        "Enero",
-        "Febrero",
-        "Marzo",
-        "Abril",
-        "Mayo",
-        "Junio",
-        "Julio",
-        "Agosto",
-        "Septiembre",
-        "Octubre",
-        "Noviembre",
-        "Diciembre",
-    ];
-
-    // Queries para estadísticas (deben estar antes del return condicional)
+    // Queries para estadísticas - ahora usan los mismos parámetros que REPORTES
     const genderDistribution = useQuery(
         api.statistics.getGenderDistribution,
-        dashboard?.user._id
+        dashboard?.user._id && isValidTimestamp
             ? {
                   groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
               }
             : "skip"
     );
 
     const ageDistribution = useQuery(
         api.statistics.getAgeDistribution,
-        dashboard?.user._id
+        dashboard?.user._id && isValidTimestamp
             ? {
                   groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
               }
             : "skip"
     );
 
     const attendanceTrends = useQuery(
         api.statistics.getAttendanceTrends,
-        dashboard?.user._id
+        dashboard?.user._id && isValidTimestamp
             ? {
                   groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
-                  viewMode: viewMode,
-              }
-            : "skip"
-    );
-
-    const serviceDistribution = useQuery(
-        api.statistics.getServiceDistribution,
-        dashboard?.user._id
-            ? {
-                  groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
               }
             : "skip"
     );
 
     const schoolParticipation = useQuery(
         api.statistics.getSchoolParticipation,
-        dashboard?.user._id
+        dashboard?.user._id && isValidTimestamp
             ? {
                   groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
               }
             : "skip"
     );
 
     const popularCourses = useQuery(
         api.statistics.getPopularCourses,
-        dashboard?.user._id
+        dashboard?.user._id && isValidTimestamp
             ? {
                   groupId: selectedGroupId || undefined,
-                  month:
-                      viewMode === "month" && selectedMonth
-                          ? selectedMonth
-                          : undefined,
-                  year: selectedYear,
+                  periodType: viewMode,
+                  referenceDate: referenceTimestamp,
                   limit: 10,
               }
             : "skip"
     );
 
 
-    if (dashboard === undefined || periodReport === undefined) {
+    // Mostrar loading solo si dashboard está cargando
+    // periodReport puede ser undefined si hay un error, pero no debería bloquear la UI
+    if (dashboard === undefined) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="animate-spin h-12 w-12 border-2 border-black border-t-transparent"></div>
@@ -591,8 +800,16 @@ export default function Home() {
         );
     }
 
-    const currentReport = periodReport;
-    const currentGroupReport = periodGroupReport;
+    
+    // Manejar el caso cuando periodReport está cargando o es undefined
+    const currentReport = periodReport?.current;
+    const previousReport = periodReport?.previous;
+    const currentGroupReport = periodGroupReport?.groupReport;
+    const previousGroupReport = periodGroupReport?.previous?.groupReport;
+    
+ 
+    
+  
 
     return (
         <div className="bg-[#fafafa] p-4 md:p-8">
@@ -609,7 +826,7 @@ export default function Home() {
                             onClick={() => setActiveTab("reportes")}
                             className={`flex-1 md:flex-none px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
                                 activeTab === "reportes"
-                                    ? "border-black text-black"
+                                    ? "border-black text-black font-semibold"
                                     : "border-transparent text-[#666666] hover:text-black"
                             }`}
                         >
@@ -619,7 +836,7 @@ export default function Home() {
                             onClick={() => setActiveTab("estadisticas")}
                             className={`flex-1 md:flex-none px-6 py-3 text-sm font-normal transition-colors border-b-2 ${
                                 activeTab === "estadisticas"
-                                    ? "border-black text-black"
+                                    ? "border-black text-black font-semibold"
                                     : "border-transparent text-[#666666] hover:text-black"
                             }`}
                         >
@@ -634,75 +851,118 @@ export default function Home() {
                         {/* Header con filtro de periodo a la derecha */}
                         <div className="mb-8 flex items-center justify-end flex-wrap gap-4">
                             {/* Filtro de periodo en la parte superior derecha */}
-                            <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
-                        {/* Selector de modo Mes/Año */}
-                        <div className="flex flex-1 items-center border border-[#e5e5e5]">
-                            <button
-                                onClick={() => handleViewModeChange("month")}
-                                className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
-                                    viewMode === "month"
-                                        ? "bg-black text-white"
-                                        : "bg-white text-black hover:bg-[#fafafa]"
-                                }`}
-                            >
-                                Mes
-                            </button>
-                            <button
-                                onClick={() => handleViewModeChange("year")}
-                                className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
-                                    viewMode === "year"
-                                        ? "bg-black text-white"
-                                        : "bg-white text-black hover:bg-[#fafafa]"
-                                }`}
-                            >
-                                Año
-                            </button>
-                        </div>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
+                                    {/* Selector de modo Semana/Mes/Cuatrimestral/Año */}
+                                    <div className="flex flex-1 items-center border border-[#e5e5e5]">
+                                        <button
+                                            onClick={() => handleViewModeChange("week")}
+                                            className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "week"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Semana
+                                        </button>
+                                        <button
+                                            onClick={() => handleViewModeChange("month")}
+                                            className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "month"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Mes
+                                        </button>
+                                        <button
+                                            onClick={() => handleViewModeChange("quarter")}
+                                            className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "quarter"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Cuatrimestral
+                                        </button>
+                                        <button
+                                            onClick={() => handleViewModeChange("year")}
+                                            className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                viewMode === "year"
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-[#fafafa]"
+                                            }`}
+                                        >
+                                            Anual
+                                        </button>
+                                    </div>
 
-                        {/* Navegación de período */}
-                        <div className="flex flex-1 items-center gap-2">
-                            <button
-                                onClick={handlePreviousPeriod}
-                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
-                                title="Período anterior"
-                            >
-                                <HiChevronLeft className="h-5 w-5 text-black" />
-                            </button>
-                            <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
-                                {viewMode === "month" && selectedMonth
-                                    ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
-                                    : `${selectedYear}`}
-                            </span>
-                            <button
-                                onClick={handleNextPeriod}
-                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={
-                                    viewMode === "month" &&
-                                    selectedMonth === getCurrentMonth() &&
-                                    selectedYear === new Date().getFullYear()
-                                }
-                                title="Período siguiente"
-                            >
-                                <HiChevronRight
-                                    className={`h-5 w-5 ${
-                                        viewMode === "month" &&
-                                        selectedMonth === getCurrentMonth() &&
-                                        selectedYear ===
-                                            new Date().getFullYear()
-                                            ? "text-[#999999]"
-                                            : "text-black"
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                    </div>
+                                    {/* Navegación de período */}
+                                    {viewMode !== "week" && (
+                                        <div className="flex flex-1 items-center gap-2">
+                                            <button
+                                                onClick={handlePreviousPeriod}
+                                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
+                                                title="Período anterior"
+                                            >
+                                                <HiChevronLeft className="h-5 w-5 text-black" />
+                                            </button>
+                                            <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
+                                                {viewMode === "month" && selectedMonth
+                                                    ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
+                                                    : viewMode === "quarter"
+                                                    ? `Cuatrimestre ${Math.floor(((selectedMonth || 1) - 1) / 4) + 1} ${selectedYear}`
+                                                    : `${selectedYear}`}
+                                            </span>
+                                            <button
+                                                onClick={handleNextPeriod}
+                                                className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={
+                                                    (viewMode === "month" &&
+                                                        selectedMonth === getCurrentMonth() &&
+                                                        selectedYear === new Date().getFullYear()) ||
+                                                    (viewMode === "quarter" &&
+                                                        selectedYear === new Date().getFullYear() &&
+                                                        Math.floor(((selectedMonth || 1) - 1) / 4) >= Math.floor((getCurrentMonth() - 1) / 4)) ||
+                                                    (viewMode === "year" &&
+                                                        selectedYear === new Date().getFullYear())
+                                                }
+                                                title="Período siguiente"
+                                            >
+                                                <HiChevronRight
+                                                    className={`h-5 w-5 ${
+                                                        (viewMode === "month" &&
+                                                            selectedMonth === getCurrentMonth() &&
+                                                            selectedYear === new Date().getFullYear()) ||
+                                                        (viewMode === "quarter" &&
+                                                            selectedYear === new Date().getFullYear() &&
+                                                            Math.floor(((selectedMonth || 1) - 1) / 4) >= Math.floor((getCurrentMonth() - 1) / 4)) ||
+                                                        (viewMode === "year" &&
+                                                            selectedYear === new Date().getFullYear())
+                                                            ? "text-[#999999]"
+                                                            : "text-black"
+                                                    }`}
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Mostrar rango de fechas */}
+                                <div className="text-xs text-[#666666] text-right">
+                                    {formattedPeriodRange}
+                                </div>
+                            </div>
                 </div>
                 {/* Contadores Personales */}
                 <div className="mb-8">
                     <div className="mb-4">
                         <h2 className="text-lg font-normal text-black">
-                            {viewMode === "month"
+                            {viewMode === "week"
+                                ? "Mis registros de la semana"
+                                : viewMode === "month"
                                 ? "Mis registros del mes"
+                                : viewMode === "quarter"
+                                ? "Mis registros del cuatrimestre"
                                 : "Mis registros del año"}
                         </h2>
                     </div>
@@ -717,6 +977,15 @@ export default function Home() {
                             femaleCount={currentReport?.nuevos.female || 0}
                             kidsCount={currentReport?.nuevos.kids}
                             onRegister={() => handleOpenModal("nuevos")}
+                            comparisonText={
+                                previousReport && previousReport.nuevos
+                                    ? getComparisonText(
+                                          currentReport?.nuevos?.total ?? 0,
+                                          previousReport.nuevos.total ?? 0,
+                                          periodName
+                                      )
+                                    : undefined
+                            }
                         />
 
                         <RegistrationCard
@@ -728,6 +997,16 @@ export default function Home() {
                             femaleCount={currentReport?.asistencias.female || 0}
                             kidsCount={currentReport?.asistencias.kids}
                             onRegister={() => handleOpenModal("asistencias")}
+                            comparisonText={
+                                previousReport && previousReport.asistencias
+                                    ? (() => {
+                                          const current = currentReport?.asistencias?.total ?? 0;
+                                          const previous = previousReport.asistencias.total ?? 0;
+                                       
+                                          return getComparisonText(current, previous, periodName);
+                                      })()
+                                    : undefined
+                            }
                         />
 
                         <RegistrationCard
@@ -739,6 +1018,15 @@ export default function Home() {
                             femaleCount={currentReport?.reset.female || 0}
                             kidsCount={currentReport?.reset.kids}
                             onRegister={() => handleOpenModal("reset")}
+                            comparisonText={
+                                previousReport && previousReport.reset
+                                    ? getComparisonText(
+                                          currentReport?.reset?.total ?? 0,
+                                          previousReport.reset.total ?? 0,
+                                          periodName
+                                      )
+                                    : undefined
+                            }
                         />
 
                         <RegistrationCard
@@ -750,15 +1038,24 @@ export default function Home() {
                             femaleCount={currentReport?.conferencia.female || 0}
                             kidsCount={currentReport?.conferencia.kids}
                             onRegister={() => handleOpenModal("conferencia")}
+                            comparisonText={
+                                previousReport && previousReport.conferencia
+                                    ? getComparisonText(
+                                          currentReport?.conferencia?.total ?? 0,
+                                          previousReport.conferencia.total ?? 0,
+                                          periodName
+                                      )
+                                    : undefined
+                            }
                         />
                     </div>
                 </div>
 
                 {/* Reportes seccionados (Solo para Líderes) */}
-                {currentGroupReport?.isLeader && (
+                {periodGroupReport?.isLeader && (
                     <div className="mb-8">
                         <h2 className="text-lg font-normal text-black mb-4">
-                            Reportes seccionados
+                            Registros por grupo
                         </h2>
 
                         {/* Dropdowns de filtro */}
@@ -799,43 +1096,6 @@ export default function Home() {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Dropdown de discípulos */}
-                                {disciples && disciples.length > 0 && (
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <label className="text-xs font-normal text-black uppercase tracking-wide whitespace-nowrap">
-                                            Por Discípulo:
-                                        </label>
-                                        <div className="relative flex-1">
-                                            <select
-                                                value={selectedDiscipleId || ""}
-                                                onChange={(e) =>
-                                                    handleDiscipleChange(
-                                                        e.target.value
-                                                            ? (e.target
-                                                                  .value as Id<"users">)
-                                                            : null
-                                                    )
-                                                }
-                                                className="appearance-none bg-white border border-[#e5e5e5] px-4 py-3 pr-10 text-sm font-normal text-black hover:border-black focus:outline-none focus:border-black transition-colors cursor-pointer w-full"
-                                            >
-                                                <option value="">
-                                                    Todos los discípulos
-                                                </option>
-                                                {disciples.map((disciple) => (
-                                                    <option
-                                                        key={disciple._id}
-                                                        value={disciple._id}
-                                                    >
-                                                        {disciple.name ||
-                                                            disciple.email}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#999999] pointer-events-none" />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -852,24 +1112,30 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="text-2xl font-normal text-black mb-2">
-                                        {currentGroupReport.groupReport?.nuevos
-                                            .total || 0}
+                                        {currentGroupReport?.nuevos.total || 0}
                                     </div>
+                                    {previousGroupReport && previousGroupReport.nuevos && (
+                                        <div className="text-xs text-[#666666] mb-2">
+                                            {getComparisonText(
+                                                currentGroupReport?.nuevos?.total ?? 0,
+                                                previousGroupReport.nuevos.total ?? 0,
+                                                periodName
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="text-xs text-black">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
                                             <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.nuevos.male || 0}
+                                                {currentGroupReport?.nuevos.male || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.nuevos.female || 0}
+                                                {currentGroupReport?.nuevos.female || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <LuBaby className="h-4 w-4" />
-                                                {currentGroupReport.groupReport?.nuevos.kids || 0}
+                                                {currentGroupReport?.nuevos.kids || 0}
                                             </div>
                                         </div>
                                     </div>
@@ -886,28 +1152,30 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="text-2xl font-normal text-black mb-2">
-                                        {currentGroupReport.groupReport
-                                            ?.asistencias.total || 0}
+                                        {currentGroupReport?.asistencias.total || 0}
                                     </div>
+                                    {previousGroupReport && previousGroupReport.asistencias && (
+                                        <div className="text-xs text-[#666666] mb-2">
+                                            {getComparisonText(
+                                                currentGroupReport?.asistencias?.total ?? 0,
+                                                previousGroupReport.asistencias.total ?? 0,
+                                                periodName
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
                                             <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.asistencias.male ||
-                                                    0}
-                                                
+                                                {currentGroupReport?.asistencias.male || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.asistencias.female ||
-                                                    0}
-                                                
+                                                {currentGroupReport?.asistencias.female || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <LuBaby className="h-4 w-4" />
-                                                {currentGroupReport.groupReport?.asistencias.kids || 0}
+                                                {currentGroupReport?.asistencias.kids || 0}
                                                 
                                             </div>
                                         </div>
@@ -925,24 +1193,30 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="text-2xl font-normal text-black mb-2">
-                                        {currentGroupReport.groupReport?.reset
-                                            .total || 0}
+                                        {currentGroupReport?.reset.total || 0}
                                     </div>
+                                    {previousGroupReport && previousGroupReport.reset && (
+                                        <div className="text-xs text-[#666666] mb-2">
+                                            {getComparisonText(
+                                                currentGroupReport?.reset?.total ?? 0,
+                                                previousGroupReport.reset.total ?? 0,
+                                                periodName
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
                                             <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.reset.male || 0}
+                                                {currentGroupReport?.reset.male || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.reset.female || 0}
+                                                {currentGroupReport?.reset.female || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <LuBaby className="h-4 w-4" />
-                                                {currentGroupReport.groupReport?.reset.kids || 0}
+                                                {currentGroupReport?.reset.kids || 0}
                                             </div>
                                         </div>
                                     </div>
@@ -959,26 +1233,30 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="text-2xl font-normal text-black mb-2">
-                                        {currentGroupReport.groupReport
-                                            ?.conferencia.total || 0}
+                                        {currentGroupReport?.conferencia.total || 0}
                                     </div>
+                                    {previousGroupReport && previousGroupReport.conferencia && (
+                                        <div className="text-xs text-[#666666] mb-2">
+                                            {getComparisonText(
+                                                currentGroupReport?.conferencia?.total ?? 0,
+                                                previousGroupReport.conferencia.total ?? 0,
+                                                periodName
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="text-xs text-[#666666]">
                                         <div className="flex gap-3 text-xs mt-2 font-normal flex-wrap">
                                             <div className="text-black flex items-center gap-1">
                                                 <MdMan className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.conferencia.male ||
-                                                    0}
+                                                {currentGroupReport?.conferencia.male || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <MdWoman className="h-4 w-4" />
-                                                {currentGroupReport.groupReport
-                                                    ?.conferencia.female ||
-                                                    0}
+                                                {currentGroupReport?.conferencia.female || 0}
                                             </div>
                                             <div className="text-black flex items-center gap-1">
                                                 <LuBaby className="h-4 w-4" />
-                                                {currentGroupReport.groupReport?.conferencia.kids || 0}
+                                                {currentGroupReport?.conferencia.kids || 0}
                                             </div>
                                         </div>
                                     </div>
@@ -1509,75 +1787,106 @@ export default function Home() {
                                     </div>
                                 )}
 
-                                {/* Filtro de periodo */}
-                                <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
-                                    {/* Selector de modo Mes/Año */}
-                                    <div className="flex flex-1 items-center border border-[#e5e5e5]">
-                                        <button
-                                            onClick={() =>
-                                                handleViewModeChange("month")
-                                            }
-                                            className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
-                                                viewMode === "month"
-                                                    ? "bg-black text-white"
-                                                    : "bg-white text-black hover:bg-[#fafafa]"
-                                            }`}
-                                        >
-                                            Mes
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                handleViewModeChange("year")
-                                            }
-                                            className={`flex-1 px-3 py-2 text-sm font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
-                                                viewMode === "year"
-                                                    ? "bg-black text-white"
-                                                    : "bg-white text-black hover:bg-[#fafafa]"
-                                            }`}
-                                        >
-                                            Año
-                                        </button>
-                                    </div>
-
-                                    {/* Navegación de período */}
-                                    <div className="flex flex-1 items-center gap-2">
-                                        <button
-                                            onClick={handlePreviousPeriod}
-                                            className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
-                                            title="Período anterior"
-                                        >
-                                            <HiChevronLeft className="h-5 w-5 text-black" />
-                                        </button>
-                                        <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
-                                            {viewMode === "month" &&
-                                            selectedMonth
-                                                ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
-                                                : `${selectedYear}`}
-                                        </span>
-                                        <button
-                                            onClick={handleNextPeriod}
-                                            className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled={
-                                                viewMode === "month" &&
-                                                selectedMonth ===
-                                                    getCurrentMonth() &&
-                                                selectedYear ===
-                                                    new Date().getFullYear()
-                                            }
-                                            title="Período siguiente"
-                                        >
-                                            <HiChevronRight
-                                                className={`h-5 w-5 ${
-                                                    viewMode === "month" &&
-                                                    selectedMonth ===
-                                                        getCurrentMonth() &&
-                                                    selectedYear ===
-                                                        new Date().getFullYear()
-                                                        ? "text-[#999999]"
-                                                        : "text-black"
+                                {/* Filtro de periodo - mismo que REPORTES */}
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-1 md:flex-none md:flex-row flex-col md:items-center justify-end gap-3 bg-white border border-[#e5e5e5] p-3">
+                                        {/* Selector de modo Semana/Mes/Cuatrimestral/Año */}
+                                        <div className="flex flex-1 items-center border border-[#e5e5e5]">
+                                            <button
+                                                onClick={() => handleViewModeChange("week")}
+                                                className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                    viewMode === "week"
+                                                        ? "bg-black text-white"
+                                                        : "bg-white text-black hover:bg-[#fafafa]"
                                                 }`}
-                                            />
-                                        </button>
+                                            >
+                                                Semana
+                                            </button>
+                                            <button
+                                                onClick={() => handleViewModeChange("month")}
+                                                className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                    viewMode === "month"
+                                                        ? "bg-black text-white"
+                                                        : "bg-white text-black hover:bg-[#fafafa]"
+                                                }`}
+                                            >
+                                                Mes
+                                            </button>
+                                            <button
+                                                onClick={() => handleViewModeChange("quarter")}
+                                                className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                    viewMode === "quarter"
+                                                        ? "bg-black text-white"
+                                                        : "bg-white text-black hover:bg-[#fafafa]"
+                                                }`}
+                                            >
+                                                Cuatrimestral
+                                            </button>
+                                            <button
+                                                onClick={() => handleViewModeChange("year")}
+                                                className={`flex-1 px-2 py-2 text-xs font-normal transition-colors border-r border-[#e5e5e5] last:border-r-0 ${
+                                                    viewMode === "year"
+                                                        ? "bg-black text-white"
+                                                        : "bg-white text-black hover:bg-[#fafafa]"
+                                                }`}
+                                            >
+                                                Anual
+                                            </button>
+                                        </div>
+
+                                        {/* Navegación de período */}
+                                        {viewMode !== "week" && (
+                                            <div className="flex flex-1 items-center gap-2">
+                                                <button
+                                                    onClick={handlePreviousPeriod}
+                                                    className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5]"
+                                                    title="Período anterior"
+                                                >
+                                                    <HiChevronLeft className="h-5 w-5 text-black" />
+                                                </button>
+                                                <span className="flex-3 text-sm font-normal text-black min-w-[140px] text-center px-3 py-2 bg-white border border-[#e5e5e5]">
+                                                    {viewMode === "month" && selectedMonth
+                                                        ? `${monthNames[selectedMonth - 1]} ${selectedYear}`
+                                                        : viewMode === "quarter"
+                                                        ? `Cuatrimestre ${Math.floor(((selectedMonth || 1) - 1) / 4) + 1} ${selectedYear}`
+                                                        : `${selectedYear}`}
+                                                </span>
+                                                <button
+                                                    onClick={handleNextPeriod}
+                                                    className="flex-1 flex items-center justify-center p-2 hover:bg-[#fafafa] transition-colors border border-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    disabled={
+                                                        (viewMode === "month" &&
+                                                            selectedMonth === getCurrentMonth() &&
+                                                            selectedYear === new Date().getFullYear()) ||
+                                                        (viewMode === "quarter" &&
+                                                            selectedYear === new Date().getFullYear() &&
+                                                            Math.floor(((selectedMonth || 1) - 1) / 4) >= Math.floor((getCurrentMonth() - 1) / 4)) ||
+                                                        (viewMode === "year" &&
+                                                            selectedYear === new Date().getFullYear())
+                                                    }
+                                                    title="Período siguiente"
+                                                >
+                                                    <HiChevronRight
+                                                        className={`h-5 w-5 ${
+                                                            (viewMode === "month" &&
+                                                                selectedMonth === getCurrentMonth() &&
+                                                                selectedYear === new Date().getFullYear()) ||
+                                                            (viewMode === "quarter" &&
+                                                                selectedYear === new Date().getFullYear() &&
+                                                                Math.floor(((selectedMonth || 1) - 1) / 4) >= Math.floor((getCurrentMonth() - 1) / 4)) ||
+                                                            (viewMode === "year" &&
+                                                                selectedYear === new Date().getFullYear())
+                                                                ? "text-[#999999]"
+                                                                : "text-black"
+                                                        }`}
+                                                    />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Mostrar rango de fechas */}
+                                    <div className="text-xs text-[#666666] text-right">
+                                        {formattedPeriodRange}
                                     </div>
                                 </div>
                             </div>
@@ -1628,11 +1937,11 @@ export default function Home() {
                             <h2 className="text-xl font-normal text-black mb-6">
                                 Asistencia y Crecimiento
                             </h2>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Gráfico 2A: Tendencias de Asistencia */}
+                            <div className="grid grid-cols-1 gap-6">
+                                {/* Gráfico: Tendencias de Asistencia por Servicio */}
                                 <div className="bg-white border border-[#e5e5e5] p-6">
                                     <h3 className="text-lg font-normal text-black mb-4">
-                                        Tendencias de Asistencia
+                                        Tendencias de Asistencia por Servicio
                                     </h3>
                                     {attendanceTrends === undefined ? (
                                         <div className="flex items-center justify-center h-64">
@@ -1641,22 +1950,6 @@ export default function Home() {
                                     ) : (
                                         <AttendanceTrendsChart
                                             data={attendanceTrends}
-                                        />
-                                    )}
-                                </div>
-
-                                {/* Gráfico 2B: Distribución por Servicio */}
-                                <div className="bg-white border border-[#e5e5e5] p-6">
-                                    <h3 className="text-lg font-normal text-black mb-4">
-                                        Asistencias por Servicio
-                                    </h3>
-                                    {serviceDistribution === undefined ? (
-                                        <div className="flex items-center justify-center h-64">
-                                            <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
-                                        </div>
-                                    ) : (
-                                        <ServiceDistributionChart
-                                            data={serviceDistribution}
                                         />
                                     )}
                                 </div>

@@ -38,6 +38,53 @@ function getYearEnd(year: number): number {
 }
 
 /**
+ * Helper: Obtiene el inicio de la semana (lunes) para una fecha dada
+ * Retorna el lunes de la semana actual hasta hoy
+ */
+function getWeekStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  const day = date.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que lunes sea 0
+  const monday = new Date(date.getFullYear(), date.getMonth(), diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday.getTime();
+}
+
+/**
+ * Helper: Obtiene el fin de la semana (hoy) para una fecha dada
+ */
+function getWeekEnd(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+}
+
+/**
+ * Helper: Obtiene el inicio del cuatrimestre para una fecha dada
+ * Cuatrimestres: Ene-Abr (1-4), May-Ago (5-8), Sep-Dic (9-12)
+ */
+function getQuarterStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-11
+  
+  let quarterStartMonth: number;
+  if (month >= 0 && month <= 3) {
+    // Enero-Abril (meses 0-3)
+    quarterStartMonth = 0; // Enero
+  } else if (month >= 4 && month <= 7) {
+    // Mayo-Agosto (meses 4-7)
+    quarterStartMonth = 4; // Mayo
+  } else {
+    // Septiembre-Diciembre (meses 8-11)
+    quarterStartMonth = 8; // Septiembre
+  }
+  
+  return new Date(year, quarterStartMonth, 1).getTime();
+}
+
+
+/**
  * Helper: Normaliza un timestamp para que solo contenga la fecha (sin hora)
  * El timestamp recibido del frontend representa medianoche UTC para la fecha calendario seleccionada.
  * Extraemos los componentes UTC y creamos una nueva fecha UTC a medianoche.
@@ -715,13 +762,147 @@ export const getAttendanceRecordsByUserId = query({
 });
 
 /**
- * Query: Obtiene el reporte mensual o anual del usuario actual
- * Retorna totales agrupados por tipo para el mes o año especificado
+ * Helper: Calcula el rango de fechas según el tipo de período
+ */
+function getPeriodRange(
+  periodType: "week" | "month" | "quarter" | "year",
+  referenceDate: Date
+): { start: number; end: number } {
+  const timestamp = referenceDate.getTime();
+  const today = new Date();
+  const todayTimestamp = today.getTime();
+  
+  switch (periodType) {
+    case "week":
+      return {
+        start: getWeekStart(timestamp),
+        end: getWeekEnd(timestamp),
+      };
+    case "month": {
+      const monthStart = getMonthStart(timestamp);
+      const monthEnd = getMonthEnd(timestamp);
+      // Si el mes de referencia es el mes actual, usar hasta hoy. Si es pasado, usar hasta fin de mes.
+      if (timestamp <= todayTimestamp && referenceDate.getMonth() === today.getMonth() && referenceDate.getFullYear() === today.getFullYear()) {
+        return {
+          start: monthStart,
+          end: getWeekEnd(todayTimestamp), // Hasta hoy
+        };
+      } else {
+        return {
+          start: monthStart,
+          end: monthEnd, // Hasta fin de mes
+        };
+      }
+    }
+    case "quarter": {
+      const quarterStart = getQuarterStart(timestamp);
+      // Calcular fin del cuatrimestre
+      const refMonth = referenceDate.getMonth();
+      let quarterEndMonth: number;
+      if (refMonth >= 0 && refMonth <= 3) {
+        quarterEndMonth = 3; // Abril
+      } else if (refMonth >= 4 && refMonth <= 7) {
+        quarterEndMonth = 7; // Agosto
+      } else {
+        quarterEndMonth = 11; // Diciembre
+      }
+      const quarterEnd = new Date(referenceDate.getFullYear(), quarterEndMonth + 1, 0, 23, 59, 59, 999).getTime();
+      
+      // Si el cuatrimestre de referencia es el actual, usar hasta hoy
+      const currentQuarter = Math.floor(today.getMonth() / 4);
+      const refQuarter = Math.floor(refMonth / 4);
+      if (timestamp <= todayTimestamp && referenceDate.getFullYear() === today.getFullYear() && refQuarter === currentQuarter) {
+        return {
+          start: quarterStart,
+          end: getWeekEnd(todayTimestamp), // Hasta hoy
+        };
+      } else {
+        return {
+          start: quarterStart,
+          end: quarterEnd, // Hasta fin de cuatrimestre
+        };
+      }
+    }
+    case "year": {
+      const yearStart = getYearStart(referenceDate.getFullYear());
+      const yearEnd = getYearEnd(referenceDate.getFullYear());
+      // Si el año de referencia es el año actual, usar hasta hoy
+      if (referenceDate.getFullYear() === today.getFullYear()) {
+        return {
+          start: yearStart,
+          end: getWeekEnd(todayTimestamp), // Hasta hoy
+        };
+      } else {
+        return {
+          start: yearStart,
+          end: yearEnd, // Hasta fin de año
+        };
+      }
+    }
+  }
+}
+
+/**
+ * Helper: Calcula el período anterior para comparación
+ */
+function getPreviousPeriodRange(
+  periodType: "week" | "month" | "quarter" | "year",
+  referenceDate: Date
+): { start: number; end: number } {
+  const timestamp = referenceDate.getTime();
+  
+  switch (periodType) {
+    case "week": {
+      // Semana anterior: 7 días antes
+      const prevWeekDate = new Date(timestamp);
+      prevWeekDate.setDate(prevWeekDate.getDate() - 7);
+      return {
+        start: getWeekStart(prevWeekDate.getTime()),
+        end: getWeekEnd(prevWeekDate.getTime()),
+      };
+    }
+    case "month": {
+      // Mes anterior
+      const prevMonthDate = new Date(referenceDate);
+      prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+      return {
+        start: getMonthStart(prevMonthDate.getTime()),
+        end: getMonthEnd(prevMonthDate.getTime()),
+      };
+    }
+    case "quarter": {
+      // Cuatrimestre anterior: 4 meses antes
+      const prevQuarterDate = new Date(referenceDate);
+      prevQuarterDate.setMonth(prevQuarterDate.getMonth() - 4);
+      return {
+        start: getQuarterStart(prevQuarterDate.getTime()),
+        end: getWeekEnd(prevQuarterDate.getTime()),
+      };
+    }
+    case "year": {
+      // Año anterior
+      const prevYear = referenceDate.getFullYear() - 1;
+      return {
+        start: getYearStart(prevYear),
+        end: getWeekEnd(new Date(prevYear, 11, 31).getTime()),
+      };
+    }
+  }
+}
+
+/**
+ * Query: Obtiene el reporte del período seleccionado del usuario actual
+ * Retorna totales agrupados por tipo para el período especificado
  */
 export const getMyMonthlyReport = query({
   args: {
-    month: v.optional(v.number()), // Mes (1-12), opcional. Si no se proporciona, filtra por año completo
-    year: v.number(), // Año (ej: 2024)
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(), // Timestamp de la fecha de referencia
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -729,23 +910,15 @@ export const getMyMonthlyReport = query({
       throw new Error("Usuario no autenticado");
     }
 
-    // Calcular rango de fechas: mes específico o año completo
-    let periodStart: number;
-    let periodEnd: number;
-
-    if (args.month !== undefined) {
-      // Filtrar por mes específico
-      periodStart = getMonthStart(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-      periodEnd = getMonthEnd(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-    } else {
-      // Filtrar por año completo
-      periodStart = getYearStart(args.year);
-      periodEnd = getYearEnd(args.year);
-    }
+    const referenceDate = new Date(args.referenceDate);
+    const { start: periodStart, end: periodEnd } = getPeriodRange(
+      args.periodType,
+      referenceDate
+    );
+    const { start: prevStart, end: prevEnd } = getPreviousPeriodRange(
+      args.periodType,
+      referenceDate
+    );
 
     // Obtener todos los registros del usuario
     const allRecords = await ctx.db
@@ -841,7 +1014,276 @@ export const getMyMonthlyReport = query({
       }
     }
 
-    return report;
+    // Calcular reporte del período anterior para comparación
+    const prevPeriodRecords = allRecords.filter(
+      (r) => r.date >= prevStart && r.date <= prevEnd
+    );
+
+    const prevReport = {
+      nuevos: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      reset: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      conferencia: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+    };
+
+    for (const r of prevPeriodRecords) {
+      const reportType = prevReport[r.type];
+      if (!reportType) continue;
+
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        reportType.total += total;
+        reportType.male += r.maleCount;
+        reportType.female += r.femaleCount;
+        reportType.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        reportType.total += total;
+        if (r.attended) {
+          if (user.gender === "Male") {
+            reportType.male += 1 + r.maleCount;
+            reportType.female += r.femaleCount;
+          } else {
+            reportType.male += r.maleCount;
+            reportType.female += 1 + r.femaleCount;
+          }
+        } else {
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
+        }
+        reportType.kids += r.kidsCount || 0;
+      }
+    }
+
+    return {
+      current: report,
+      previous: prevReport,
+      periodStart,
+      periodEnd,
+    };
+  },
+});
+
+/**
+ * Query: Obtiene el reporte individual de un discípulo específico
+ * Similar a getMyMonthlyReport pero para cualquier discípulo (requiere que el usuario sea líder del discípulo)
+ */
+export const getDiscipleAttendanceReport = query({
+  args: {
+    discipleId: v.id("users"), // ID del discípulo
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(), // Timestamp de la fecha de referencia
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    // Verificar que el usuario sea líder del discípulo
+    const allGroups = await ctx.db.query("groups").collect();
+    const userGroups = allGroups.filter((group) =>
+      group.leaders.includes(userId)
+    );
+    
+    const isDiscipleInUserGroups = userGroups.some((group) =>
+      group.disciples.includes(args.discipleId)
+    );
+
+    if (!isDiscipleInUserGroups) {
+      throw new Error("No tienes permiso para ver los datos de este discípulo");
+    }
+
+    const referenceDate = new Date(args.referenceDate);
+    const { start: periodStart, end: periodEnd } = getPeriodRange(
+      args.periodType,
+      referenceDate
+    );
+    const { start: prevStart, end: prevEnd } = getPreviousPeriodRange(
+      args.periodType,
+      referenceDate
+    );
+
+    // Obtener todos los registros del discípulo
+    const allRecords = await ctx.db
+      .query("attendanceRecords")
+      .withIndex("userId", (q) => q.eq("userId", args.discipleId))
+      .collect();
+
+    const periodRecords = allRecords.filter(
+      (r) => r.date >= periodStart && r.date <= periodEnd
+    );
+
+    // Obtener información del discípulo para conocer su género
+    const disciple = await ctx.db.get(args.discipleId);
+    if (!disciple) {
+      throw new Error("Discípulo no encontrado");
+    }
+
+    // Helper para calcular total de personas en un registro (incluyendo al discípulo si asistió)
+    const getRecordTotal = (record: typeof periodRecords[0]): number => {
+      // Para asistencias y conferencia, incluir al discípulo si asistió
+      if (
+        (record.type === "asistencias" || record.type === "conferencia") &&
+        record.attended
+      ) {
+        return 1 + record.maleCount + record.femaleCount + (record.kidsCount || 0);
+      }
+      // Para nuevos y reset, solo contar las personas registradas
+      return record.maleCount + record.femaleCount + (record.kidsCount || 0);
+    };
+
+    // Calcular totales por tipo
+    const report = {
+      nuevos: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      reset: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      conferencia: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+    };
+
+    // Una sola iteración sobre todos los registros para calcular totales
+    for (const r of periodRecords) {
+      const reportType = report[r.type];
+      if (!reportType) continue;
+
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        reportType.total += total;
+        reportType.male += r.maleCount;
+        reportType.female += r.femaleCount;
+        reportType.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        reportType.total += total;
+        // Si el discípulo asistió, contar según su género
+        if (r.attended) {
+          if (disciple.gender === "Male") {
+            reportType.male += 1 + r.maleCount;
+            reportType.female += r.femaleCount;
+          } else {
+            reportType.male += r.maleCount;
+            reportType.female += 1 + r.femaleCount;
+          }
+        } else {
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
+        }
+        reportType.kids += r.kidsCount || 0;
+      }
+    }
+
+    // Calcular reporte del período anterior para comparación
+    const prevPeriodRecords = allRecords.filter(
+      (r) => r.date >= prevStart && r.date <= prevEnd
+    );
+
+    const prevReport = {
+      nuevos: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      asistencias: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      reset: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+      conferencia: {
+        total: 0,
+        male: 0,
+        female: 0,
+        kids: 0,
+      },
+    };
+
+    for (const r of prevPeriodRecords) {
+      const reportType = prevReport[r.type];
+      if (!reportType) continue;
+
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        reportType.total += total;
+        reportType.male += r.maleCount;
+        reportType.female += r.femaleCount;
+        reportType.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        reportType.total += total;
+        if (r.attended) {
+          if (disciple.gender === "Male") {
+            reportType.male += 1 + r.maleCount;
+            reportType.female += r.femaleCount;
+          } else {
+            reportType.male += r.maleCount;
+            reportType.female += 1 + r.femaleCount;
+          }
+        } else {
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
+        }
+        reportType.kids += r.kidsCount || 0;
+      }
+    }
+
+    return {
+      current: report,
+      previous: prevReport,
+      periodStart,
+      periodEnd,
+    };
   },
 });
 
@@ -852,9 +1294,13 @@ export const getMyMonthlyReport = query({
  */
 export const getGroupAttendanceReport = query({
   args: {
-    month: v.optional(v.number()), // Mes (1-12), opcional. Si no se proporciona, filtra por año completo
-    year: v.number(), // Año (ej: 2024)
-    discipleId: v.optional(v.id("users")), // ID del discípulo para filtrar, opcional. Si no se proporciona, muestra todos los discípulos
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(), // Timestamp de la fecha de referencia
     groupId: v.optional(v.id("groups")), // ID del grupo para filtrar, opcional. Si no se proporciona, muestra todos los grupos
   },
   handler: async (ctx, args) => {
@@ -878,23 +1324,15 @@ export const getGroupAttendanceReport = query({
       throw new Error("Usuario no encontrado");
     }
 
-    // Calcular rango de fechas: mes específico o año completo
-    let periodStart: number;
-    let periodEnd: number;
-
-    if (args.month !== undefined) {
-      // Filtrar por mes específico
-      periodStart = getMonthStart(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-      periodEnd = getMonthEnd(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-    } else {
-      // Filtrar por año completo
-      periodStart = getYearStart(args.year);
-      periodEnd = getYearEnd(args.year);
-    }
+    const referenceDate = new Date(args.referenceDate);
+    const { start: periodStart, end: periodEnd } = getPeriodRange(
+      args.periodType,
+      referenceDate
+    );
+    const { start: prevStart, end: prevEnd } = getPreviousPeriodRange(
+      args.periodType,
+      referenceDate
+    );
 
     if (userGroups.length === 0) {
       // Si no es líder, retornar solo su reporte personal
@@ -984,10 +1422,57 @@ export const getGroupAttendanceReport = query({
         }
       }
 
+      // Calcular reporte del período anterior para comparación
+      const prevPeriodRecords = allRecords.filter(
+        (r) => r.date >= prevStart && r.date <= prevEnd
+      );
+
+      const prevMyReport = {
+        nuevos: { total: 0, male: 0, female: 0, kids: 0 },
+        asistencias: { total: 0, male: 0, female: 0, kids: 0 },
+        reset: { total: 0, male: 0, female: 0, kids: 0 },
+        conferencia: { total: 0, male: 0, female: 0, kids: 0 },
+      };
+
+      for (const r of prevPeriodRecords) {
+        const reportType = prevMyReport[r.type];
+        if (!reportType) continue;
+
+        if (r.type === "nuevos" || r.type === "reset") {
+          const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+          reportType.total += total;
+          reportType.male += r.maleCount;
+          reportType.female += r.femaleCount;
+          reportType.kids += r.kidsCount || 0;
+        } else if (r.type === "asistencias" || r.type === "conferencia") {
+          const total = getRecordTotal(r);
+          reportType.total += total;
+          if (r.attended) {
+            if (user.gender === "Male") {
+              reportType.male += 1 + r.maleCount;
+              reportType.female += r.femaleCount;
+            } else {
+              reportType.male += r.maleCount;
+              reportType.female += 1 + r.femaleCount;
+            }
+          } else {
+            reportType.male += r.maleCount;
+            reportType.female += r.femaleCount;
+          }
+          reportType.kids += r.kidsCount || 0;
+        }
+      }
+
       return {
         isLeader: false,
         myReport,
         groupReport: null,
+        previous: {
+          myReport: prevMyReport,
+          groupReport: null,
+        },
+        periodStart,
+        periodEnd,
       };
     }
 
@@ -1034,16 +1519,6 @@ export const getGroupAttendanceReport = query({
       allDisciples = disciplesArray.filter(
         (disciple): disciple is NonNullable<typeof disciple> => disciple !== null
       );
-    }
-
-    // Si se especifica un discípulo, filtrar solo ese
-    if (args.discipleId !== undefined) {
-      // Verificar que el discípulo pertenezca al líder
-      const disciple = allDisciples.find((d) => d._id === args.discipleId);
-      if (!disciple) {
-        throw new Error("El discípulo especificado no pertenece a tus grupos");
-      }
-      allDisciples = [disciple];
     }
 
     // Obtener registros propios del período usando el índice userId_date
@@ -1298,10 +1773,105 @@ export const getGroupAttendanceReport = query({
       },
     };
 
+    // Calcular reporte del período anterior para comparación
+    const prevMyRecords = myRecords.filter(
+      (r) => r.date >= prevStart && r.date <= prevEnd
+    );
+    
+    const prevDiscipleRecords = allDiscipleRecords.map((records) =>
+      records.filter((r) => r.date >= prevStart && r.date <= prevEnd)
+    ).flat();
+
+    const prevMyReport = {
+      nuevos: { total: 0, male: 0, female: 0, kids: 0 },
+      asistencias: { total: 0, male: 0, female: 0, kids: 0 },
+      reset: { total: 0, male: 0, female: 0, kids: 0 },
+      conferencia: { total: 0, male: 0, female: 0, kids: 0 },
+    };
+
+    for (const r of prevMyRecords) {
+      const report = prevMyReport[r.type];
+      if (!report) continue;
+      
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        report.total += total;
+        report.male += r.maleCount;
+        report.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getRecordTotal(r);
+        report.total += total;
+        if (r.attended) {
+          if (user.gender === "Male") {
+            report.male += 1 + r.maleCount;
+            report.female += r.femaleCount;
+          } else {
+            report.male += r.maleCount;
+            report.female += 1 + r.femaleCount;
+          }
+        } else {
+          report.male += r.maleCount;
+          report.female += r.femaleCount;
+        }
+        report.kids += r.kidsCount || 0;
+      }
+    }
+
+    const prevDisciplesReport = {
+      nuevos: { total: 0, male: 0, female: 0, kids: 0 },
+      asistencias: { total: 0, male: 0, female: 0, kids: 0 },
+      reset: { total: 0, male: 0, female: 0, kids: 0 },
+      conferencia: { total: 0, male: 0, female: 0, kids: 0 },
+    };
+
+    for (const r of prevDiscipleRecords) {
+      const report = prevDisciplesReport[r.type];
+      if (!report) continue;
+      const discipleGender = discipleGenderMap.get(r.userId);
+
+      if (r.type === "nuevos" || r.type === "reset") {
+        const total = r.maleCount + r.femaleCount + (r.kidsCount || 0);
+        report.total += total;
+        report.male += r.maleCount;
+        report.female += r.femaleCount;
+        report.kids += r.kidsCount || 0;
+      } else if (r.type === "asistencias" || r.type === "conferencia") {
+        const total = getDiscipleRecordTotal(r);
+        report.total += total;
+        if (r.attended && discipleGender) {
+          if (discipleGender === "Male") {
+            report.male += 1 + r.maleCount;
+            report.female += r.femaleCount;
+          } else {
+            report.male += r.maleCount;
+            report.female += 1 + r.femaleCount;
+          }
+        } else {
+          report.male += r.maleCount;
+          report.female += r.femaleCount;
+        }
+        report.kids += r.kidsCount || 0;
+      }
+    }
+
+    const prevGroupReport = {
+      nuevos: { total: prevDisciplesReport.nuevos.total },
+      asistencias: { total: prevDisciplesReport.asistencias.total },
+      reset: { total: prevDisciplesReport.reset.total },
+      conferencia: { total: prevDisciplesReport.conferencia.total },
+    };
+
     return {
       isLeader: true,
       myReport,
       groupReport,
+      previous: {
+        myReport: prevMyReport,
+        groupReport: prevGroupReport,
+      },
+      periodStart,
+      periodEnd,
     };
   },
 });

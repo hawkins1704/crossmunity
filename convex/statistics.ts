@@ -69,6 +69,125 @@ function getYearEnd(year: number): number {
 }
 
 /**
+ * Helper: Obtiene el inicio de la semana (lunes) para una fecha dada
+ */
+function getWeekStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.getFullYear(), date.getMonth(), diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday.getTime();
+}
+
+/**
+ * Helper: Obtiene el fin de la semana (hoy) para una fecha dada
+ */
+function getWeekEnd(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+}
+
+/**
+ * Helper: Obtiene el inicio del cuatrimestre para una fecha dada
+ * Cuatrimestres: Ene-Abr (1-4), May-Ago (5-8), Sep-Dic (9-12)
+ */
+function getQuarterStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  let quarterStartMonth: number;
+  if (month >= 0 && month <= 3) {
+    quarterStartMonth = 0; // Enero
+  } else if (month >= 4 && month <= 7) {
+    quarterStartMonth = 4; // Mayo
+  } else {
+    quarterStartMonth = 8; // Septiembre
+  }
+  
+  return new Date(year, quarterStartMonth, 1).getTime();
+}
+
+/**
+ * Helper: Calcula el rango de fechas según el tipo de período (igual que en attendance.ts)
+ */
+function getPeriodRange(
+  periodType: "week" | "month" | "quarter" | "year",
+  referenceDate: Date
+): { start: number; end: number } {
+  const timestamp = referenceDate.getTime();
+  const today = new Date();
+  const todayTimestamp = today.getTime();
+  
+  switch (periodType) {
+    case "week":
+      return {
+        start: getWeekStart(timestamp),
+        end: getWeekEnd(timestamp),
+      };
+    case "month": {
+      const monthStart = getMonthStart(timestamp);
+      const monthEnd = getMonthEnd(timestamp);
+      if (timestamp <= todayTimestamp && referenceDate.getMonth() === today.getMonth() && referenceDate.getFullYear() === today.getFullYear()) {
+        return {
+          start: monthStart,
+          end: getWeekEnd(todayTimestamp),
+        };
+      } else {
+        return {
+          start: monthStart,
+          end: monthEnd,
+        };
+      }
+    }
+    case "quarter": {
+      const quarterStart = getQuarterStart(timestamp);
+      const refMonth = referenceDate.getMonth();
+      let quarterEndMonth: number;
+      if (refMonth >= 0 && refMonth <= 3) {
+        quarterEndMonth = 3;
+      } else if (refMonth >= 4 && refMonth <= 7) {
+        quarterEndMonth = 7;
+      } else {
+        quarterEndMonth = 11;
+      }
+      const quarterEnd = new Date(referenceDate.getFullYear(), quarterEndMonth + 1, 0, 23, 59, 59, 999).getTime();
+      
+      const currentQuarter = Math.floor(today.getMonth() / 4);
+      const refQuarter = Math.floor(refMonth / 4);
+      if (timestamp <= todayTimestamp && referenceDate.getFullYear() === today.getFullYear() && refQuarter === currentQuarter) {
+        return {
+          start: quarterStart,
+          end: getWeekEnd(todayTimestamp),
+        };
+      } else {
+        return {
+          start: quarterStart,
+          end: quarterEnd,
+        };
+      }
+    }
+    case "year": {
+      const yearStart = getYearStart(referenceDate.getFullYear());
+      const yearEnd = getYearEnd(referenceDate.getFullYear());
+      if (referenceDate.getFullYear() === today.getFullYear()) {
+        return {
+          start: yearStart,
+          end: getWeekEnd(todayTimestamp),
+        };
+      } else {
+        return {
+          start: yearStart,
+          end: yearEnd,
+        };
+      }
+    }
+  }
+}
+
+/**
  * Helper: Obtiene todos los discípulos de los grupos del usuario
  * Si se especifica un grupo, solo obtiene los discípulos de ese grupo
  */
@@ -138,8 +257,13 @@ async function getUserIdsForStatistics(
 export const getGenderDistribution = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -175,8 +299,13 @@ export const getGenderDistribution = query({
 export const getAgeDistribution = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -221,9 +350,13 @@ export const getAgeDistribution = query({
 export const getAttendanceTrends = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
-    viewMode: v.optional(v.union(v.literal("month"), v.literal("year"))),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -234,27 +367,35 @@ export const getAttendanceTrends = query({
     // Obtener IDs de usuarios (líder + discípulos)
     const userIds = await getUserIdsForStatistics(ctx, userId, args.groupId);
 
-    // Calcular rango de fechas según el modo de vista
-    let periodStart: number;
-    let periodEnd: number;
+    // Calcular rango de fechas según el tipo de período
+    const referenceDateObj = new Date(args.referenceDate);
+    const { start: periodStart, end: periodEnd } = getPeriodRange(
+      args.periodType,
+      referenceDateObj
+    );
+    
+    // Determinar cuántos meses mostrar según el período
     let monthsToShow: number;
-
-    if (args.viewMode === "year" || !args.month) {
-      // Modo año: mostrar últimos 12 meses desde el año seleccionado
-      const year = args.year || new Date().getFullYear();
-      periodStart = getYearStart(year);
-      periodEnd = getYearEnd(year);
+    if (args.periodType === "year") {
       monthsToShow = 12;
+    } else if (args.periodType === "quarter") {
+      monthsToShow = 4;
+    } else if (args.periodType === "month") {
+      monthsToShow = 6; // Mostrar últimos 6 meses
     } else {
-      // Modo mes: mostrar últimos 6 meses desde el mes seleccionado
-      const month = args.month;
-      const year = args.year || new Date().getFullYear();
-      periodEnd = getMonthEnd(new Date(year, month - 1, 1).getTime());
-      // Calcular inicio 6 meses antes
-      const startDate = new Date(year, month - 1, 1);
-      startDate.setMonth(startDate.getMonth() - 5); // 6 meses incluyendo el actual
-      periodStart = getMonthStart(startDate.getTime());
-      monthsToShow = 6;
+      monthsToShow = 1; // Semana: mostrar solo el mes actual
+    }
+    
+    // Para semana y mes, ajustar el inicio para mostrar el período histórico
+    let adjustedStart = periodStart;
+    if (args.periodType === "month" || args.periodType === "week") {
+      const startDate = new Date(periodEnd);
+      startDate.setMonth(startDate.getMonth() - (monthsToShow - 1));
+      adjustedStart = getMonthStart(startDate.getTime());
+    } else if (args.periodType === "quarter") {
+      const startDate = new Date(periodEnd);
+      startDate.setMonth(startDate.getMonth() - (monthsToShow - 1));
+      adjustedStart = getQuarterStart(startDate.getTime());
     }
 
     // Obtener todos los registros de los usuarios en el rango de fechas
@@ -266,7 +407,7 @@ export const getAttendanceTrends = query({
           .collect();
         return records.filter(
           (r) =>
-            r.date >= periodStart &&
+            r.date >= adjustedStart &&
             r.date <= periodEnd &&
             (r.type === "nuevos" || r.type === "asistencias")
         );
@@ -275,34 +416,55 @@ export const getAttendanceTrends = query({
 
     const records = allRecords.flat();
 
-    // Agrupar por mes
-    const monthData = new Map<string, { nuevos: number; asistencias: number }>();
 
-    // Inicializar todos los meses con 0
-    const start = new Date(periodStart);
+    // Agrupar por mes y servicio (solo para asistencias)
+    const monthData = new Map<string, { 
+      "saturday-1": number;
+      "saturday-2": number;
+      "sunday-1": number;
+      "sunday-2": number;
+    }>();
+
+    // Inicializar todos los meses con 0 para cada servicio
+    const startDate = new Date(adjustedStart);
+    const startYear = startDate.getFullYear();
+    const startMonth = startDate.getMonth(); // 0-11
+    
     for (let i = 0; i < monthsToShow; i++) {
-      const currentMonth = new Date(start);
-      currentMonth.setMonth(start.getMonth() + i);
-      const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}`;
-      monthData.set(monthKey, { nuevos: 0, asistencias: 0 });
+      const currentDate = new Date(startYear, startMonth + i, 1);
+      const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
+      monthData.set(monthKey, {
+        "saturday-1": 0,
+        "saturday-2": 0,
+        "sunday-1": 0,
+        "sunday-2": 0,
+      });
     }
 
-    // Agrupar registros por mes
+    // Agrupar registros por mes y servicio (solo asistencias, no nuevos)
     for (const record of records) {
+      // Solo procesar registros de tipo "asistencias" que tengan servicio
+      if (record.type !== "asistencias" || !record.service) {
+        continue;
+      }
+
       const recordDate = new Date(record.date);
       const monthKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, "0")}`;
       
       if (monthData.has(monthKey)) {
-        // Para asistencias, incluir al usuario si asistió
+        // Calcular total: incluir al usuario si asistió
         let total = record.maleCount + record.femaleCount + (record.kidsCount || 0);
-        if (record.type === "asistencias" && record.attended) {
+        if (record.attended) {
           total += 1;
         }
         
-        if (record.type === "nuevos") {
-          monthData.get(monthKey)!.nuevos += total;
-        } else if (record.type === "asistencias") {
-          monthData.get(monthKey)!.asistencias += total;
+        // Agregar al servicio correspondiente
+        const monthEntry = monthData.get(monthKey);
+        if (monthEntry && record.service) {
+          const serviceKey = record.service as "saturday-1" | "saturday-2" | "sunday-1" | "sunday-2";
+          if (serviceKey in monthEntry) {
+            monthEntry[serviceKey] += total;
+          }
         }
       }
     }
@@ -313,13 +475,15 @@ export const getAttendanceTrends = query({
       "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
     ];
 
-    return Array.from(monthData.entries())
+    const result = Array.from(monthData.entries())
       .map(([monthKey, data]) => {
         const [year, month] = monthKey.split("-");
         return {
           month: `${monthNames[parseInt(month) - 1]} ${year}`,
-          nuevos: data.nuevos,
-          asistencias: data.asistencias,
+          "saturday-1": data["saturday-1"],
+          "saturday-2": data["saturday-2"],
+          "sunday-1": data["sunday-1"],
+          "sunday-2": data["sunday-2"],
         };
       })
       .sort((a, b) => {
@@ -333,6 +497,8 @@ export const getAttendanceTrends = query({
         }
         return aIndex - bIndex;
       });
+    
+    return result;
   },
 });
 
@@ -342,8 +508,13 @@ export const getAttendanceTrends = query({
 export const getServiceDistribution = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -354,26 +525,12 @@ export const getServiceDistribution = query({
     // Obtener IDs de usuarios (líder + discípulos)
     const userIds = await getUserIdsForStatistics(ctx, userId, args.groupId);
 
-    // Calcular rango de fechas
-    let periodStart: number;
-    let periodEnd: number;
-
-    if (args.month !== undefined && args.year !== undefined) {
-      periodStart = getMonthStart(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-      periodEnd = getMonthEnd(
-        new Date(args.year, args.month - 1, 1).getTime()
-      );
-    } else if (args.year !== undefined) {
-      periodStart = getYearStart(args.year);
-      periodEnd = getYearEnd(args.year);
-    } else {
-      // Si no se especifica período, usar año actual
-      const currentYear = new Date().getFullYear();
-      periodStart = getYearStart(currentYear);
-      periodEnd = getYearEnd(currentYear);
-    }
+    // Calcular rango de fechas según el tipo de período
+    const referenceDateObj = new Date(args.referenceDate);
+    const { start: periodStart, end: periodEnd } = getPeriodRange(
+      args.periodType,
+      referenceDateObj
+    );
 
     // Obtener todos los registros de los usuarios en el rango de fechas
     const allRecords = await Promise.all(
@@ -441,8 +598,13 @@ export const getServiceDistribution = query({
 export const getSchoolParticipation = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -478,8 +640,13 @@ export const getSchoolParticipation = query({
 export const getPopularCourses = query({
   args: {
     groupId: v.optional(v.id("groups")),
-    month: v.optional(v.number()),
-    year: v.optional(v.number()),
+    periodType: v.union(
+      v.literal("week"),
+      v.literal("month"),
+      v.literal("quarter"),
+      v.literal("year")
+    ),
+    referenceDate: v.number(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {

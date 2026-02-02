@@ -915,7 +915,7 @@ export default function GroupDetail() {
       <DisciplesSection disciples={group.disciples} isLeader={isLeader} groupId={isLeader ? (groupId as Id<"groups">) : undefined} />
 
       {/* Lista de líderes (discípulos que tienen su propio grupo) */}
-      <LeadersSection disciples={group.disciples} />
+      <LeadersSection disciples={group.disciples} groupId={groupId as Id<"groups">} />
 
       {/* Actividades */}
       <div className="bg-white border border-[#e5e5e5] p-6">
@@ -1992,7 +1992,7 @@ function SortableDiscipleTable({
                 key={disciple._id}
                 disciple={disciple}
                 onClick={() => onDiscipleClick(disciple._id)}
-                groupId={groupId}
+
               />
             ))}
           </tbody>
@@ -2017,27 +2017,24 @@ function SortableDiscipleTable({
 // Componente de fila que obtiene sus datos y expone valores para ordenamiento
 function SortableDiscipleRow({
   disciple,
-  onClick,
-  groupId,
+  onClick,  
 }: {
   disciple: any;
   onClick: () => void;
-  groupId?: Id<"groups">;
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
   const currentYear = new Date().getFullYear();
+  const referenceDate = new Date(currentYear, 0, 1).getTime(); // Primer día del año actual
   const report = useQuery(
-    api.attendance.getGroupAttendanceReport,
-    groupId 
-      ? { year: currentYear, discipleId: disciple._id, groupId }
-      : { year: currentYear, discipleId: disciple._id }
+    api.attendance.getDiscipleAttendanceReport,
+    { discipleId: disciple._id, periodType: "year", referenceDate }
   );
 
   const courseCount = courses?.length || 0;
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
-  const nuevosAsistentesTotal = report?.groupReport?.nuevos?.disciplesTotal || 0;
-  const resetTotal = report?.groupReport?.reset?.disciplesTotal || 0;
-  const conferenciaTotal = report?.groupReport?.conferencia?.disciplesTotal || 0;
+  const nuevosAsistentesTotal = report?.current?.nuevos?.total || 0;
+  const resetTotal = report?.current?.reset?.total || 0;
+  const conferenciaTotal = report?.current?.conferencia?.total || 0;
 
   return (
     <tr
@@ -2106,7 +2103,6 @@ function SortableDiscipleRow({
 function DiscipleCard({
   disciple,
   onClick,
-  groupId,
 }: {
   disciple: any;
   onClick: () => void;
@@ -2114,20 +2110,19 @@ function DiscipleCard({
 }) {
   const courses = useQuery(api.courses.getUserCoursesProgress, { userId: disciple._id });
   const currentYear = new Date().getFullYear();
+  const referenceDate = new Date(currentYear, 0, 1).getTime(); // Primer día del año actual
   const discipleReport = useQuery(
-    api.attendance.getGroupAttendanceReport,
-    groupId
-      ? { year: currentYear, discipleId: disciple._id, groupId }
-      : { year: currentYear, discipleId: disciple._id }
+    api.attendance.getDiscipleAttendanceReport,
+    { discipleId: disciple._id, periodType: "year", referenceDate }
   );
   
   const courseCount = courses?.length || 0;
   const hasBacklog = courses?.some((course: any) => course.hasBacklog) || false;
 
   // Obtener totales de reportes del discípulo
-  const nuevosAsistentesTotal = discipleReport?.groupReport?.nuevos?.disciplesTotal || 0;
-  const resetTotal = discipleReport?.groupReport?.reset?.disciplesTotal || 0;
-  const conferenciaTotal = discipleReport?.groupReport?.conferencia?.disciplesTotal || 0;
+  const nuevosAsistentesTotal = discipleReport?.current?.nuevos?.total || 0;
+  const resetTotal = discipleReport?.current?.reset?.total || 0;
+  const conferenciaTotal = discipleReport?.current?.conferencia?.total || 0;
   return (
     <div
       onClick={onClick}
@@ -2593,41 +2588,109 @@ function DiscipleDetailsModal({
 }
 
 // Componente para la sección de líderes (discípulos que tienen su propio grupo)
-function LeadersSection({ disciples }: { disciples: Array<{ _id: Id<"users">; name?: string; email?: string } | null> }) {
-  const [selectedLeader, setSelectedLeader] = useState<{
-    user: { _id: Id<"users">; name?: string; email?: string };
-    groups: Array<{
-      _id: Id<"groups">;
-      name: string;
-      address: string;
-      district: string;
-      minAge?: number;
-      maxAge?: number;
-      day: string;
-      time: string;
-      leaders: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
-      disciples: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
-    }>;
-  } | null>(null);
+function LeadersSection({ 
+  groupId 
+}: { 
+  disciples: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
+  groupId: Id<"groups">;
+}) {
+  const [activeTab, setActiveTab] = useState<"leaders" | "groups">("leaders");
+  const [selectedGroup, setSelectedGroup] = useState<Id<"groups"> | null>(null);
+  const [sortColumn, setSortColumn] = useState<"name" | "cursos" | "reset" | "conferencia" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  const disciplesWithProgress = disciples
-    .filter((disciple): disciple is NonNullable<typeof disciple> => disciple !== null);
-
-  const discipleIds = disciplesWithProgress.map((d) => d._id);
+  const currentYear = new Date().getFullYear();
   
-  // Si no hay discípulos, retornar array vacío directamente sin hacer query
-  const disciplesWhoAreLeaders = useQuery(
-    api.groups.getDisciplesWhoAreLeaders,
-    { discipleIds } // Siempre pasar el array, incluso si está vacío (la query maneja arrays vacíos)
+  // Query para obtener estadísticas de grupos agrupadas
+  const groupsStatistics = useQuery(
+    api.groups.getGroupsStatistics,
+    { groupId, year: currentYear }
   );
 
-  // Si está undefined, mostrar loading solo si hay discípulos para verificar
-  if (disciplesWhoAreLeaders === undefined && discipleIds.length > 0) {
+  // Query para obtener todos los grupos con estadísticas (vista de grilla)
+  const allGroupsWithStats = useQuery(
+    api.groups.getAllGroupsWithStatistics,
+    { groupId, year: currentYear }
+  );
+
+  // Query para obtener detalles del grupo seleccionado
+  const selectedGroupDetails = useQuery(
+    api.groups.getGroupById,
+    selectedGroup ? { groupId: selectedGroup } : "skip"
+  );
+
+  // Función para manejar el ordenamiento
+  const handleSort = (column: "name" | "cursos" | "reset" | "conferencia") => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("desc");
+    }
+  };
+
+  // Ordenar grupos estadísticos
+  const sortedGroupsStats = useMemo((): Array<{
+    leaders: Array<{ _id: Id<"users">; name?: string; email?: string }>;
+    groups: Array<{ _id: Id<"groups">; name: string; disciples: Array<Id<"users">> }>;
+    statistics: { cursos: number; reset: number; conferencia: number };
+  }> => {
+    if (!groupsStatistics) {
+      return [];
+    }
+
+    // Filtrar nulls y transformar a formato esperado
+    const filteredStats = groupsStatistics.map((stat) => ({
+      ...stat,
+      leaders: stat.leaders.filter((l): l is NonNullable<typeof l> => l !== null).map((l) => ({
+        _id: l._id,
+        name: l.name,
+        email: l.email,
+      })),
+    }));
+
+    if (!sortColumn) {
+      return filteredStats;
+    }
+
+    return [...filteredStats].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortColumn) {
+        case "name": {
+          const aNames = a.leaders.filter((l): l is NonNullable<typeof l> => l !== null).map((l) => l.name || l.email || "").join(" & ");
+          const bNames = b.leaders.filter((l): l is NonNullable<typeof l> => l !== null).map((l) => l.name || l.email || "").join(" & ");
+          aValue = aNames.toLowerCase();
+          bValue = bNames.toLowerCase();
+          break;
+        }
+        case "cursos":
+          aValue = a.statistics.cursos;
+          bValue = b.statistics.cursos;
+          break;
+        case "reset":
+          aValue = a.statistics.reset;
+          bValue = b.statistics.reset;
+          break;
+        case "conferencia":
+          aValue = a.statistics.conferencia;
+          bValue = b.statistics.conferencia;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [groupsStatistics, sortColumn, sortDirection]);
+
+  if (groupsStatistics === undefined || allGroupsWithStats === undefined) {
     return (
       <div className="bg-white border border-[#e5e5e5] p-6">
-        <h3 className="text-lg font-normal text-black mb-4">
-          Líderes
-        </h3>
+        <h3 className="text-lg font-normal text-black mb-4">Líderes</h3>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent"></div>
         </div>
@@ -2635,190 +2698,364 @@ function LeadersSection({ disciples }: { disciples: Array<{ _id: Id<"users">; na
     );
   }
 
-  // Si no hay discípulos o la query retornó vacío, usar array vacío
-  const leadersList = disciplesWhoAreLeaders || [];
-
   return (
     <>
       <div className="bg-white border border-[#e5e5e5] p-6">
         <h3 className="text-lg font-normal text-black mb-4">
-          Líderes {leadersList.length > 0 && `(${leadersList.length})`}
+          Líderes {sortedGroupsStats.length > 0 && `(${sortedGroupsStats.length})`}
         </h3>
         <p className="text-sm font-normal text-[#666666] mb-4">
           Discípulos que han abierto su propio grupo
         </p>
 
-        {leadersList.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
-              <HiUsers className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-sm font-normal text-[#666666]">
-              Aún no tienes líderes en tu grupo
-            </p>
-            <p className="text-xs font-normal text-[#999999] mt-2">
-              Los discípulos que abran su propio grupo aparecerán aquí
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Tabla para desktop */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#e5e5e5]">
-                    <th className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Nombre</th>
-                    <th className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Grupos</th>
-                    <th className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide">Información</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leadersList.map((item) => (
-                    <LeaderRow
-                      key={item.user._id}
-                      item={item}
-                      onClick={() => setSelectedLeader(item)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Tabs */}
+        <div className="flex items-center border-b border-[#e5e5e5] mb-4">
+          <button
+            onClick={() => setActiveTab("leaders")}
+            className={`px-4 py-2 text-sm font-normal transition-colors border-b-2 ${
+              activeTab === "leaders"
+                ? "border-black text-black"
+                : "border-transparent text-[#666666] hover:text-black"
+            }`}
+          >
+            VISTA LIDERES
+          </button>
+          <button
+            onClick={() => setActiveTab("groups")}
+            className={`px-4 py-2 text-sm font-normal transition-colors border-b-2 ${
+              activeTab === "groups"
+                ? "border-black text-black"
+                : "border-transparent text-[#666666] hover:text-black"
+            }`}
+          >
+            VISTA GRUPOS
+          </button>
+        </div>
 
-            {/* Cards para mobile */}
-            <div className="md:hidden grid grid-cols-1 gap-3">
-              {leadersList.map((item) => (
-                <LeaderCard
-                  key={item.user._id}
-                  item={item}
-                  onClick={() => setSelectedLeader(item)}
-                />
-              ))}
-            </div>
-          </>
+        {/* Contenido según tab activo */}
+        {activeTab === "leaders" ? (
+          <LeadersTableView
+            groupsStatistics={sortedGroupsStats}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
+        ) : (
+          <GroupsGridView
+            groups={(allGroupsWithStats || []).map((group) => ({
+              ...group,
+              leaders: group.leaders.filter((l): l is NonNullable<typeof l> => l !== null).map((l) => ({
+                _id: l._id,
+                name: l.name,
+                email: l.email,
+              })),
+            }))}
+            onGroupClick={setSelectedGroup}
+          />
         )}
       </div>
 
-      {/* Modal de detalles del líder */}
-      {selectedLeader && (
-        <LeaderDetailsModal
-          leader={selectedLeader}
-          isOpen={!!selectedLeader}
-          onClose={() => setSelectedLeader(null)}
+      {/* Modal de detalles del grupo */}
+      {selectedGroupDetails && selectedGroup && (
+        <GroupDetailsModal
+          group={selectedGroupDetails}
+          isOpen={!!selectedGroup}
+          onClose={() => setSelectedGroup(null)}
         />
       )}
     </>
   );
 }
 
-// Componente de fila de tabla para desktop
-function LeaderRow({
-  item,
-  onClick,
+// Componente para la vista de tabla de líderes agrupados
+function LeadersTableView({
+  groupsStatistics,
+  sortColumn,
+  sortDirection,
+  onSort,
 }: {
-  item: {
-    user: { _id: Id<"users">; name?: string; email?: string };
-    groups: Array<{ _id: Id<"groups">; name: string; disciples: Array<unknown> }>;
-  };
-  onClick: () => void;
+  groupsStatistics: Array<{
+    leaders: Array<{ _id: Id<"users">; name?: string; email?: string }>;
+    groups: Array<{ _id: Id<"groups">; name: string; disciples: Array<Id<"users">> }>;
+    statistics: { cursos: number; reset: number; conferencia: number };
+  }>;
+  sortColumn: "name" | "cursos" | "reset" | "conferencia" | null;
+  sortDirection: "asc" | "desc";
+  onSort: (column: "name" | "cursos" | "reset" | "conferencia") => void;
 }) {
+  // Calcular totales
+  const totals = groupsStatistics.reduce(
+    (acc, item) => ({
+      cursos: acc.cursos + item.statistics.cursos,
+      reset: acc.reset + item.statistics.reset,
+      conferencia: acc.conferencia + item.statistics.conferencia,
+    }),
+    { cursos: 0, reset: 0, conferencia: 0 }
+  );
+
+  if (groupsStatistics.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+          <HiUsers className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-sm font-normal text-[#666666]">
+          Aún no tienes líderes en tu grupo
+        </p>
+        <p className="text-xs font-normal text-[#999999] mt-2">
+          Los discípulos que abran su propio grupo aparecerán aquí
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <tr
-      onClick={onClick}
-      className="border-b border-[#e5e5e5] hover:bg-[#fafafa] transition-colors cursor-pointer"
-    >
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-8 h-8 bg-black flex items-center justify-center text-white font-normal text-sm">
-            {(item.user.name || item.user.email || "U")[0].toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-normal text-black">
-              {item.user.name || "Sin nombre"}
-            </p>
-            {item.user.email && (
-              <p className="text-xs font-normal text-[#666666] truncate max-w-[200px]">{item.user.email}</p>
-            )}
-          </div>
-        </div>
-      </td>
-      <td className="py-3 px-4 text-center">
-        <span className="text-sm font-normal text-black">{item.groups.length}</span>
-      </td>
-      <td className="py-3 px-4">
-        <div className="space-y-1">
-          {item.groups.map((group) => (
-            <div key={group._id} className="text-xs font-normal text-[#666666]">
-              <span className="font-normal text-black">{group.name}</span>
-              <span className="text-[#999999] mx-1">•</span>
-              <span>{group.disciples.length} discípulo{group.disciples.length !== 1 ? "s" : ""}</span>
+    <>
+      {/* Tabla para desktop */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[#e5e5e5]">
+              <th
+                className="text-left py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
+                onClick={() => onSort("name")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>NOMBRE</span>
+                  {sortColumn === "name" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
+                onClick={() => onSort("cursos")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>CURSOS</span>
+                  {sortColumn === "cursos" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
+                onClick={() => onSort("reset")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <HiAcademicCap className="h-4 w-4 text-black" />
+                  <span>RESET</span>
+                  {sortColumn === "reset" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="text-center py-3 px-4 text-xs font-normal text-black uppercase tracking-wide cursor-pointer hover:bg-[#fafafa] transition-colors"
+                onClick={() => onSort("conferencia")}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <HiCalendar className="h-4 w-4 text-black" />
+                  <span>CONFERENCIA</span>
+                  {sortColumn === "conferencia" && (
+                    sortDirection === "asc" ? <HiArrowUp className="h-4 w-4" /> : <HiArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupsStatistics.map((item, index) => {
+              const leaderNames = item.leaders.map((l) => l.name || l.email || "").join(" & ");
+              const firstLeader = item.leaders[0];
+              return (
+                <tr
+                  key={`${firstLeader._id}-${index}`}
+                  className="border-b border-[#e5e5e5] hover:bg-[#fafafa] transition-colors"
+                >
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-black flex items-center justify-center text-white font-normal text-sm">
+                        {(firstLeader.name || firstLeader.email || "U")[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-normal text-black">
+                          {leaderNames || "Sin nombre"}
+                        </p>
+                        {firstLeader.email && (
+                          <p className="text-xs font-normal text-[#666666] truncate max-w-[200px]">
+                            {firstLeader.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="text-sm font-normal text-black">
+                      {item.statistics.cursos}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="text-sm font-normal text-black">
+                      {item.statistics.reset}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="text-sm font-normal text-black">
+                      {item.statistics.conferencia}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Fila TOTAL */}
+            <tr className="border-t-2 border-black bg-[#fafafa] font-semibold">
+              <td className="py-3 px-4">
+                <span className="text-sm font-semibold text-black">TOTAL</span>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <span className="text-sm font-semibold text-black">{totals.cursos}</span>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <span className="text-sm font-semibold text-black">{totals.reset}</span>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <span className="text-sm font-semibold text-black">{totals.conferencia}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Cards para mobile */}
+      <div className="md:hidden grid grid-cols-1 gap-3">
+        {groupsStatistics.map((item, index) => {
+          const leaderNames = item.leaders.map((l) => l.name || l.email || "").join(" & ");
+          const firstLeader = item.leaders[0];
+          return (
+            <div
+              key={`${firstLeader._id}-${index}`}
+              className="flex items-start gap-3 p-3 border border-[#e5e5e5] bg-white"
+            >
+              <div className="flex-shrink-0 w-10 h-10 bg-black flex items-center justify-center text-white font-normal">
+                {(firstLeader.name || firstLeader.email || "U")[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-normal text-black mb-1">
+                  {leaderNames || "Sin nombre"}
+                </p>
+                {firstLeader.email && (
+                  <p className="text-xs font-normal text-[#666666] truncate mb-2">
+                    {firstLeader.email}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 text-xs flex-wrap font-normal">
+                  <span className="text-[#666666]">
+                    {item.statistics.cursos} curso{item.statistics.cursos !== 1 ? "s" : ""}
+                  </span>
+                  <span className="text-[#666666]">
+                    <HiAcademicCap className="h-3 w-3 inline mr-1 text-black" />
+                    {item.statistics.reset}
+                  </span>
+                  <span className="text-[#666666]">
+                    <HiCalendar className="h-3 w-3 inline mr-1 text-black" />
+                    {item.statistics.conferencia}
+                  </span>
+                </div>
+              </div>
             </div>
-          ))}
+          );
+        })}
+        {/* Card TOTAL para mobile */}
+        <div className="flex items-start gap-3 p-3 border-t-2 border-black bg-[#fafafa] font-semibold">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-black mb-2">TOTAL</p>
+            <div className="flex items-center gap-3 text-xs flex-wrap font-semibold">
+              <span className="text-black">
+                {totals.cursos} curso{totals.cursos !== 1 ? "s" : ""}
+              </span>
+              <span className="text-black">
+                <HiAcademicCap className="h-3 w-3 inline mr-1" />
+                {totals.reset}
+              </span>
+              <span className="text-black">
+                <HiCalendar className="h-3 w-3 inline mr-1" />
+                {totals.conferencia}
+              </span>
+            </div>
+          </div>
         </div>
-      </td>
-    </tr>
+      </div>
+    </>
   );
 }
 
-// Componente de card para mobile
-function LeaderCard({
-  item,
-  onClick,
+// Componente para la vista de grilla de grupos
+function GroupsGridView({
+  groups,
+  onGroupClick,
 }: {
-  item: {
-    user: { _id: Id<"users">; name?: string; email?: string };
-    groups: Array<{ _id: Id<"groups">; name: string; disciples: Array<unknown> }>;
-  };
-  onClick: () => void;
+  groups: Array<{
+    _id: Id<"groups">;
+    name: string;
+    leaders: Array<{ _id: Id<"users">; name?: string; email?: string }>;
+    statistics: { cursos: number; reset: number; conferencia: number };
+  }>;
+  onGroupClick: (groupId: Id<"groups">) => void;
 }) {
-  return (
-    <div
-      onClick={onClick}
-      className="flex items-start gap-3 p-3 border border-[#e5e5e5] bg-white hover:border-black cursor-pointer transition-colors"
-    >
-      <div className="flex-shrink-0 w-10 h-10 bg-black flex items-center justify-center text-white font-normal">
-        {(item.user.name || item.user.email || "U")[0].toUpperCase()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-normal text-black mb-1">
-          {item.user.name || "Sin nombre"}
-        </p>
-        {item.user.email && (
-          <p className="text-xs font-normal text-[#666666] truncate mb-2">{item.user.email}</p>
-        )}
-        <div className="space-y-1">
-          {item.groups.map((group) => (
-            <div key={group._id} className="text-xs font-normal text-[#666666]">
-              <span className="font-normal text-black">{group.name}</span>
-              <span className="text-[#999999] mx-1">•</span>
-              <span>{group.disciples.length} discípulo{group.disciples.length !== 1 ? "s" : ""}</span>
-            </div>
-          ))}
+  if (groups.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-black mb-6">
+          <HiUsers className="h-8 w-8 text-white" />
         </div>
+        <p className="text-sm font-normal text-[#666666]">
+          No hay grupos disponibles
+        </p>
       </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {groups.map((group) => {
+        const leaderNames = group.leaders.map((l) => l.name || l.email || "").join(" & ");
+        return (
+          <div
+            key={group._id}
+            onClick={() => onGroupClick(group._id)}
+            className="p-4 border border-[#e5e5e5] bg-white hover:border-black cursor-pointer transition-colors"
+          >
+            <h4 className="text-lg font-normal text-black mb-2 tracking-tight">
+              {group.name}
+            </h4>
+            <p className="text-sm font-normal text-[#666666] mb-3">
+              {leaderNames || "Sin líderes"}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// Modal de detalles del líder
-function LeaderDetailsModal({
-  leader,
+// Modal de detalles del grupo
+function GroupDetailsModal({
+  group,
   isOpen,
   onClose,
 }: {
-  leader: {
-    user: { _id: Id<"users">; name?: string; email?: string };
-    groups: Array<{
-      _id: Id<"groups">;
-      name: string;
-      address: string;
-      district: string;
-      minAge?: number;
-      maxAge?: number;
-      day: string;
-      time: string;
-      leaders: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
-      disciples: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
-    }>;
+  group: {
+    _id: Id<"groups">;
+    name: string;
+    address: string;
+    district: string;
+    minAge?: number;
+    maxAge?: number;
+    day: string;
+    time: string;
+    leaders: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
+    disciples: Array<{ _id: Id<"users">; name?: string; email?: string } | null>;
   };
   isOpen: boolean;
   onClose: () => void;
@@ -2827,145 +3064,104 @@ function LeaderDetailsModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Grupos de ${leader.user.name || leader.user.email || "Líder"}`}
+      title={group.name}
       maxWidth="3xl"
     >
       <div className="space-y-6">
-        {/* Información del líder */}
-        <div className="border-b border-[#e5e5e5] pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex-shrink-0 w-12 h-12 bg-black flex items-center justify-center text-white font-normal">
-              {(leader.user.name || leader.user.email || "U")[0].toUpperCase()}
+        {/* Información del grupo */}
+        <div className="space-y-2 text-sm font-normal text-[#666666]">
+          <div className="flex items-center gap-2">
+            <HiLocationMarker className="h-4 w-4" />
+            <span>{group.address}</span>
+          </div>
+          <p className="ml-6">{group.district}</p>
+          {(group.minAge || group.maxAge) && (
+            <p className="ml-6">
+              <span className="font-normal text-black">Edad:</span>{" "}
+              {group.minAge && group.maxAge
+                ? `${group.minAge} - ${group.maxAge} años`
+                : group.minAge
+                ? `Desde ${group.minAge} años`
+                : `Hasta ${group.maxAge} años`}
+            </p>
+          )}
+          <div className="flex items-center gap-4 ml-6">
+            <div className="flex items-center gap-1">
+              <HiCalendar className="h-4 w-4" />
+              <span>{group.day}</span>
             </div>
-            <div>
-              <p className="text-lg font-normal text-black tracking-tight">
-                {leader.user.name || "Sin nombre"}
-              </p>
-              {leader.user.email && (
-                <p className="text-sm font-normal text-[#666666]">{leader.user.email}</p>
-              )}
+            <div className="flex items-center gap-1">
+              <HiClock className="h-4 w-4" />
+              <span>{group.time}</span>
             </div>
           </div>
-          <p className="text-sm font-normal text-[#666666] mt-2">
-            Líder de {leader.groups.length} grupo{leader.groups.length !== 1 ? "s" : ""}
-          </p>
         </div>
 
-        {/* Lista de grupos */}
-        {leader.groups.length === 0 ? (
-          <div className="text-center py-8">
-            <HiUsers className="h-12 w-12 mx-auto mb-2 text-[#999999]" />
-            <p className="text-sm font-normal text-[#666666]">No tiene grupos asignados</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {leader.groups.map((group) => (
-              <div
-                key={group._id}
-                className="bg-[#fafafa] border border-[#e5e5e5] p-5"
-              >
-                {/* Información del grupo */}
-                <div className="mb-4">
-                  <h4 className="text-lg font-normal text-black mb-2 tracking-tight">
-                    {group.name}
-                  </h4>
-                  <div className="space-y-2 text-sm font-normal text-[#666666]">
-                    <div className="flex items-center gap-2">
-                      <HiLocationMarker className="h-4 w-4" />
-                      <span>{group.address}</span>
-                    </div>
-                    <p className="ml-6">{group.district}</p>
-                    {(group.minAge || group.maxAge) && (
-                      <p className="ml-6">
-                        <span className="font-normal text-black">Edad:</span>{" "}
-                        {group.minAge && group.maxAge
-                          ? `${group.minAge} - ${group.maxAge} años`
-                          : group.minAge
-                          ? `Desde ${group.minAge} años`
-                          : `Hasta ${group.maxAge} años`}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 ml-6">
-                      <div className="flex items-center gap-1">
-                        <HiCalendar className="h-4 w-4" />
-                        <span>{group.day}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <HiClock className="h-4 w-4" />
-                        <span>{group.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Líderes del grupo */}
-                {group.leaders.length > 0 && (
-                  <div className="mb-4 pb-4 border-b border-[#e5e5e5]">
-                    <p className="text-xs font-normal text-black mb-2 uppercase tracking-wide">
-                      Líderes ({group.leaders.filter(Boolean).length})
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {group.leaders
-                        .filter((l): l is NonNullable<typeof l> => l !== null)
-                        .map((leader) => (
-                          <span
-                            key={leader._id}
-                            className="inline-flex items-center px-3 py-1 bg-blue-50 text-black border border-blue-200 text-sm font-normal"
-                          >
-                            {leader.name || leader.email || "Sin nombre"}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Discípulos del grupo */}
-                <div>
-                  <p className="text-xs font-normal text-black mb-3 uppercase tracking-wide">
-                    Discípulos ({group.disciples.filter(Boolean).length})
-                  </p>
-                  {group.disciples.filter(Boolean).length === 0 ? (
-                    <p className="text-sm font-normal text-[#666666]">
-                      Aún no hay discípulos en este grupo
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {group.disciples
-                        .filter((d): d is NonNullable<typeof d> => d !== null)
-                        .map((disciple) => {
-                          const discipleGender = (disciple as any).gender;
-                          return (
-                            <div
-                              key={disciple._id}
-                              className="flex items-center gap-3 p-2 bg-white border border-[#e5e5e5]"
-                            >
-                              <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center font-normal text-sm ${
-                                discipleGender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
-                              }`}>
-                                {(disciple.name || disciple.email || "U")[0].toUpperCase()}
-                              </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-normal text-black">
-                                {disciple.name || "Sin nombre"}
-                              </p>
-                              {disciple.email && (
-                                <p className="text-xs font-normal text-[#666666] truncate">
-                                  {disciple.email}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+        {/* Líderes del grupo */}
+        {group.leaders.length > 0 && (
+          <div className="pb-4 border-b border-[#e5e5e5]">
+            <p className="text-xs font-normal text-black mb-2 uppercase tracking-wide">
+              Líderes ({group.leaders.filter(Boolean).length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {group.leaders
+                .filter((l): l is NonNullable<typeof l> => l !== null)
+                .map((leader) => (
+                  <span
+                    key={leader._id}
+                    className="inline-flex items-center px-3 py-1 bg-blue-50 text-black border border-blue-200 text-sm font-normal"
+                  >
+                    {leader.name || leader.email || "Sin nombre"}
+                  </span>
+                ))}
+            </div>
           </div>
         )}
+
+        {/* Discípulos del grupo */}
+        <div>
+          <p className="text-xs font-normal text-black mb-3 uppercase tracking-wide">
+            Discípulos ({group.disciples.filter(Boolean).length})
+          </p>
+          {group.disciples.filter(Boolean).length === 0 ? (
+            <p className="text-sm font-normal text-[#666666]">
+              Aún no hay discípulos en este grupo
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {group.disciples
+                .filter((d): d is NonNullable<typeof d> => d !== null)
+                .map((disciple) => {
+                  const discipleGender = (disciple as any).gender;
+                  return (
+                    <div
+                      key={disciple._id}
+                      className="flex items-center gap-3 p-2 bg-white border border-[#e5e5e5]"
+                    >
+                      <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center font-normal text-sm ${
+                        discipleGender === "Male" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                      }`}>
+                        {(disciple.name || disciple.email || "U")[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-normal text-black">
+                          {disciple.name || "Sin nombre"}
+                        </p>
+                        {disciple.email && (
+                          <p className="text-xs font-normal text-[#666666] truncate">
+                            {disciple.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );
 }
+
 

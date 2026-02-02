@@ -128,7 +128,6 @@ export function SignIn() {
     setIsLoading(true);
     try {
       await signIn("password", formData);
-      console.log("signIn successful");
       navigate("/dashboard");
     } catch (error) {
       console.error(error);
@@ -144,10 +143,9 @@ export function SignIn() {
         {/* Logo/Brand */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center">
-            <img src="/logo.png" alt="Crossmunity" className="h-24 w-24 mb-2" />
+            <img src="/logo.png" alt="Radar Cervantes" className=" w-24 mb-2" />
           </div>
-          <h1 className="text-3xl font-normal text-black mb-2 tracking-tight">Crossmunity</h1>
-          <p className="text-sm text-[#666666] font-normal">
+          <p className="text-md font-semibold my-2 uppercase tracking-wide text-[#666666] font-normal">
             {step === "signIn"
               ? "Bienvenido de vuelta"
               : "Crea tu cuenta para comenzar"}
